@@ -30,10 +30,6 @@ func ConvertChatMessage(msg model.ChatMessage) ChatMessageDTO {
 	}
 }
 
-func GetLatestAdBanner() ([]model.AdBanner, error) {
-	return repository.GetLatestAdBanner()
-}
-
 func GetSystemMsgList(uid string) ([]model.SystemMsg, error) {
 	user, err := repository.GetUserByUID(uid)
 	if err != nil {
@@ -97,20 +93,6 @@ func SetMessageTop(uid, targetUID string, flag int) error {
 	}
 
 	return repository.SetMessageTop(user.ID, target.ID, flag)
-}
-
-func AddFriend(uid, targetUID string, flag int) error {
-	user, err := repository.GetUserByUID(uid)
-	if err != nil {
-		return fmt.Errorf("用户不存在")
-	}
-
-	target, err := repository.GetUserByUID(targetUID)
-	if err != nil {
-		return fmt.Errorf("目标用户不存在")
-	}
-
-	return repository.AddFriend(user.ID, target.ID, flag)
 }
 
 func ClearChatHistory(uid, targetUID string) error {
@@ -182,6 +164,7 @@ func SendVideoMessage(senderUID, receiverUID string, fileURL string) error {
 
 	return repository.SendVideoMessage(sender.ID, receiver.ID, fileURL)	
 }
+
 func SendVoiceMessage(senderUID, receiverUID string, fileURL string) error {
 	sender, err := repository.GetUserByUID(senderUID)
 	if err != nil {
@@ -208,18 +191,4 @@ func SendFileMessage(senderUID, receiverUID string, fileURL string) error {
 	}
 
 	return repository.SendFileMessage(sender.ID, receiver.ID, fileURL)
-}
-
-func SendGift(senderUID, receiverUID string, giftID uint) error {
-	sender, err := repository.GetUserByUID(senderUID)
-	if err != nil {
-		return fmt.Errorf("发送者不存在")
-	}
-
-	receiver, err := repository.GetUserByUID(receiverUID)
-	if err != nil {
-		return fmt.Errorf("接收者不存在")
-	}
-
-	return repository.SendGift(sender.ID, receiver.ID, giftID)
 }

@@ -1,0 +1,95 @@
+package handler
+
+import (
+	"backend/internal/middleware"
+	"backend/internal/service"
+	"backend/pkg/response"
+
+	"github.com/gin-gonic/gin"
+)
+
+func CollectMyInfo(c *gin.Context) {
+	userID := middleware.GetUID(c)
+
+	var req struct {
+		RegCountry     string   `json:"regcountry"`
+		MyLang         string   `json:"mylang"`
+		Nickname       string   `json:"nickname"`
+		BirthYear      int      `json:"birthyear"`
+		Gender         int      `json:"gender"`
+		Height         int      `json:"height"`
+		Weight         int      `json:"weight"`
+		City           string   `json:"city"`
+		School         string   `json:"school"`
+		Job            string   `json:"job"`
+		EduLevel       int      `json:"edulevel"`
+		StarSign       int      `json:"starsign"`
+		Favors         []string `json:"favors"`
+		DatingPurposes []string `json:"dating_purposes"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "参数错误")
+		return
+	}
+
+	info := make(map[string]interface{})
+	info["regcountry"] = req.RegCountry
+	info["mylang"] = req.MyLang
+	info["nickname"] = req.Nickname
+	info["birthyear"] = req.BirthYear
+	info["gender"] = req.Gender
+	info["height"] = req.Height
+	info["weight"] = req.Weight
+	info["city"] = req.City
+	info["school"] = req.School
+	info["job"] = req.Job
+	info["edulevel"] = req.EduLevel
+	info["starsign"] = req.StarSign
+	info["favors"] = req.Favors
+	info["dating_purposes"] = req.DatingPurposes
+
+	err := service.CollectMyInfo(userID, info)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func CollectAimInfo(c *gin.Context) {
+	userID := middleware.GetUID(c)
+
+	var req struct {
+		BirthYear []string `json:"birthyear"`
+		Gender    int      `json:"gender"`
+		Height    []string `json:"height"`
+		Weight    string   `json:"weight"`
+		EduLevel  []string `json:"edulevel"`
+		StarSign  []string `json:"starsign"`
+		Favors    []string `json:"favors"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "参数错误")
+		return
+	}
+
+	info := make(map[string]interface{})
+	info["birthyear"] = req.BirthYear
+	info["gender"] = req.Gender
+	info["height"] = req.Height
+	info["weight"] = req.Weight
+	info["edulevel"] = req.EduLevel
+	info["starsign"] = req.StarSign
+	info["favors"] = req.Favors
+
+	err := service.CollectAimInfo(userID, info)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}

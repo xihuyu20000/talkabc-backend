@@ -8,10 +8,14 @@ import (
 	"time"
 )
 
+// ==================== 常量定义 ====================
+
 const (
 	onlineKeyPrefix = "online:user:" // Redis在线状态Key前缀
 	onlineExpire    = 90 * time.Second // 在线状态过期时间（心跳超时阈值）
 )
+
+// ==================== Hub 结构体 ====================
 
 // Hub WebSocket连接管理器
 // 负责管理所有WebSocket客户端连接，处理客户端注册、注销和消息广播
@@ -41,6 +45,8 @@ func init() {
 func GetHub() *Hub {
 	return hub
 }
+
+// ==================== Hub 核心方法 ====================
 
 // Register 注册客户端连接
 // 参数说明：
@@ -109,6 +115,8 @@ func (h *Hub) removeClient(client *Client) {
 		}
 	}
 }
+
+// ==================== Redis 在线状态管理 ====================
 
 // getOnlineKey 生成在线状态Redis键名
 // 参数说明：
@@ -184,17 +192,6 @@ func (h *Hub) broadcastOnlineStatus(uid string, online int) {
 	}
 }
 
-// SendToUser 向指定用户发送消息
-// 参数说明：
-//   - uid: 目标用户UID
-//   - msg: 要发送的消息
-//
-// 逻辑：
-//   将消息发送到broadcast通道，由Run协程处理分发
-func (h *Hub) SendToUser(uid string, msg *WSMessage) {
-	h.broadcast <- msg
-}
-
 // IsOnline 检查用户是否在线
 // 参数说明：
 //   - uid: 用户UID
@@ -243,6 +240,19 @@ func (h *Hub) GetOnlineDevices(uid string) []string {
 		return []string{}
 	}
 	return result
+}
+
+// ==================== 消息发送接口 ====================
+
+// SendToUser 向指定用户发送消息
+// 参数说明：
+//   - uid: 目标用户UID
+//   - msg: 要发送的消息
+//
+// 逻辑：
+//   将消息发送到broadcast通道，由Run协程处理分发
+func (h *Hub) SendToUser(uid string, msg *WSMessage) {
+	h.broadcast <- msg
 }
 
 // SendChatMessage 发送聊天消息
@@ -372,6 +382,8 @@ func SendSystemMessage(toUID string, content string) {
 	GetHub().SendToUser(toUID, msg)
 }
 
+// ==================== 在线状态查询接口 ====================
+
 // GetOnlineStatus 获取用户在线状态
 // 参数说明：
 //   - uid: 用户UID
@@ -383,17 +395,6 @@ func GetOnlineStatus(uid string) int {
 		return 1
 	}
 	return 0
-}
-
-// MarshalMessage 将消息序列化为JSON字节数组
-// 参数说明：
-//   - msg: 要序列化的消息
-//
-// 返回值：
-//   - []byte: JSON字节数组
-func MarshalMessage(msg *WSMessage) []byte {
-	data, _ := json.Marshal(msg)
-	return data
 }
 
 // GetOnlineDeviceCount 获取用户在线设备数量
@@ -456,4 +457,17 @@ func GetOnlineUsers() []string {
 		users = append(users, strings.TrimPrefix(key, onlineKeyPrefix))
 	}
 	return users
+}
+
+// ==================== 消息工具函数 ====================
+
+// MarshalMessage 将消息序列化为JSON字节数组
+// 参数说明：
+//   - msg: 要序列化的消息
+//
+// 返回值：
+//   - []byte: JSON字节数组
+func MarshalMessage(msg *WSMessage) []byte {
+	data, _ := json.Marshal(msg)
+	return data
 }

@@ -11,12 +11,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// ==================== 常量定义 ====================
+
 const (
 	writeWait      = 10 * time.Second  // 写入超时时间
 	pongWait       = 90 * time.Second  // 接收pong响应超时时间（心跳超时阈值）
 	pingPeriod     = 30 * time.Second  // 客户端心跳发送周期，每30s发送一次ping
 	maxMessageSize = 512               // 最大消息大小限制（字节）
 )
+
+// ==================== 全局变量 ====================
 
 // upgrader WebSocket连接升级器
 // 将HTTP连接升级为WebSocket连接，配置读写缓冲区大小
@@ -27,6 +31,8 @@ var upgrader = websocket.Upgrader{
 		return true // 允许所有来源的连接（生产环境应根据实际需求配置）
 	},
 }
+
+// ==================== Client 结构体 ====================
 
 // Client WebSocket客户端连接结构体
 // 每个客户端连接对应一个Client实例，管理连接生命周期和消息处理
@@ -56,6 +62,8 @@ func NewClient(hub *Hub, conn *websocket.Conn, uid string, deviceId string) *Cli
 		send:     make(chan *WSMessage, 256), // 消息通道缓冲区大小为256
 	}
 }
+
+// ==================== 连接生命周期管理 ====================
 
 // ReadPump 读取消息协程
 // 持续从WebSocket连接读取客户端发送的消息
@@ -92,6 +100,56 @@ func (c *Client) ReadPump() {
 		c.handleMessage(message)
 	}
 }
+
+// WritePump 写入消息协程
+// 持续从send通道读取消息并发送给客户端，同时定期发送ping心跳
+//
+// 处理逻辑：
+//   1. 监听send通道，发送消息给客户端
+//   2. 每30秒发送一次ping消息，检测客户端是否在线
+//   3. 发送失败时关闭连接
+func (c *Client) WritePump() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			w, err := c.conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				return
+			}
+			w.Write(MarshalMessage(message))
+
+			if err := w.Close(); err != nil {
+				return
+			}
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+// Close 关闭客户端连接
+// 关闭消息通道和WebSocket连接
+func (c *Client) Close() {
+	close(c.send)
+	c.conn.Close()
+}
+
+// ==================== 消息分发器 ====================
 
 // handleMessage 处理收到的消息
 // 参数说明：
@@ -134,6 +192,8 @@ func (c *Client) handleMessage(data []byte) {
 		c.handleReportMoment(msg)
 	}
 }
+
+// ==================== 聊天消息处理 ====================
 
 // handleSendText 处理发送文本消息
 // 参数说明：
@@ -347,6 +407,8 @@ func (c *Client) handleSendWithdraw(msg WSMessage) {
 	SendWithdrawMessage(toUID, c.uid, uint(msgID))
 }
 
+// ==================== 用户互动处理 ====================
+
 // handleFocusUser 处理关注/取消关注用户
 // 参数说明：
 //   - msg: WebSocket消息
@@ -430,6 +492,8 @@ func (c *Client) handleLikeUser(msg WSMessage) {
 		return
 	}
 }
+
+// ==================== 动态互动处理 ====================
 
 // handlePraiseMoment 处理点赞/取消点赞动态
 // 参数说明：
@@ -518,52 +582,4 @@ func (c *Client) handleReportMoment(msg WSMessage) {
 		logger.Error("websocket report moment error: %v", err)
 		return
 	}
-}
-
-// WritePump 写入消息协程
-// 持续从send通道读取消息并发送给客户端，同时定期发送ping心跳
-//
-// 处理逻辑：
-//   1. 监听send通道，发送消息给客户端
-//   2. 每30秒发送一次ping消息，检测客户端是否在线
-//   3. 发送失败时关闭连接
-func (c *Client) WritePump() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		c.conn.Close()
-	}()
-
-	for {
-		select {
-		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			w.Write(MarshalMessage(message))
-
-			if err := w.Close(); err != nil {
-				return
-			}
-		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
-		}
-	}
-}
-
-// Close 关闭客户端连接
-// 关闭消息通道和WebSocket连接
-func (c *Client) Close() {
-	close(c.send)
-	c.conn.Close()
 }

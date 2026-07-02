@@ -9,14 +9,6 @@ import (
 	"github.com/gin-gonic/gin"    // Gin Web框架
 )
 
-// InitRouter 初始化路由配置
-// 返回值：
-//   - *gin.Engine: 配置好的Gin引擎实例
-//
-// 路由分组说明：
-//   - 所有API都在/api/v1路径下
-//   - 分为公开接口（无需认证）和私有接口（需要JWT认证）
-//   - 使用路由分组统一添加中间件，避免每个接口重复配置
 func initCORSConfig() cors.Config {
 	cfg := cors.Config{
 		AllowMethods:     config.AppConfig.CORS.Methods,
@@ -42,81 +34,87 @@ func InitRouter() *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(initCORSConfig()))
-	
 
 	apiV1 := r.Group("/api/v1")
 	{
-		// ==================== 公开接口（无需认证） ====================
 		public := apiV1.Group("/")
 		{
-			// 系统模块 - 公开接口
-			public.GET("/sys/code-sms", handler.SendSMSCode)
-			public.GET("/sys/code-alnum", handler.GenerateAlnumCode)
-			public.POST("/sys/register", handler.Register)
-			public.POST("/sys/login-code", handler.LoginByCode)
-			public.POST("/sys/login-pwd", handler.LoginByPassword)
-			public.POST("/sys/reset-pwd", handler.ResetPassword)
+			// ==================== auth & sms ====================
+			public.GET("/auth/code-sms", handler.SendSMSCode)
+			public.GET("/auth/code-alnum", handler.GenerateAlnumCode)
+			public.POST("/auth/register", handler.Register)
+			public.POST("/auth/login/code", handler.LoginByCode)
+			public.POST("/auth/login/password", handler.LoginByPassword)
+			public.POST("/auth/reset-password", handler.ResetPassword)
 		}
 
-		// ==================== 私有接口（需要JWT认证） ====================
-		// 在组级别统一添加JWT中间件，组内所有接口自动继承
 		private := apiV1.Group("/", middleware.JWT())
 		{
-			// 系统模块 - 认证接口
-			private.POST("/sys/logout", handler.Logout)
+			// ==================== auth ====================
+			private.POST("/auth/logout", handler.Logout)
 
-			// 用户模块（关注/拉黑改用 WebSocket）
-			private.GET("/user/users", handler.GetUserList)
-			private.GET("/user/info/:uid", handler.GetUserInfo)
-			private.GET("/user/focuslist/:uid", handler.GetFocusList)
-			private.GET("/user/fanslist/:uid", handler.GetFansList)
-			private.POST("/user/notify/:uid/:flag", handler.SetUserNotify)
-			private.POST("/user/greet/:uid", handler.GreetUser)
-			private.POST("/user/upload-avatar", handler.UploadAvatar)
-			private.POST("/user/collect-myinfo", handler.CollectMyInfo)
-			private.POST("/user/collect-aiminfo", handler.CollectAimInfo)
-			private.GET("/user/adbanner", handler.GetLatestAdBanner)
-			private.POST("/user/gift/:uid/:giftid", handler.SendGift)
-			private.GET("/user/praise-me", handler.GetPraiseMeList)
-			private.GET("/user/comment-me", handler.GetCommentMeList)
-			private.GET("/user/add-me", handler.GetAddMeList)
-			private.GET("/user/visit-me", handler.GetVisitMeList)
-			private.GET("/user/like-me", handler.GetLikeMeList)
-			private.POST("/user/agree-friend/:uid/:flag", handler.AgreeFriendRequest)
-			private.POST("/user/add/:uid/:flag", handler.AddFriend)
+			// ==================== users ====================
+			private.GET("/users", handler.GetUserList)
+			private.GET("/users/:uid", handler.GetUserInfo)
+			private.GET("/users/:uid/following", handler.GetFocusList)
+			private.GET("/users/:uid/fans", handler.GetFansList)
+			private.POST("/users/:uid/greet", handler.GreetUser)
+			private.POST("/users/:uid/notification/:flag", handler.SetUserNotify)
 
-			// 聊天消息模块（消息收发改用 WebSocket）
-			private.GET("/msg/sysmsgs", handler.GetSystemMsgList)
-			private.GET("/msg/latest", handler.GetLatestUserMsg)
-			private.GET("/msg/:uid", handler.GetUserMsgHistory)
-			private.POST("/msg/pintop/:uid/:flag", handler.SetMessageTop)
-			private.POST("/msg/clear/:uid", handler.ClearChatHistory)
+			// ==================== profile ====================
+			private.POST("/profile/me", handler.CollectMyInfo)
+			private.POST("/profile/preferences", handler.CollectAimInfo)
 
-			// 文件上传模块（上传后通过 WebSocket 发送消息）
-			private.POST("/upload/image", handler.UploadImage)
-			private.POST("/upload/audio", handler.UploadAudio)
-			private.POST("/upload/video", handler.UploadVideo)
-			private.POST("/upload/file", handler.UploadFile)
+			// ==================== uploads ====================
+			private.POST("/users/avatar", handler.UploadAvatar)
+			private.POST("/uploads/image", handler.UploadImage)
+			private.POST("/uploads/audio", handler.UploadAudio)
+			private.POST("/uploads/video", handler.UploadVideo)
+			private.POST("/uploads/file", handler.UploadFile)
 
-			// 动态模块（点赞/评论/举报改用 WebSocket）
-			private.GET("/moment/latest", handler.GetLatestMoment)
-			private.GET("/moment/user/:uid/latest", handler.GetUserMoment)
-			private.GET("/moment/:mid/comments", handler.GetMomentComments)
+			// ==================== notifications ====================
+			private.GET("/notifications/praise", handler.GetPraiseMeList)
+			private.GET("/notifications/comment", handler.GetCommentMeList)
+			private.GET("/notifications/friend", handler.GetAddMeList)
+			private.GET("/notifications/visit", handler.GetVisitMeList)
+			private.GET("/notifications/like", handler.GetLikeMeList)
 
-			// 钻石模块
-			private.POST("/diamond/buy/:did", handler.BuyDiamond)
-			private.GET("/diamond/stock", handler.GetDiamondStock)
-			private.GET("/diamond/history", handler.GetDiamondHistory)
+			// ==================== friendships ====================
+			private.POST("/friendships/:uid/:flag", handler.AddFriend)
+			private.POST("/friendships/agree/:uid/:flag", handler.AgreeFriendRequest)
 
-			// 会员模块
-			private.POST("/member/buy/:vid", handler.BuyMember)
-			private.GET("/member/history", handler.GetMemberHistory)
+			// ==================== ads ====================
+			private.GET("/ads/latest", handler.GetLatestAdBanner)
+
+			// ==================== gifts ====================
+			private.POST("/gifts/send/:uid/:giftid", handler.SendGift)
+
+			// ==================== messages ====================
+			private.GET("/messages/system", handler.GetSystemMsgList)
+			private.GET("/messages/latest", handler.GetLatestUserMsg)
+			private.GET("/messages/:uid", handler.GetUserMsgHistory)
+			private.POST("/messages/top/:uid/:flag", handler.SetMessageTop)
+			private.DELETE("/messages/:uid", handler.ClearChatHistory)
+
+			// ==================== moments ====================
+			private.GET("/moments/latest", handler.GetLatestMoment)
+			private.GET("/users/:uid/moments", handler.GetUserMoment)
+			private.GET("/moments/:mid/comments", handler.GetMomentComments)
+
+			// ==================== diamonds ====================
+			private.POST("/diamonds/buy/:did", handler.BuyDiamond)
+			private.GET("/diamonds/stock", handler.GetDiamondStock)
+			private.GET("/diamonds/history", handler.GetDiamondHistory)
+
+			// ==================== memberships ====================
+			private.POST("/memberships/buy/:vid", handler.BuyMember)
+			private.GET("/memberships/history", handler.GetMemberHistory)
 		}
 	}
 
 	r.Static("/uploads", "./uploads")
 
-	// ==================== WebSocket模块 ====================
+	// ==================== websocket ====================
 	r.GET("/ws", handler.WebSocketHandler)
 
 	return r
