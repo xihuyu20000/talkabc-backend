@@ -1,12 +1,15 @@
 package router
 
 import (
+	_ "backend/docs"
 	"backend/internal/config"     // 配置模块
 	"backend/internal/handler"    // 处理器函数
 	"backend/internal/middleware" // 中间件（JWT认证等）
 
 	"github.com/gin-contrib/cors" // CORS跨域资源共享
 	"github.com/gin-gonic/gin"    // Gin Web框架
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func initCORSConfig() cors.Config {
@@ -111,6 +114,8 @@ func InitRouter() *gin.Engine {
 			private.GET("/memberships/history", handler.GetMemberHistory)
 		}
 	}
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/swagger/doc.json")))
 
 	r.Static("/uploads", "./uploads")
 

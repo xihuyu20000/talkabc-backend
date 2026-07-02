@@ -8,6 +8,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CollectMyInfo 完善个人信息
+// @Summary 完善个人信息
+// @Description 用户完善个人资料信息
+// @Tags 个人资料
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Param body body map[string]interface{} true "个人信息"
+// @Success 200 {object} map[string]interface{} "保存成功"
+// @Failure 400 {object} map[string]interface{} "参数错误"
+// @Failure 500 {object} map[string]interface{} "保存失败"
+// @Router /api/v1/profile/me [post]
 func CollectMyInfo(c *gin.Context) {
 	userID := middleware.GetUID(c)
 
@@ -58,6 +70,18 @@ func CollectMyInfo(c *gin.Context) {
 	response.Success(c, nil)
 }
 
+// CollectAimInfo 设置理想对象条件
+// @Summary 设置理想对象条件
+// @Description 用户设置理想对象的筛选条件
+// @Tags 个人资料
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Param body body map[string]interface{} true "理想对象条件"
+// @Success 200 {object} map[string]interface{} "保存成功"
+// @Failure 400 {object} map[string]interface{} "参数错误"
+// @Failure 500 {object} map[string]interface{} "保存失败"
+// @Router /api/v1/profile/preferences [post]
 func CollectAimInfo(c *gin.Context) {
 	userID := middleware.GetUID(c)
 

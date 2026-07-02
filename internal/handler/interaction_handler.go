@@ -8,16 +8,16 @@ import (
 	"strconv"
 )
 
-// GetPraiseMeList 获取赞我的列表接口
-// 请求方式：GET
-// 请求路径：/v1/notify/praiseme
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：赞我的用户列表
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetPraiseMeList 查询赞我的用户
-//   3. 返回用户列表数据
+// GetPraiseMeList 获取赞我的列表
+// @Summary 获取赞我的列表
+// @Description 获取赞我动态的用户列表
+// @Tags 互动通知
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /api/v1/notifications/praise-me [get]
 func GetPraiseMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -30,16 +30,16 @@ func GetPraiseMeList(c *gin.Context) {
 	response.Success(c, list)
 }
 
-// GetCommentMeList 获取评论我的列表接口
-// 请求方式：GET
-// 请求路径：/v1/notify/commentme
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：评论我的用户列表
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetCommentMeList 查询评论我的用户
-//   3. 返回用户列表数据
+// GetCommentMeList 获取评论我的列表
+// @Summary 获取评论我的列表
+// @Description 获取评论我动态的用户列表
+// @Tags 互动通知
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /api/v1/notifications/comment-me [get]
 func GetCommentMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -52,16 +52,16 @@ func GetCommentMeList(c *gin.Context) {
 	response.Success(c, list)
 }
 
-// GetAddMeList 获取添加我的列表接口
-// 请求方式：GET
-// 请求路径：/v1/notify/addme
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：添加我为好友的用户列表
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetAddMeList 查询添加我的用户
-//   3. 返回用户列表数据
+// GetAddMeList 获取添加我的列表
+// @Summary 获取添加我的列表
+// @Description 获取添加我为好友的用户列表
+// @Tags 互动通知
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /api/v1/notifications/add-me [get]
 func GetAddMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -74,16 +74,16 @@ func GetAddMeList(c *gin.Context) {
 	response.Success(c, list)
 }
 
-// GetVisitMeList 获取访问我的列表接口
-// 请求方式：GET
-// 请求路径：/v1/notify/visitme
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：访问我主页的用户列表
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetVisitMeList 查询访问我的用户
-//   3. 返回用户列表数据
+// GetVisitMeList 获取访问我的列表
+// @Summary 获取访问我的列表
+// @Description 获取访问我主页的用户列表
+// @Tags 互动通知
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /api/v1/notifications/visit-me [get]
 func GetVisitMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -96,16 +96,16 @@ func GetVisitMeList(c *gin.Context) {
 	response.Success(c, list)
 }
 
-// GetLikeMeList 获取喜欢我的列表接口
-// 请求方式：GET
-// 请求路径：/v1/notify/likeme
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：喜欢我的用户列表
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetLikeMeList 查询喜欢我的用户
-//   3. 返回用户列表数据
+// GetLikeMeList 获取喜欢我的列表
+// @Summary 获取喜欢我的列表
+// @Description 获取喜欢我的用户列表
+// @Tags 互动通知
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /api/v1/notifications/like-me [get]
 func GetLikeMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -118,20 +118,19 @@ func GetLikeMeList(c *gin.Context) {
 	response.Success(c, list)
 }
 
-// AgreeFriendRequest 同意好友请求接口
-// 请求方式：POST
-// 请求路径：/v1/agreefriend/:uid/:flag
-// 请求参数：
-//   - uid: 请求好友的用户ID（路径参数）
-//   - flag: 操作标志，1=同意，0=拒绝（路径参数）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：操作结果
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 从路径参数获取请求用户ID和操作标志
-//   3. 调用 service.AgreeFriendRequest 执行同意或拒绝操作
-//   4. 返回操作结果
+// AgreeFriendRequest 同意好友请求
+// @Summary 同意好友请求
+// @Description 同意或拒绝好友请求
+// @Tags 互动通知
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Param uid path string true "请求好友的用户UID"
+// @Param flag path string true "操作标志：1-同意，0-拒绝"
+// @Success 200 {object} map[string]interface{} "操作成功"
+// @Failure 400 {object} map[string]interface{} "参数错误"
+// @Failure 500 {object} map[string]interface{} "操作失败"
+// @Router /api/v1/notifications/friend-request/{uid}/{flag} [post]
 func AgreeFriendRequest(c *gin.Context) {
 	userID := middleware.GetUID(c)
 	targetID := c.Param("uid")

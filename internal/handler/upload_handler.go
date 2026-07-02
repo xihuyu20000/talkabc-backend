@@ -7,12 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// UploadAvatar 上传头像接口
-// 请求方式：POST
-// 请求路径：/v1/user/upload-avatar
-// 请求参数：file - 头像图片文件（multipart/form-data）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：操作结果，包含头像URL
+// UploadAvatar 上传头像
+// @Summary 上传头像
+// @Description 用户上传个人头像
+// @Tags 文件上传
+// @Accept multipart/form-data
+// @Produce application/json
+// @Security BearerAuth
+// @Param file formData file true "头像图片文件"
+// @Success 200 {object} map[string]interface{} "上传成功，返回头像URL"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 500 {object} map[string]interface{} "上传失败"
+// @Router /api/v1/users/avatar [post]
 func UploadAvatar(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -46,12 +52,18 @@ func UploadAvatar(c *gin.Context) {
 	response.Success(c, gin.H{"avatar_url": avatarURL})
 }
 
-// UploadImage 上传图片接口
-// 请求方式：POST
-// 请求路径：/v1/upload/image
-// 请求参数：file - 图片文件（multipart/form-data）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：上传成功返回文件URL，失败返回错误信息
+// UploadImage 上传图片
+// @Summary 上传图片
+// @Description 上传图片文件
+// @Tags 文件上传
+// @Accept multipart/form-data
+// @Produce application/json
+// @Security BearerAuth
+// @Param file formData file true "图片文件"
+// @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 500 {object} map[string]interface{} "上传失败"
+// @Router /api/v1/uploads/image [post]
 func UploadImage(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -69,12 +81,18 @@ func UploadImage(c *gin.Context) {
 	response.Success(c, gin.H{"file_url": fileURL})
 }
 
-// UploadAudio 上传音频文件接口
-// 请求方式：POST
-// 请求路径：/v1/upload/audio
-// 请求参数：file - 音频文件（multipart/form-data）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：上传成功返回文件URL，失败返回错误信息
+// UploadAudio 上传音频
+// @Summary 上传音频
+// @Description 上传音频文件
+// @Tags 文件上传
+// @Accept multipart/form-data
+// @Produce application/json
+// @Security BearerAuth
+// @Param file formData file true "音频文件"
+// @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 500 {object} map[string]interface{} "上传失败"
+// @Router /api/v1/uploads/audio [post]
 func UploadAudio(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -92,12 +110,18 @@ func UploadAudio(c *gin.Context) {
 	response.Success(c, gin.H{"file_url": fileURL})
 }
 
-// UploadVideo 上传视频文件接口
-// 请求方式：POST
-// 请求路径：/v1/upload/video
-// 请求参数：file - 视频文件（multipart/form-data）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：上传成功返回文件URL，失败返回错误信息
+// UploadVideo 上传视频
+// @Summary 上传视频
+// @Description 上传视频文件
+// @Tags 文件上传
+// @Accept multipart/form-data
+// @Produce application/json
+// @Security BearerAuth
+// @Param file formData file true "视频文件"
+// @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 500 {object} map[string]interface{} "上传失败"
+// @Router /api/v1/uploads/video [post]
 func UploadVideo(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -115,12 +139,18 @@ func UploadVideo(c *gin.Context) {
 	response.Success(c, gin.H{"file_url": fileURL})
 }
 
-// UploadFile 上传文件接口
-// 请求方式：POST
-// 请求路径：/v1/upload/file
-// 请求参数：file - 文件（multipart/form-data）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：上传成功返回文件URL，失败返回错误信息
+// UploadFile 上传文件
+// @Summary 上传文件
+// @Description 上传通用文件
+// @Tags 文件上传
+// @Accept multipart/form-data
+// @Produce application/json
+// @Security BearerAuth
+// @Param file formData file true "文件"
+// @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 500 {object} map[string]interface{} "上传失败"
+// @Router /api/v1/uploads/file [post]
 func UploadFile(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {

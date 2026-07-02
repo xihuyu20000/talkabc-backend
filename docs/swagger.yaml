@@ -1,0 +1,1278 @@
+basePath: /api/v1
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: TalkABC 聊天交友平台后端 API 文档
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: TalkABC API
+  version: "1.0"
+paths:
+  /api/v1/ads/banners:
+    get:
+      consumes:
+      - application/json
+      description: 获取最新的广告横幅列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取最新广告横幅
+      tags:
+      - 广告
+  /api/v1/auth/code-alnum:
+    get:
+      consumes:
+      - application/json
+      description: 向指定手机号发送字母数字组合的验证码
+      parameters:
+      - description: 手机号
+        in: query
+        name: phonenum
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 生成成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 生成失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 生成字母数字验证码
+      tags:
+      - 认证
+  /api/v1/auth/code-sms:
+    get:
+      consumes:
+      - application/json
+      description: 向指定手机号发送短信验证码
+      parameters:
+      - description: 手机号
+        in: query
+        name: phonenum
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 发送成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 发送失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 发送短信验证码
+      tags:
+      - 认证
+  /api/v1/auth/login/code:
+    post:
+      consumes:
+      - application/json
+      description: 使用手机号和验证码登录
+      parameters:
+      - description: 手机号
+        in: formData
+        name: phonenum
+        required: true
+        type: string
+      - description: 验证码
+        in: formData
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功，返回token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 登录失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 验证码登录
+      tags:
+      - 认证
+  /api/v1/auth/login/password:
+    post:
+      consumes:
+      - application/json
+      description: 使用手机号和密码登录
+      parameters:
+      - description: 手机号
+        in: formData
+        name: phonenum
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: pwd
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功，返回token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 登录失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 密码登录
+      tags:
+      - 认证
+  /api/v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 用户退出登录，强制下线所有设备
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 退出成功
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 退出登录
+      tags:
+      - 认证
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 使用手机号和验证码进行注册
+      parameters:
+      - description: 手机号
+        in: formData
+        name: phonenum
+        required: true
+        type: string
+      - description: 验证码
+        in: formData
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注册成功，返回token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 注册失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户注册
+      tags:
+      - 认证
+  /api/v1/auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: 使用手机号和新密码重置密码
+      parameters:
+      - description: 手机号
+        in: formData
+        name: phonenum
+        required: true
+        type: string
+      - description: 新密码
+        in: formData
+        name: pwd1
+        required: true
+        type: string
+      - description: 确认密码
+        in: formData
+        name: pwd2
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 重置成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 重置失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 重置密码
+      tags:
+      - 认证
+  /api/v1/friends/{uid}/{flag}:
+    post:
+      consumes:
+      - application/json
+      description: 添加指定用户为好友
+      parameters:
+      - description: 目标用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 操作标志：1-添加好友，0-取消关注
+        in: path
+        name: flag
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 操作失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 添加好友
+      tags:
+      - 社交
+  /api/v1/gifts/send/{uid}/{giftid}:
+    post:
+      consumes:
+      - application/json
+      description: 向指定用户发送礼物
+      parameters:
+      - description: 接收用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 礼物ID
+        in: path
+        name: giftid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 发送成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 发送失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 发送礼物
+      tags:
+      - 社交
+  /api/v1/messages/latest:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前用户与其他用户的最新消息列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取最新用户消息
+      tags:
+      - 消息
+  /api/v1/messages/system:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前用户的系统消息列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取系统消息列表
+      tags:
+      - 消息
+  /api/v1/messages/users/{uid}:
+    get:
+      consumes:
+      - application/json
+      description: 获取与指定用户的聊天消息历史
+      parameters:
+      - description: 目标用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户消息历史
+      tags:
+      - 消息
+  /api/v1/messages/users/{uid}/clear:
+    post:
+      consumes:
+      - application/json
+      description: 清除与指定用户的聊天记录
+      parameters:
+      - description: 目标用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 清除成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 清除失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 清除聊天记录
+      tags:
+      - 消息
+  /api/v1/messages/users/{uid}/top/{flag}:
+    post:
+      consumes:
+      - application/json
+      description: 设置或取消与指定用户的消息置顶
+      parameters:
+      - description: 目标用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 置顶标志：1-置顶，0-取消置顶
+        in: path
+        name: flag
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 设置失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 设置消息置顶
+      tags:
+      - 消息
+  /api/v1/moments:
+    get:
+      consumes:
+      - application/json
+      description: 获取最新发布的动态列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取最新动态列表
+      tags:
+      - 动态
+    post:
+      consumes:
+      - multipart/form-data
+      description: 用户发布新动态，支持文本、图片和地理位置
+      parameters:
+      - description: 动态文本内容
+        in: formData
+        name: text
+        required: true
+        type: string
+      - description: 地理位置
+        in: formData
+        name: location
+        type: string
+      - description: 图片文件列表
+        in: formData
+        name: files
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 发布成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 发布失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 发布动态
+      tags:
+      - 动态
+  /api/v1/moments/{mid}/comments:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定动态的评论列表
+      parameters:
+      - description: 动态ID
+        in: path
+        name: mid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取动态评论列表
+      tags:
+      - 动态
+  /api/v1/moments/me:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前用户发布的最新动态列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取我的最新动态
+      tags:
+      - 动态
+  /api/v1/moments/users/{uid}:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定用户发布的动态列表
+      parameters:
+      - description: 用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取指定用户动态
+      tags:
+      - 动态
+  /api/v1/notifications/add-me:
+    get:
+      consumes:
+      - application/json
+      description: 获取添加我为好友的用户列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取添加我的列表
+      tags:
+      - 互动通知
+  /api/v1/notifications/comment-me:
+    get:
+      consumes:
+      - application/json
+      description: 获取评论我动态的用户列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取评论我的列表
+      tags:
+      - 互动通知
+  /api/v1/notifications/friend-request/{uid}/{flag}:
+    post:
+      consumes:
+      - application/json
+      description: 同意或拒绝好友请求
+      parameters:
+      - description: 请求好友的用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 操作标志：1-同意，0-拒绝
+        in: path
+        name: flag
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 操作失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 同意好友请求
+      tags:
+      - 互动通知
+  /api/v1/notifications/like-me:
+    get:
+      consumes:
+      - application/json
+      description: 获取喜欢我的用户列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取喜欢我的列表
+      tags:
+      - 互动通知
+  /api/v1/notifications/praise-me:
+    get:
+      consumes:
+      - application/json
+      description: 获取赞我动态的用户列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取赞我的列表
+      tags:
+      - 互动通知
+  /api/v1/notifications/visit-me:
+    get:
+      consumes:
+      - application/json
+      description: 获取访问我主页的用户列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取访问我的列表
+      tags:
+      - 互动通知
+  /api/v1/profile/me:
+    post:
+      consumes:
+      - application/json
+      description: 用户完善个人资料信息
+      parameters:
+      - description: 个人信息
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 保存成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 保存失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 完善个人信息
+      tags:
+      - 个人资料
+  /api/v1/profile/preferences:
+    post:
+      consumes:
+      - application/json
+      description: 用户设置理想对象的筛选条件
+      parameters:
+      - description: 理想对象条件
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 保存成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 保存失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 设置理想对象条件
+      tags:
+      - 个人资料
+  /api/v1/uploads/audio:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传音频文件
+      parameters:
+      - description: 音频文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功，返回文件URL
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 上传失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 上传音频
+      tags:
+      - 文件上传
+  /api/v1/uploads/file:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传通用文件
+      parameters:
+      - description: 文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功，返回文件URL
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 上传失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 上传文件
+      tags:
+      - 文件上传
+  /api/v1/uploads/image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传图片文件
+      parameters:
+      - description: 图片文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功，返回文件URL
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 上传失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 上传图片
+      tags:
+      - 文件上传
+  /api/v1/uploads/video:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 上传视频文件
+      parameters:
+      - description: 视频文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功，返回文件URL
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 上传失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 上传视频
+      tags:
+      - 文件上传
+  /api/v1/users:
+    get:
+      consumes:
+      - application/json
+      description: 根据筛选条件获取用户列表
+      parameters:
+      - description: 最小年龄
+        in: query
+        name: age1
+        type: string
+      - description: 最大年龄
+        in: query
+        name: age2
+        type: string
+      - description: 性别
+        in: query
+        name: gender
+        type: string
+      - description: 官方认证
+        in: query
+        name: official
+        type: string
+      - description: 真实认证
+        in: query
+        name: real
+        type: string
+      - description: 最新注册
+        in: query
+        name: latest
+        type: string
+      - description: 距离
+        in: query
+        name: distance
+        type: string
+      - description: 爱好
+        in: query
+        name: favor
+        type: string
+      - description: 职业
+        in: query
+        name: job
+        type: string
+      - description: 星座
+        in: query
+        name: starsign
+        type: string
+      - description: 教育程度
+        in: query
+        name: edulevel
+        type: string
+      - description: 身高
+        in: query
+        name: height
+        type: string
+      - description: 交友目的
+        in: query
+        name: dating_purpose
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户列表
+      tags:
+      - 用户
+  /api/v1/users/{uid}:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定用户的详细信息
+      parameters:
+      - description: 用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户信息
+      tags:
+      - 用户
+  /api/v1/users/{uid}/fans:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定用户的粉丝列表
+      parameters:
+      - description: 用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取粉丝列表
+      tags:
+      - 用户
+  /api/v1/users/{uid}/following:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定用户的关注列表
+      parameters:
+      - description: 用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取关注列表
+      tags:
+      - 用户
+  /api/v1/users/{uid}/greet:
+    post:
+      consumes:
+      - application/json
+      description: 向指定用户发送打招呼消息
+      parameters:
+      - description: 目标用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 消息内容
+        in: formData
+        name: text
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 发送成功
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 发送失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 打招呼
+      tags:
+      - 用户
+  /api/v1/users/{uid}/notification/{flag}:
+    post:
+      consumes:
+      - application/json
+      description: 设置是否接收指定用户的消息通知
+      parameters:
+      - description: 目标用户UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: 通知标志：1-开启，0-关闭
+        in: path
+        name: flag
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设置成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 设置失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 设置用户通知
+      tags:
+      - 用户
+  /api/v1/users/avatar:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 用户上传个人头像
+      parameters:
+      - description: 头像图片文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功，返回头像URL
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 上传失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 上传头像
+      tags:
+      - 文件上传
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
