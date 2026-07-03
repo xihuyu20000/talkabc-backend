@@ -2,12 +2,15 @@ package config
 
 import (
 	"log"
+	"strings"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
+
+// ==================== 配置结构体定义 ====================
 
 type Config struct {
 	System   SystemConfig   `json:"system"`
@@ -68,93 +71,78 @@ type CORSConfig struct {
 	Credentials bool     `json:"credentials"`
 }
 
+// ==================== 全局变量 ====================
+
 var AppConfig Config
 var DB *gorm.DB
 var RDB *redis.Client
 
-func InitConfig() {
-	// 1. 命令行显示
-	pflag.Int("system-reset", 0, "system reset flag")
-	pflag.String("system-log-level", "info", "log level")
-	pflag.Int("system-sms-valid-minutes", 5, "sms valid minutes")
-	pflag.Int("system-sms-cooldown-seconds", 60, "sms cooldown seconds")
-	pflag.Int("system-sms-hourly-limit", 10, "sms-hourly limit")
-	pflag.Int("system-ip-register-hourly-limit", 10, "ip-register-hourly-limit")
-	pflag.Int("system-ip-login-minute-limit", 10, "ip-login-minute-limit")
-	pflag.Int("system-login-failure-lock-minutes", 5, "login-failure-lock minutes")
-	pflag.Int("server-port", 8080, "server port")
-	pflag.String("database-host", "localhost", "database host")
-	pflag.Int("database-port", 5432, "database port")
-	pflag.String("database-user", "postgres", "database user")
-	pflag.String("database-password", "", "database password")
-	pflag.String("database-name", "talkabc", "database name")
-	pflag.String("database-sslmode", "disable", "database sslmode")
-	pflag.String("jwt-secret", "talkabc_secret_key", "jwt secret")
-	pflag.Int("jwt-expireshour", 24, "jwt expires hour")
-	pflag.String("redis-host", "localhost", "redis host")
-	pflag.Int("redis-port", 6379, "redis port")
-	pflag.String("redis-password", "", "redis password")
-	pflag.Int("redis-db", 0, "redis db")
-	pflag.String("upload-avatarpath", "./uploads/avatars", "avatar path")
-	pflag.String("upload-momentpath", "./uploads/moments", "moment path")
-	pflag.String("upload-messagepath", "./uploads/messages", "message path")
-	// 2. 解析
+// ==================== 命令行参数解析工具函数 ====================
+
+// parseArgv 统一解析命令行参数并绑定到viper
+// 支持 int 和 string 类型，通过类型断言自动选择对应的 pflag 方法
+func parseArgv(cfgKey string, defaultValue interface{}, usage string) {
+	var argName = strings.ReplaceAll(cfgKey, ".", "-")
+	switch v := defaultValue.(type) {
+	case int:
+		pflag.Int(argName, v, usage)
+	case string:
+		pflag.String(argName, v, usage)
+	default:
+		log.Printf("Unsupported type for config key: %s", cfgKey)
+		return
+	}
 	pflag.Parse()
-	// 3. 绑定
-	viper.BindPFlag("system.reset", pflag.CommandLine.Lookup("system-reset"))
-	viper.BindPFlag("system.log_level", pflag.CommandLine.Lookup("system-log-level"))
-	viper.BindPFlag("system.sms_valid_minutes", pflag.CommandLine.Lookup("system-sms-valid-minutes"))
-	viper.BindPFlag("system.sms_cooldown_seconds", pflag.CommandLine.Lookup("system-sms-cooldown-seconds"))
-	viper.BindPFlag("system.sms_hourly_limit", pflag.CommandLine.Lookup("system-sms-hourly-limit"))
-	viper.BindPFlag("system.ip_register_hourly_limit", pflag.CommandLine.Lookup("system-ip-register-hourly-limit"))
-	viper.BindPFlag("system.ip_login_minute_limit", pflag.CommandLine.Lookup("system-ip-login-minute-limit"))
-	viper.BindPFlag("system.login_failure_lock_minutes", pflag.CommandLine.Lookup("system-login-failure-lock-minutes"))
-	viper.BindPFlag("server.port", pflag.CommandLine.Lookup("server-port"))
-	viper.BindPFlag("database.host", pflag.CommandLine.Lookup("database-host"))
-	viper.BindPFlag("database.port", pflag.CommandLine.Lookup("database-port"))
-	viper.BindPFlag("database.user", pflag.CommandLine.Lookup("database-user"))
-	viper.BindPFlag("database.password", pflag.CommandLine.Lookup("database-password"))
-	viper.BindPFlag("database.dbname", pflag.CommandLine.Lookup("database-name"))
-	viper.BindPFlag("database.sslmode", pflag.CommandLine.Lookup("database-sslmode"))
-	viper.BindPFlag("jwt.secret", pflag.CommandLine.Lookup("jwt-secret"))
-	viper.BindPFlag("jwt.expires_hour", pflag.CommandLine.Lookup("jwt-expireshour"))
-	viper.BindPFlag("redis.host", pflag.CommandLine.Lookup("redis-host"))
-	viper.BindPFlag("redis.port", pflag.CommandLine.Lookup("redis-port"))
-	viper.BindPFlag("redis.password", pflag.CommandLine.Lookup("redis-password"))
-	viper.BindPFlag("redis.db", pflag.CommandLine.Lookup("redis-db"))
-	viper.BindPFlag("upload.avatar_path", pflag.CommandLine.Lookup("upload-avatarpath"))
-	viper.BindPFlag("upload.moment_path", pflag.CommandLine.Lookup("upload-momentpath"))
-	viper.BindPFlag("upload.message_path", pflag.CommandLine.Lookup("upload-messagepath"))
-	// 4. 默认值
-	viper.SetDefault("system.reset", 0)
-	viper.SetDefault("system.log_level", "info")
-	viper.SetDefault("system.sms_valid_minutes", 5)
-	viper.SetDefault("system.sms_cooldown_seconds", 60)
-	viper.SetDefault("system.sms_hourly_limit", 10)
-	viper.SetDefault("system.ip_register_hourly_limit", 10)
-	viper.SetDefault("system.ip_login_minute_limit", 10)
-	viper.SetDefault("system.login_failure_lock_minutes", 5)
-	viper.SetDefault("server.port", 8080)
-	viper.SetDefault("database.host", "localhost")
-	viper.SetDefault("database.port", 5432)
-	viper.SetDefault("database.user", "postgres")
-	viper.SetDefault("database.password", "")
-	viper.SetDefault("database.dbname", "talkabc")
-	viper.SetDefault("database.sslmode", "disable")
-	viper.SetDefault("jwt.secret", "talkabc_secret_key")
-	viper.SetDefault("jwt.expires_hour", 24)
-	viper.SetDefault("redis.host", "localhost")
-	viper.SetDefault("redis.port", 6379)
-	viper.SetDefault("redis.password", "")
-	viper.SetDefault("redis.db", 0)
-	viper.SetDefault("upload.avatar_path", "./uploads/avatars")
-	viper.SetDefault("upload.moment_path", "./uploads/moments")
-	viper.SetDefault("upload.message_path", "./uploads/messages")
+	viper.BindPFlag(cfgKey, pflag.CommandLine.Lookup(argName))
+	viper.SetDefault(cfgKey, defaultValue)
+}
+
+// ==================== 配置初始化函数 ====================
+
+func InitConfig() {
+	// 系统配置
+	parseArgv("system.reset", 0, "system reset flag")
+	parseArgv("system.log_level", "info", "log level")
+	parseArgv("system.sms_valid_minutes", 5, "sms valid minutes")
+	parseArgv("system.sms_cooldown_seconds", 60, "sms cooldown seconds")
+	parseArgv("system.sms_hourly_limit", 10, "sms hourly limit")
+	parseArgv("system.ip_register_hourly_limit", 10, "ip register hourly limit")
+	parseArgv("system.ip_login_minute_limit", 10, "ip login minute limit")
+	parseArgv("system.login_failure_lock_minutes", 5, "login failure lock minutes")
+
+	// 服务器配置
+	parseArgv("server.port", 8080, "server port")
+
+	// 数据库配置
+	parseArgv("database.host", "localhost", "database host")
+	parseArgv("database.port", 5432, "database port")
+	parseArgv("database.user", "postgres", "database user")
+	parseArgv("database.password", "", "database password")
+	parseArgv("database.dbname", "talkabc", "database name")
+	parseArgv("database.sslmode", "disable", "database sslmode")
+
+	// JWT配置
+	parseArgv("jwt.secret", "talkabc_secret_key", "jwt secret")
+	parseArgv("jwt.expires_hour", 24, "jwt expires hour")
+
+	// Redis配置
+	parseArgv("redis.host", "localhost", "redis host")
+	parseArgv("redis.port", 6379, "redis port")
+	parseArgv("redis.password", "", "redis password")
+	parseArgv("redis.db", 0, "redis db")
+
+	// 上传配置
+	parseArgv("upload.avatar_path", "./uploads/avatars", "avatar path")
+	parseArgv("upload.moment_path", "./uploads/moments", "moment path")
+	parseArgv("upload.message_path", "./uploads/messages", "message path")
+
+	// CORS配置（数组类型，单独设置默认值）
 	viper.SetDefault("cors.origins", []string{"http://localhost:3000", "http://localhost:8080"})
 	viper.SetDefault("cors.methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 	viper.SetDefault("cors.headers", []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"})
 	viper.SetDefault("cors.credentials", true)
 
+	// 配置文件读取
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -164,6 +152,7 @@ func InitConfig() {
 		log.Printf("Config file not found: %v", err)
 	}
 
+	// 配置反序列化到结构体
 	if err := viper.Unmarshal(&AppConfig); err != nil {
 		log.Fatalf("Failed to unmarshal: %v", err)
 	}
