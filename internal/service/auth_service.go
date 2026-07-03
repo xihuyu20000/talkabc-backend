@@ -4,7 +4,9 @@ import (
 	"backend/internal/middleware"
 	"backend/internal/model"
 	"backend/internal/repository"
+	"backend/internal/sms"
 	"backend/pkg/utils"
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math/big"
@@ -105,6 +107,15 @@ func GenerateSMSCode(req GenerateSMSCodeRequest) error {
 	err = repository.CreateVerificationCode(req.PhoneNum, code, repository.VerificationCodeTypeSMS, req.Tag)
 	if err != nil {
 		return fmt.Errorf("发送失败")
+	}
+
+	// 通过短信网关发送实际短信
+	gateway := sms.GetGateway()
+	if gateway != nil {
+		err = gateway.SendVerificationCode(context.Background(), req.PhoneNum, code)
+		if err != nil {
+			return fmt.Errorf("发送失败: %v", err)
+		}
 	}
 
 	return nil

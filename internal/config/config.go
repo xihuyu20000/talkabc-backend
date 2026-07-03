@@ -13,14 +13,15 @@ import (
 // ==================== 配置结构体定义 ====================
 
 type Config struct {
-	System   SystemConfig   `json:"system"`
-	Security SecurityConfig `json:"security"`
-	Server   ServerConfig   `json:"server"`
-	Database DatabaseConfig `json:"database"`
-	JWT      JWTConfig     `json:"jwt"`
-	Upload   UploadConfig   `json:"upload"`
-	Redis    RedisConfig    `json:"redis"`
-	CORS     CORSConfig     `json:"cors"`
+	System       SystemConfig       `json:"system"`
+	Security     SecurityConfig     `json:"security"`
+	SMSProvider  SMSProviderConfig  `json:"sms_provider"`
+	Server       ServerConfig       `json:"server"`
+	Database     DatabaseConfig     `json:"database"`
+	JWT          JWTConfig          `json:"jwt"`
+	Upload       UploadConfig       `json:"upload"`
+	Redis        RedisConfig        `json:"redis"`
+	CORS         CORSConfig         `json:"cors"`
 }
 
 type SystemConfig struct {
@@ -29,12 +30,42 @@ type SystemConfig struct {
 }
 
 type SecurityConfig struct {
-	SMSValidMinutes        int `json:"sms_valid_minutes"`
-	SMSCooldownSeconds     int `json:"sms_cooldown_seconds"`
-	SMSHourlyLimit         int `json:"sms_hourly_limit"`
-	IPRegisterHourlyLimit  int `json:"ip_register_hourly_limit"`
-	IPLoginMinuteLimit     int `json:"ip_login_minute_limit"`
-	LoginFailureLockMinutes int `json:"login_failure_lock_minutes"`
+	SMSValidMinutes        int    `json:"sms_valid_minutes"`
+	SMSCooldownSeconds     int    `json:"sms_cooldown_seconds"`
+	SMSHourlyLimit         int    `json:"sms_hourly_limit"`
+	IPRegisterHourlyLimit  int    `json:"ip_register_hourly_limit"`
+	IPLoginMinuteLimit     int    `json:"ip_login_minute_limit"`
+	LoginFailureLockMinutes int    `json:"login_failure_lock_minutes"`
+}
+
+type SMSProviderConfig struct {
+	Default  string           `json:"default"`
+	Aliyun   AliyunSMSConfig  `json:"aliyun"`
+	Huawei   HuaweiSMSConfig  `json:"huawei"`
+	Tencent  TencentSMSConfig `json:"tencent"`
+}
+
+type AliyunSMSConfig struct {
+	AccessKeyID     string `json:"access_key_id"`
+	AccessKeySecret string `json:"access_key_secret"`
+	RegionID        string `json:"region_id"`
+	SignName        string `json:"sign_name"`
+	TemplateCode    string `json:"template_code"`
+}
+
+type HuaweiSMSConfig struct {
+	AppKey    string `json:"app_key"`
+	AppSecret string `json:"app_secret"`
+	SignName  string `json:"sign_name"`
+	TemplateID string `json:"template_id"`
+}
+
+type TencentSMSConfig struct {
+	SecretID     string `json:"secret_id"`
+	SecretKey    string `json:"secret_key"`
+	RegionID     string `json:"region_id"`
+	SignName     string `json:"sign_name"`
+	TemplateID   string `json:"template_id"`
 }
 
 type ServerConfig struct {
@@ -114,6 +145,14 @@ func InitConfig() {
 	parseArgv("security.ip_register_hourly_limit", 10, "ip register hourly limit")
 	parseArgv("security.ip_login_minute_limit", 10, "ip login minute limit")
 	parseArgv("security.login_failure_lock_minutes", 5, "login failure lock minutes")
+
+	// 短信服务商配置
+	parseArgv("sms_provider.default", "aliyun", "default sms provider (aliyun, huawei, tencent)")
+	parseArgv("sms_provider.aliyun.access_key_id", "", "aliyun sms access key id")
+	parseArgv("sms_provider.aliyun.access_key_secret", "", "aliyun sms access key secret")
+	parseArgv("sms_provider.aliyun.region_id", "cn-hangzhou", "aliyun sms region id")
+	parseArgv("sms_provider.aliyun.sign_name", "", "aliyun sms sign name")
+	parseArgv("sms_provider.aliyun.template_code", "", "aliyun sms template code")
 
 	// 服务器配置
 	parseArgv("server.port", 8080, "server port")

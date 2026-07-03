@@ -23,6 +23,7 @@ import (
 	"backend/internal/config"
 	"backend/internal/infra"
 	"backend/internal/router"
+	"backend/internal/sms"
 	"backend/pkg/logger"
 	"os"
 	"strconv"
@@ -69,6 +70,10 @@ func main() {
 		DB:       config.AppConfig.Redis.DB,
 	}
 	config.RDB = infra.NewRedis(redisCfg)
+
+	if err := sms.InitSMSGateway(&config.AppConfig.SMSProvider); err != nil {
+		logger.Warn("Failed to initialize SMS gateway: %v", err)
+	}
 
 	createUploadDirs()
 

@@ -9,6 +9,26 @@ security:
   ip_login_minute_limit: 10         # 登录时1分钟内每个IP登录次数限制，单位次
   login_failure_lock_minutes: 5     # 登录多次失败锁定时间，单位分钟
 
+sms_provider:
+  default: "aliyun"              # 默认短信服务商：aliyun, huawei, tencent
+  aliyun:
+    access_key_id: ""             # 阿里云AccessKey ID
+    access_key_secret: ""         # 阿里云AccessKey Secret
+    region_id: "cn-hangzhou"      # 阿里云区域ID
+    sign_name: ""                 # 短信签名
+    template_code: ""             # 短信模板Code
+  huawei:
+    app_key: ""                   # 华为云AppKey
+    app_secret: ""               # 华为云AppSecret
+    sign_name: ""                 # 短信签名
+    template_id: ""               # 短信模板ID
+  tencent:
+    secret_id: ""                 # 腾讯云SecretID
+    secret_key: ""                # 腾讯云SecretKey
+    region_id: "ap-guangzhou"     # 腾讯云区域ID
+    sign_name: ""                 # 短信签名
+    template_id: ""               # 短信模板ID
+
 
 server:
   port: 8080
