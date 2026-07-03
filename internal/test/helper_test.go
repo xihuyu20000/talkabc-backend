@@ -1,11 +1,35 @@
 package test
 
 import (
+	"backend/internal/config"
 	"backend/internal/handler"
+	"backend/internal/infra"
+	"backend/pkg/logger"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 )
+
+func InitTest() {
+	gin.SetMode(gin.TestMode)
+	logger.InitLogger(&logger.Config{
+		Level:  "warn",
+		Format: "console",
+		Output: "console",
+	})
+	initTestRedis()
+}
+
+func initTestRedis() {
+	if config.RDB == nil {
+		config.RDB = infra.NewRedis(infra.RedisConfig{
+			Host:     "localhost",
+			Port:     6379,
+			Password: "",
+			DB:       0,
+		})
+	}
+}
 
 type TestRouter struct {
 	Engine *gin.Engine

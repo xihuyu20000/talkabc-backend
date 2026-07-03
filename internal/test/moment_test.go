@@ -1,4 +1,4 @@
-﻿package handler
+package test
 
 import (
 	"bytes"
@@ -12,11 +12,11 @@ import (
 )
 
 func init() {
-	gin.SetMode(gin.TestMode)
+	InitTest()
 }
 
-// TestPraiseMoment_InvalidParams 测试点赞动态接口参数验证
-// 验证无效的动态ID（非数字）时返回400错误
+// ==================== 点赞动态接口测试 ====================
+
 func TestPraiseMoment_InvalidParams(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/moment/praise/:uid/:mid", func(c *gin.Context) {
@@ -49,8 +49,8 @@ func TestPraiseMoment_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestReportMoment_InvalidParams 测试举报动态接口参数验证
-// 验证无效的动态ID（非数字）时返回400错误
+// ==================== 举报动态接口测试 ====================
+
 func TestReportMoment_InvalidParams(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/moment/report/:uid/:mid", func(c *gin.Context) {
@@ -83,8 +83,8 @@ func TestReportMoment_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestCommentBodyValidation 测试评论动态接口请求体验证
-// 验证不同格式的评论内容JSON都能正确解析
+// ==================== 评论动态接口请求体验证 ====================
+
 func TestCommentBodyValidation(t *testing.T) {
 	tests := []struct {
 		name string
@@ -108,8 +108,8 @@ func TestCommentBodyValidation(t *testing.T) {
 	}
 }
 
-// TestPublishBodyValidation 测试发布动态接口请求体验证
-// 验证不同格式的动态内容JSON都能正确解析
+// ==================== 发布动态接口请求体验证 ====================
+
 func TestPublishBodyValidation(t *testing.T) {
 	tests := []struct {
 		name string
@@ -134,8 +134,8 @@ func TestPublishBodyValidation(t *testing.T) {
 	}
 }
 
-// TestMomentIDValidation 测试动态ID参数验证
-// 验证数字ID返回200成功，非数字ID返回400错误
+// ==================== 动态ID参数验证测试 ====================
+
 func TestMomentIDValidation(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -176,8 +176,8 @@ func TestMomentIDValidation(t *testing.T) {
 	}
 }
 
-// TestMomentPublishBody_ContentLength 测试发布动态接口内容长度
-// 验证长文本内容能正确解析
+// ==================== 发布动态接口内容长度测试 ====================
+
 func TestMomentPublishBody_ContentLength(t *testing.T) {
 	body := `{"text":"This is a very long comment that should be properly handled by the system when processing user input for moment publishing","location":"A very long location name that might need validation"}`
 
@@ -196,8 +196,8 @@ func TestMomentPublishBody_ContentLength(t *testing.T) {
 	}
 }
 
-// TestMultipartFormHandling 测试发布动态接口multipart表单处理
-// 验证multipart表单数据能正确构造
+// ==================== 发布动态接口multipart表单处理测试 ====================
+
 func TestMultipartFormHandling(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := &mockMultipartWriter{body: body}
@@ -223,8 +223,8 @@ func (m *mockMultipartWriter) WriteField(name, value string) {
 	m.body.WriteString(name + "=" + value + "&")
 }
 
-// TestMomentJSONParse 测试发布动态接口JSON解析
-// 验证有效、无效、空JSON的解析结果
+// ==================== 发布动态接口JSON解析测试 ====================
+
 func TestMomentJSONParse(t *testing.T) {
 	tests := []struct {
 		name    string

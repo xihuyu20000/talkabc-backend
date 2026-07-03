@@ -2,147 +2,215 @@ package logger
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"path/filepath"
-	"runtime"
-	"strings"
-	"time"
-)
 
-type LogLevel int
-
-const (
-	DEBUG LogLevel = iota
-	INFO
-	WARN
-	ERROR
-	FATAL
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
-	debugLogger *log.Logger
-	infoLogger  *log.Logger
-	warnLogger  *log.Logger
-	errorLogger *log.Logger
-	fatalLogger *log.Logger
-	logLevel    LogLevel
+	log         *zap.Logger
+	sugar       *zap.SugaredLogger
+	logLevel    zapcore.Level
+	ServiceName = "talkabc"
+	Environment = "development"
+	Version     = "1.0.0"
 )
 
-func getLevelString(level LogLevel) string {
-	switch level {
-	case DEBUG:
-		return "DEBUG"
-	case INFO:
-		return "INFO"
-	case WARN:
-		return "WARN"
-	case ERROR:
-		return "ERROR"
-	case FATAL:
-		return "FATAL"
-	default:
-		return "UNKNOWN"
-	}
+type Config struct {
+	Level       string `json:"level"`
+	Format      string `json:"format"`
+	Output      string `json:"output"`
+	FilePath    string `json:"file_path"`
+	MaxSize     int    `json:"max_size"`
+	MaxBackups  int    `json:"max_backups"`
+	MaxAge      int    `json:"max_age"`
+	Compress    bool   `json:"compress"`
 }
 
-func getCallerInfo() string {
-	_, file, line, ok := runtime.Caller(3)
-	if !ok {
-		return "unknown:0"
-	}
-	parts := strings.Split(file, "/")
-	if len(parts) > 2 {
-		file = filepath.Join(parts[len(parts)-2:]...)
-	}
-	return fmt.Sprintf("%s:%d", file, line)
-}
-
-func createLogFile() (io.Writer, error) {
-	logDir := "./logs"
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return nil, err
-	}
-
-	today := time.Now().Format("2006-01-02")
-	filePath := filepath.Join(logDir, fmt.Sprintf("app_%s.log", today))
-
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return nil, err
-	}
-
-	return file, nil
-}
-
-func InitLogger(logLevelStr string) {
-	logFile, err := createLogFile()
-	if err != nil {
-		log.Printf("Failed to create log file: %v", err)
-		logFile = os.Stderr
-	}
-
-	multiWriter := io.MultiWriter(os.Stdout, logFile)
-
-	debugLogger = log.New(multiWriter, "", 0)
-	infoLogger = log.New(multiWriter, "", 0)
-	warnLogger = log.New(multiWriter, "", 0)
-	errorLogger = log.New(multiWriter, "", 0)
-	fatalLogger = log.New(multiWriter, "", 0)
-
-	switch strings.ToLower(logLevelStr) {
+func InitLogger(cfg *Config) {
+	var level zapcore.Level
+	switch cfg.Level {
 	case "debug":
-		logLevel = DEBUG
+		level = zapcore.DebugLevel
 	case "info":
-		logLevel = INFO
+		level = zapcore.InfoLevel
 	case "warn":
-		logLevel = WARN
+		level = zapcore.WarnLevel
 	case "error":
-		logLevel = ERROR
+		level = zapcore.ErrorLevel
+	case "dpanic":
+		level = zapcore.DPanicLevel
+	case "panic":
+		level = zapcore.PanicLevel
 	case "fatal":
-		logLevel = FATAL
+		level = zapcore.FatalLevel
 	default:
-		logLevel = INFO
+		level = zapcore.InfoLevel
+	}
+	logLevel = level
+
+	var cores []zapcore.Core
+
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "message",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+
+	var encoder zapcore.Encoder
+	if cfg.Format == "json" {
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	} else {
+		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	}
+
+	if cfg.Output == "file" || cfg.Output == "both" {
+		logDir := filepath.Dir(cfg.FilePath)
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			fmt.Printf("Failed to create log directory %s: %v\n", logDir, err)
+		}
+		fileWriter := zapcore.AddSync(&lumberjack.Logger{
+			Filename:   cfg.FilePath,
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		})
+		fileCore := zapcore.NewCore(encoder, fileWriter, level)
+		cores = append(cores, fileCore)
+	}
+
+	if cfg.Output == "console" || cfg.Output == "both" {
+		consoleWriter := zapcore.AddSync(os.Stdout)
+		consoleCore := zapcore.NewCore(encoder, consoleWriter, level)
+		cores = append(cores, consoleCore)
+	}
+
+	core := zapcore.NewTee(cores...)
+
+	log = zap.New(core,
+		zap.AddCaller(),
+		zap.AddCallerSkip(1),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+		zap.Fields(
+			zap.String("service", ServiceName),
+			zap.String("env", Environment),
+			zap.String("version", Version),
+		),
+	)
+
+	sugar = log.Sugar()
+}
+
+func Sync() {
+	if log != nil {
+		_ = log.Sync()
 	}
 }
 
-func formatMessage(level LogLevel, message string) string {
-	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
-	caller := getCallerInfo()
-	return fmt.Sprintf("[%s] [%s] [%s] %s", timestamp, getLevelString(level), caller, message)
-}
-
-func Debug(format string, args ...interface{}) {
-	if logLevel <= DEBUG {
-		message := fmt.Sprintf(format, args...)
-		debugLogger.Println(formatMessage(DEBUG, message))
+func Debug(msg string, fields ...zap.Field) {
+	if log != nil {
+		log.Debug(msg, fields...)
 	}
 }
 
-func Info(format string, args ...interface{}) {
-	if logLevel <= INFO {
-		message := fmt.Sprintf(format, args...)
-		infoLogger.Println(formatMessage(INFO, message))
+func Debugf(format string, args ...interface{}) {
+	if sugar != nil {
+		sugar.Debugf(format, args...)
 	}
 }
 
-func Warn(format string, args ...interface{}) {
-	if logLevel <= WARN {
-		message := fmt.Sprintf(format, args...)
-		warnLogger.Println(formatMessage(WARN, message))
+func Info(msg string, fields ...zap.Field) {
+	if log != nil {
+		log.Info(msg, fields...)
 	}
 }
 
-func Error(format string, args ...interface{}) {
-	if logLevel <= ERROR {
-		message := fmt.Sprintf(format, args...)
-		errorLogger.Println(formatMessage(ERROR, message))
+func Infof(format string, args ...interface{}) {
+	if sugar != nil {
+		sugar.Infof(format, args...)
 	}
 }
 
-func Fatal(format string, args ...interface{}) {
-	message := fmt.Sprintf(format, args...)
-	fatalLogger.Println(formatMessage(FATAL, message))
-	os.Exit(1)
+func Warn(msg string, fields ...zap.Field) {
+	if log != nil {
+		log.Warn(msg, fields...)
+	}
+}
+
+func Warnf(format string, args ...interface{}) {
+	if sugar != nil {
+		sugar.Warnf(format, args...)
+	}
+}
+
+func Error(msg string, fields ...zap.Field) {
+	if log != nil {
+		log.Error(msg, fields...)
+	}
+}
+
+func Errorf(format string, args ...interface{}) {
+	if sugar != nil {
+		sugar.Errorf(format, args...)
+	}
+}
+
+func Panic(msg string, fields ...zap.Field) {
+	if log != nil {
+		log.Panic(msg, fields...)
+	}
+}
+
+func Panicf(format string, args ...interface{}) {
+	if sugar != nil {
+		sugar.Panicf(format, args...)
+	}
+}
+
+func Fatal(msg string, fields ...zap.Field) {
+	if log != nil {
+		log.Fatal(msg, fields...)
+	}
+}
+
+func Fatalf(format string, args ...interface{}) {
+	if sugar != nil {
+		sugar.Fatalf(format, args...)
+	}
+}
+
+func WithContext(ctx map[string]interface{}) *zap.SugaredLogger {
+	if sugar == nil {
+		return sugar
+	}
+	s := sugar
+	for k, v := range ctx {
+		s = s.With(k, v)
+	}
+	return s
+}
+
+func GetLogLevel() zapcore.Level {
+	return logLevel
+}
+
+func GetLogger() *zap.Logger {
+	return log
+}
+
+func GetSugarLogger() *zap.SugaredLogger {
+	return sugar
 }

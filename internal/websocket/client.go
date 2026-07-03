@@ -91,7 +91,7 @@ func (c *Client) ReadPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				logger.Error("websocket read error: %v", err)
+				logger.Errorf("websocket read error: %v", err)
 			}
 			break
 		}
@@ -161,7 +161,7 @@ func (c *Client) Close() {
 func (c *Client) handleMessage(data []byte) {
 	var msg WSMessage
 	if err := json.Unmarshal(data, &msg); err != nil {
-		logger.Error("websocket message parse error: %v", err)
+		logger.Errorf("websocket message parse error: %v", err)
 		return
 	}
 
@@ -206,7 +206,7 @@ func (c *Client) handleMessage(data []byte) {
 func (c *Client) handleSendText(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket send text data format error")
+		logger.Errorf("websocket send text data format error")
 		return
 	}
 
@@ -219,7 +219,7 @@ func (c *Client) handleSendText(msg WSMessage) {
 
 	err := service.SendTextMessage(c.uid, toUID, text)
 	if err != nil {
-		logger.Error("websocket send text error: %v", err)
+		logger.Errorf("websocket send text error: %v", err)
 		return
 	}
 
@@ -241,7 +241,7 @@ func (c *Client) handleSendText(msg WSMessage) {
 func (c *Client) handleSendImage(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket send image data format error")
+		logger.Errorf("websocket send image data format error")
 		return
 	}
 
@@ -254,7 +254,7 @@ func (c *Client) handleSendImage(msg WSMessage) {
 
 	err := service.SendImageMessage(c.uid, toUID, fileURL)
 	if err != nil {
-		logger.Error("websocket send image error: %v", err)
+		logger.Errorf("websocket send image error: %v", err)
 		return
 	}
 
@@ -276,7 +276,7 @@ func (c *Client) handleSendImage(msg WSMessage) {
 func (c *Client) handleSendVoice(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket send voice data format error")
+		logger.Errorf("websocket send voice data format error")
 		return
 	}
 
@@ -289,7 +289,7 @@ func (c *Client) handleSendVoice(msg WSMessage) {
 
 	err := service.SendVoiceMessage(c.uid, toUID, fileURL)
 	if err != nil {
-		logger.Error("websocket send voice error: %v", err)
+		logger.Errorf("websocket send voice error: %v", err)
 		return
 	}
 
@@ -311,7 +311,7 @@ func (c *Client) handleSendVoice(msg WSMessage) {
 func (c *Client) handleSendVideo(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket send video data format error")
+		logger.Errorf("websocket send video data format error")
 		return
 	}
 
@@ -324,7 +324,7 @@ func (c *Client) handleSendVideo(msg WSMessage) {
 
 	err := service.SendVideoMessage(c.uid, toUID, fileURL)
 	if err != nil {
-		logger.Error("websocket send video error: %v", err)
+		logger.Errorf("websocket send video error: %v", err)
 		return
 	}
 
@@ -346,7 +346,7 @@ func (c *Client) handleSendVideo(msg WSMessage) {
 func (c *Client) handleSendFile(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket send file data format error")
+		logger.Errorf("websocket send file data format error")
 		return
 	}
 
@@ -359,7 +359,7 @@ func (c *Client) handleSendFile(msg WSMessage) {
 
 	err := service.SendFileMessage(c.uid, toUID, fileURL)
 	if err != nil {
-		logger.Error("websocket send file error: %v", err)
+		logger.Errorf("websocket send file error: %v", err)
 		return
 	}
 
@@ -381,7 +381,7 @@ func (c *Client) handleSendFile(msg WSMessage) {
 func (c *Client) handleSendWithdraw(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket withdraw data format error")
+		logger.Errorf("websocket withdraw data format error")
 		return
 	}
 
@@ -394,13 +394,13 @@ func (c *Client) handleSendWithdraw(msg WSMessage) {
 
 	msgID, err := strconv.ParseUint(msgIDStr, 10, 32)
 	if err != nil {
-		logger.Error("websocket withdraw msg_id parse error: %v", err)
+		logger.Errorf("websocket withdraw msg_id parse error: %v", err)
 		return
 	}
 
 	err = service.WithdrawMessage(c.uid, toUID, uint(msgID))
 	if err != nil {
-		logger.Error("websocket withdraw error: %v", err)
+		logger.Errorf("websocket withdraw error: %v", err)
 		return
 	}
 
@@ -419,7 +419,7 @@ func (c *Client) handleSendWithdraw(msg WSMessage) {
 func (c *Client) handleFocusUser(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket focus user data format error")
+		logger.Errorf("websocket focus user data format error")
 		return
 	}
 
@@ -432,7 +432,7 @@ func (c *Client) handleFocusUser(msg WSMessage) {
 
 	err := service.FocusUser(c.uid, toUID, int(flag))
 	if err != nil {
-		logger.Error("websocket focus user error: %v", err)
+		logger.Errorf("websocket focus user error: %v", err)
 		return
 	}
 }
@@ -447,7 +447,7 @@ func (c *Client) handleFocusUser(msg WSMessage) {
 func (c *Client) handleBlockUser(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket block user data format error")
+		logger.Errorf("websocket block user data format error")
 		return
 	}
 
@@ -460,7 +460,7 @@ func (c *Client) handleBlockUser(msg WSMessage) {
 
 	err := service.BlockUser(c.uid, toUID, int(flag))
 	if err != nil {
-		logger.Error("websocket block user error: %v", err)
+		logger.Errorf("websocket block user error: %v", err)
 		return
 	}
 }
@@ -475,7 +475,7 @@ func (c *Client) handleBlockUser(msg WSMessage) {
 func (c *Client) handleLikeUser(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket like user data format error")
+		logger.Errorf("websocket like user data format error")
 		return
 	}
 
@@ -488,7 +488,7 @@ func (c *Client) handleLikeUser(msg WSMessage) {
 
 	err := service.LikeUser(c.uid, toUID, int(flag))
 	if err != nil {
-		logger.Error("websocket like user error: %v", err)
+		logger.Errorf("websocket like user error: %v", err)
 		return
 	}
 }
@@ -505,20 +505,20 @@ func (c *Client) handleLikeUser(msg WSMessage) {
 func (c *Client) handlePraiseMoment(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket praise moment data format error")
+		logger.Errorf("websocket praise moment data format error")
 		return
 	}
 
 	midStr, _ := dataMap["moment_id"].(string)
 	mid, err := strconv.ParseUint(midStr, 10, 32)
 	if err != nil {
-		logger.Error("websocket praise moment moment_id parse error: %v", err)
+		logger.Errorf("websocket praise moment moment_id parse error: %v", err)
 		return
 	}
 
 	err = service.PraiseMoment(c.uid, uint(mid))
 	if err != nil {
-		logger.Error("websocket praise moment error: %v", err)
+		logger.Errorf("websocket praise moment error: %v", err)
 		return
 	}
 }
@@ -533,7 +533,7 @@ func (c *Client) handlePraiseMoment(msg WSMessage) {
 func (c *Client) handleCommentMoment(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket comment moment data format error")
+		logger.Errorf("websocket comment moment data format error")
 		return
 	}
 
@@ -541,7 +541,7 @@ func (c *Client) handleCommentMoment(msg WSMessage) {
 	text, _ := dataMap["text"].(string)
 	mid, err := strconv.ParseUint(midStr, 10, 32)
 	if err != nil {
-		logger.Error("websocket comment moment moment_id parse error: %v", err)
+		logger.Errorf("websocket comment moment moment_id parse error: %v", err)
 		return
 	}
 
@@ -551,7 +551,7 @@ func (c *Client) handleCommentMoment(msg WSMessage) {
 
 	err = service.CommentMoment(c.uid, uint(mid), text)
 	if err != nil {
-		logger.Error("websocket comment moment error: %v", err)
+		logger.Errorf("websocket comment moment error: %v", err)
 		return
 	}
 }
@@ -566,20 +566,20 @@ func (c *Client) handleCommentMoment(msg WSMessage) {
 func (c *Client) handleReportMoment(msg WSMessage) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
-		logger.Error("websocket report moment data format error")
+		logger.Errorf("websocket report moment data format error")
 		return
 	}
 
 	midStr, _ := dataMap["moment_id"].(string)
 	mid, err := strconv.ParseUint(midStr, 10, 32)
 	if err != nil {
-		logger.Error("websocket report moment moment_id parse error: %v", err)
+		logger.Errorf("websocket report moment moment_id parse error: %v", err)
 		return
 	}
 
 	err = service.ReportMoment(c.uid, uint(mid))
 	if err != nil {
-		logger.Error("websocket report moment error: %v", err)
+		logger.Errorf("websocket report moment error: %v", err)
 		return
 	}
 }

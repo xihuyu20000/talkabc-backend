@@ -52,94 +52,94 @@ type LoginRequest struct {
 //   7. 设置冷却期
 //   8. 存储验证码到Redis（带过期时间）
 func GenerateSMSCode(req GenerateSMSCodeRequest) error {
-	logger.Debug("[SMS] GenerateSMSCode start - PhoneNum: %s, Tag: %s, CaptchaID: %s, CaptchaCode: %s",
+	logger.Debugf("[SMS] GenerateSMSCode start - PhoneNum: %s, Tag: %s, CaptchaID: %s, CaptchaCode: %s",
 		req.PhoneNum, req.Tag, req.CaptchaID, req.CaptchaCode)
 
 	if req.PhoneNum == "" {
-		logger.Debug("[SMS] GenerateSMSCode failed - PhoneNum is empty")
+		logger.Debugf("[SMS] GenerateSMSCode failed - PhoneNum is empty")
 		return fmt.Errorf("手机号不能为空")
 	}
 
 	if req.Tag == "" {
 		req.Tag = "default"
-		logger.Debug("[SMS] GenerateSMSCode - Tag empty, set to default")
+		logger.Debugf("[SMS] GenerateSMSCode - Tag empty, set to default")
 	}
 
 	cooldownResult := repository.CheckSMSCooldown(req.PhoneNum)
-	logger.Debug("[SMS] CheckSMSCooldown result: %v (PhoneNum: %s)", cooldownResult, req.PhoneNum)
+	logger.Debugf("[SMS] CheckSMSCooldown result: %v (PhoneNum: %s)", cooldownResult, req.PhoneNum)
 	if cooldownResult {
-		logger.Debug("[SMS] GenerateSMSCode failed - Cooldown active")
+		logger.Debugf("[SMS] GenerateSMSCode failed - Cooldown active")
 		return fmt.Errorf("发送过于频繁，请稍后再试")
 	}
 
 	hourlyLimitExceeded, err := repository.CheckHourlyLimit(req.PhoneNum)
-	logger.Debug("[SMS] CheckHourlyLimit result: exceeded=%v, err=%v (PhoneNum: %s)",
+	logger.Debugf("[SMS] CheckHourlyLimit result: exceeded=%v, err=%v (PhoneNum: %s)",
 		hourlyLimitExceeded, err, req.PhoneNum)
 	if err != nil {
-		logger.Error("[SMS] CheckHourlyLimit error: %v", err)
+		logger.Errorf("[SMS] CheckHourlyLimit error: %v", err)
 		return fmt.Errorf("验证失败")
 	}
 	if hourlyLimitExceeded {
-		logger.Debug("[SMS] GenerateSMSCode failed - Hourly limit exceeded")
+		logger.Debugf("[SMS] GenerateSMSCode failed - Hourly limit exceeded")
 		return fmt.Errorf("发送次数过多，请1小时后再试")
 	}
 
 	dailyFirst, err := repository.CheckDailyFirst(req.PhoneNum)
-	logger.Debug("[SMS] CheckDailyFirst result: dailyFirst=%v, err=%v (PhoneNum: %s)",
+	logger.Debugf("[SMS] CheckDailyFirst result: dailyFirst=%v, err=%v (PhoneNum: %s)",
 		dailyFirst, err, req.PhoneNum)
 	if err != nil {
-		logger.Error("[SMS] CheckDailyFirst error: %v", err)
+		logger.Errorf("[SMS] CheckDailyFirst error: %v", err)
 		return fmt.Errorf("验证失败")
 	}
 
 	if !dailyFirst {
-		logger.Debug("[SMS] Not daily first, need captcha verification")
+		logger.Debugf("[SMS] Not daily first, need captcha verification")
 		if req.CaptchaID == "" || req.CaptchaCode == "" {
-			logger.Debug("[SMS] GenerateSMSCode failed - Captcha missing")
+			logger.Debugf("[SMS] GenerateSMSCode failed - Captcha missing")
 			return fmt.Errorf("请先获取并验证图形验证码")
 		}
 
 		err = verifyCaptcha(req.CaptchaID, req.CaptchaCode)
-		logger.Debug("[SMS] verifyCaptcha result: err=%v", err)
+		logger.Debugf("[SMS] verifyCaptcha result: err=%v", err)
 		if err != nil {
 			return err
 		}
 	} else {
-		logger.Debug("[SMS] Daily first, skip captcha verification")
+		logger.Debugf("[SMS] Daily first, skip captcha verification")
 	}
 
 	code := generateRandomCode(6)
-	logger.Debug("[SMS] Generated 6-digit code (hidden for security)")
+	logger.Debugf("[SMS] Generated 6-digit code (hidden for security)")
 
 	err = repository.SetSMSCooldown(req.PhoneNum)
-	logger.Debug("[SMS] SetSMSCooldown result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
+	logger.Debugf("[SMS] SetSMSCooldown result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
 	if err != nil {
-		logger.Error("[SMS] SetSMSCooldown error: %v", err)
+		logger.Errorf("[SMS] SetSMSCooldown error: %v", err)
 		return fmt.Errorf("发送失败")
 	}
 
 	err = repository.CreateVerificationCode(req.PhoneNum, code, repository.VerificationCodeTypeSMS, req.Tag)
-	logger.Debug("[SMS] CreateVerificationCode result: err=%v (PhoneNum: %s, Tag: %s)",
+	logger.Debugf("[SMS] CreateVerificationCode result: err=%v (PhoneNum: %s, Tag: %s)",
 		err, req.PhoneNum, req.Tag)
 	if err != nil {
-		logger.Error("[SMS] CreateVerificationCode error: %v", err)
+		logger.Errorf("[SMS] CreateVerificationCode error: %v", err)
 		return fmt.Errorf("发送失败")
 	}
 
 	gateway := sms.GetGateway()
-	logger.Debug("[SMS] GetGateway result: gateway=%v", gateway != nil)
+	logger.Debugf("[SMS] GetGateway result: gateway=%v", gateway != nil)
 	if gateway != nil {
 		err = gateway.SendVerificationCode(context.Background(), req.PhoneNum, code)
-		logger.Debug("[SMS] SendVerificationCode result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
+		logger.Debugf("[SMS] SendVerificationCode result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
 		if err != nil {
-			logger.Error("[SMS] SendVerificationCode error: %v", err)
+			logger.Errorf("[SMS] SendVerificationCode error: %v", err)
 			return fmt.Errorf("发送失败: %v", err)
 		}
 	} else {
-		logger.Debug("[SMS] No SMS gateway configured, skipping actual send")
+		logger.Debugf("[SMS] No SMS gateway configured, skipping actual send")
 	}
 
-	logger.Debug("[SMS] GenerateSMSCode success - PhoneNum: %s, Tag: %s", req.PhoneNum, req.Tag)
+	logger.Debugf("[SMS] GenerateSMSCode success - PhoneNum: %s, Tag: %s", req.PhoneNum, req.Tag)
 	return nil
 }
 

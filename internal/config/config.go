@@ -14,6 +14,7 @@ import (
 
 type Config struct {
 	System       SystemConfig       `json:"system"`
+	Logger       LoggerConfig       `json:"logger"`
 	Security     SecurityConfig     `json:"security"`
 	SMSProvider  SMSProviderConfig  `json:"sms_provider"`
 	Server       ServerConfig       `json:"server"`
@@ -25,8 +26,18 @@ type Config struct {
 }
 
 type SystemConfig struct {
-	Reset    int    `json:"reset"`
-	LogLevel string `json:"log_level"`
+	Reset int `json:"reset"`
+}
+
+type LoggerConfig struct {
+	Level       string `json:"level"`
+	Format      string `json:"format"`
+	Output      string `json:"output"`
+	FilePath    string `json:"file_path"`
+	MaxSize     int    `json:"max_size"`
+	MaxBackups  int    `json:"max_backups"`
+	MaxAge      int    `json:"max_age"`
+	Compress    bool   `json:"compress"`
 }
 
 type SecurityConfig struct {
@@ -139,7 +150,17 @@ func parseArgv(cfgKey string, defaultValue interface{}, usage string) {
 func InitConfig() {
 	// 系统配置
 	parseArgv("system.reset", 0, "system reset flag")
-	parseArgv("system.log_level", "info", "log level")
+
+	// 日志配置
+	parseArgv("logger.level", "info", "log level")
+	parseArgv("logger.format", "console", "log format (console/json)")
+	parseArgv("logger.output", "both", "log output (console/file/both)")
+	parseArgv("logger.file_path", "./logs/app.log", "log file path")
+	parseArgv("logger.max_size", 100, "max log file size (MB)")
+	parseArgv("logger.max_backups", 30, "max backup log files")
+	parseArgv("logger.max_age", 7, "max log file age (days)")
+	viper.SetDefault("logger.compress", true)
+
 	// 安全配置
 	parseArgv("security.sms_valid_minutes", 5, "sms valid minutes")
 	parseArgv("security.sms_cooldown_seconds", 60, "sms cooldown seconds")

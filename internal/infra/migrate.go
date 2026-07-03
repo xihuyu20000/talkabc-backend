@@ -52,10 +52,10 @@ func AutoMigrate(db *gorm.DB) {
 	}
 
 	for _, table := range tables {
-		if err := db.AutoMigrate(table); err != nil {
-			logger.Warn("AutoMigrate failed for table %T: %v", table, err)
+			if err := db.AutoMigrate(table); err != nil {
+				logger.Warnf("AutoMigrate failed for table %T: %v", table, err)
+			}
 		}
-	}
 
-	logger.Info("Database migration completed")
+		logger.Infof("Database migration completed")
 }

@@ -1,4 +1,4 @@
-﻿package infra
+package infra
 
 import (
 	"backend/pkg/logger"
@@ -39,9 +39,9 @@ func NewRedis(cfg RedisConfig) *redis.Client {
 
 	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
-		logger.Fatal("Failed to connect to Redis: %v", err)
+		logger.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
-	logger.Info("Redis connection successful")
+	logger.Infof("Redis connection successful")
 	return rdb
 }

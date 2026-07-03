@@ -1,7 +1,8 @@
-﻿package handler
+package test
 
 import (
 	"backend/internal/config"
+	"backend/internal/handler"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,16 +12,14 @@ import (
 )
 
 func init() {
-	gin.SetMode(gin.TestMode)
+	InitTest()
 }
 
 // ==================== 注册接口测试 ====================
 
-// TestRegister_InvalidParams 测试注册接口参数验证
-// 验证缺少手机号、验证码、密码时返回BadRequest
 func TestRegister_InvalidParams(t *testing.T) {
 	router := gin.New()
-	router.POST("/v1/register", Register)
+	router.POST("/v1/register", handler.Register)
 
 	tests := []struct {
 		name string
@@ -48,15 +47,15 @@ func TestRegister_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestRegister_FormData 测试注册接口使用form-data格式
-// 验证使用form-data传递参数时接口能正常接收
+// ==================== 注册接口集成测试 ====================
+
 func TestRegister_FormData(t *testing.T) {
 	if config.DB == nil {
 		t.Skip("Database not initialized, skipping test")
 	}
 
 	router := gin.New()
-	router.POST("/v1/register", Register)
+	router.POST("/v1/register", handler.Register)
 
 	formData := strings.NewReader("phonenum=13800138000&code=123456&password=Password123")
 	req, _ := http.NewRequest("POST", "/v1/register", formData)
@@ -72,11 +71,9 @@ func TestRegister_FormData(t *testing.T) {
 
 // ==================== 重置密码接口测试 ====================
 
-// TestInitiateResetPassword_InvalidParams 测试发起重置密码接口参数验证
-// 验证缺少手机号时返回BadRequest
 func TestInitiateResetPassword_InvalidParams(t *testing.T) {
 	router := gin.New()
-	router.POST("/v1/reset-password/initiate", InitiateResetPassword)
+	router.POST("/v1/reset-password/initiate", handler.InitiateResetPassword)
 
 	tests := []struct {
 		name string
@@ -101,11 +98,9 @@ func TestInitiateResetPassword_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestValidateResetToken_InvalidParams 测试验证重置Token接口参数验证
-// 验证缺少token时返回BadRequest
 func TestValidateResetToken_InvalidParams(t *testing.T) {
 	router := gin.New()
-	router.GET("/v1/reset-password/validate", ValidateResetToken)
+	router.GET("/v1/reset-password/validate", handler.ValidateResetToken)
 
 	req, _ := http.NewRequest("GET", "/v1/reset-password/validate", nil)
 	resp := httptest.NewRecorder()
@@ -117,11 +112,9 @@ func TestValidateResetToken_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestCompleteResetPassword_InvalidParams 测试完成重置密码接口参数验证
-// 验证缺少token、pwd1、pwd2时返回BadRequest
 func TestCompleteResetPassword_InvalidParams(t *testing.T) {
 	router := gin.New()
-	router.POST("/v1/reset-password/complete", CompleteResetPassword)
+	router.POST("/v1/reset-password/complete", handler.CompleteResetPassword)
 
 	tests := []struct {
 		name string

@@ -87,7 +87,7 @@ func CreateVerificationCode(phoneNum, code, codeType, tag string) error {
 		expireMinutes = 5
 	}
 	err := config.RDB.Set(context.Background(), key, code, time.Duration(expireMinutes)*time.Minute).Err()
-	logger.Debug("[Redis] SET key=%s, ttl=%dmin, err=%v", key, expireMinutes, err)
+	logger.Debugf("[Redis] SET key=%s, ttl=%dmin, err=%v", key, expireMinutes, err)
 	return err
 }
 
@@ -125,7 +125,7 @@ func VerifyAndDeleteVerificationCode(phoneNum, code, codeType, tag string) (bool
 func CheckSMSCooldown(phoneNum string) bool {
 	key := fmt.Sprintf("%s%s", SMSCooldownKeyPrefix, phoneNum)
 	exists, err := config.RDB.Exists(context.Background(), key).Result()
-	logger.Debug("[Redis] EXISTS key=%s, result=%d, err=%v", key, exists, err)
+	logger.Debugf("[Redis] EXISTS key=%s, result=%d, err=%v", key, exists, err)
 	return exists > 0
 }
 
@@ -135,7 +135,7 @@ func SetSMSCooldown(phoneNum string) error {
 	key := fmt.Sprintf("%s%s", SMSCooldownKeyPrefix, phoneNum)
 	ttl := time.Duration(config.AppConfig.Security.SMSCooldownSeconds) * time.Second
 	err := config.RDB.Set(context.Background(), key, "1", ttl).Err()
-	logger.Debug("[Redis] SET key=%s, value=1, ttl=%ds, err=%v", key, config.AppConfig.Security.SMSCooldownSeconds, err)
+	logger.Debugf("[Redis] SET key=%s, value=1, ttl=%ds, err=%v", key, config.AppConfig.Security.SMSCooldownSeconds, err)
 	return err
 }
 
@@ -144,20 +144,23 @@ func SetSMSCooldown(phoneNum string) error {
 func CheckHourlyLimit(phoneNum string) (bool, error) {
 	key := fmt.Sprintf("%s%s", SMSHourlyCountKeyPrefix, phoneNum)
 	
-	current, err := config.RDB.Incr(context.Background(), key).Result()
-	logger.Debug("[Redis] INCR key=%s, result=%d, err=%v", key, current, err)
+	_, err := config.RDB.SetNX(context.Background(), key, "0", 1*time.Hour).Result()
 	if err != nil {
 		return false, err
 	}
 
-	if current == 1 {
-		expireErr := config.RDB.Expire(context.Background(), key, 1*time.Hour).Err()
-		logger.Debug("[Redis] EXPIRE key=%s, ttl=1h, err=%v", key, expireErr)
+	current, err := config.RDB.Incr(context.Background(), key).Result()
+	logger.Debugf("[Redis] INCR key=%s, result=%d, err=%v", key, current, err)
+	if err != nil {
+		return false, err
 	}
+
+	expireErr := config.RDB.Expire(context.Background(), key, 1*time.Hour).Err()
+	logger.Debugf("[Redis] EXPIRE key=%s, ttl=1h, err=%v", key, expireErr)
 
 	limit := config.AppConfig.Security.SMSHourlyLimit
 	exceeded := current > int64(limit)
-	logger.Debug("[SMS] Hourly limit check - key=%s, current=%d, limit=%d, exceeded=%v", key, current, limit, exceeded)
+	logger.Debugf("[SMS] Hourly limit check - key=%s, current=%d, limit=%d, exceeded=%v", key, current, limit, exceeded)
 	return exceeded, nil
 }
 
@@ -167,14 +170,14 @@ func CheckDailyFirst(phoneNum string) (bool, error) {
 	key := fmt.Sprintf("%s%s", SMSDailyFirstKeyPrefix, phoneNum)
 	
 	exists, err := config.RDB.Exists(context.Background(), key).Result()
-	logger.Debug("[Redis] EXISTS key=%s, result=%d, err=%v", key, exists, err)
+	logger.Debugf("[Redis] EXISTS key=%s, result=%d, err=%v", key, exists, err)
 	if err != nil {
 		return false, err
 	}
 
 	if exists == 0 {
 		setErr := config.RDB.Set(context.Background(), key, "1", 24*time.Hour).Err()
-		logger.Debug("[Redis] SET key=%s, value=1, ttl=24h, err=%v", key, setErr)
+		logger.Debugf("[Redis] SET key=%s, value=1, ttl=24h, err=%v", key, setErr)
 		return true, nil
 	}
 

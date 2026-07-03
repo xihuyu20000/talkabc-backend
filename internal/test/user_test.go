@@ -1,4 +1,4 @@
-﻿package handler
+package test
 
 import (
 	"encoding/json"
@@ -11,8 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TestGetUserList_InvalidParams 测试获取用户列表接口参数验证
-// 验证缺少必填参数（年龄范围或性别）时返回400错误
+func init() {
+	InitTest()
+}
+
+// ==================== 用户列表接口测试 ====================
+
 func TestGetUserList_InvalidParams(t *testing.T) {
 	router := gin.New()
 	router.GET("/v1/userlist", func(c *gin.Context) {
@@ -64,8 +68,8 @@ func TestGetUserList_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestGetUserInfo_InvalidUID 测试获取用户信息接口UID验证
-// 验证UID参数存在时返回200成功
+// ==================== 用户信息接口测试 ====================
+
 func TestGetUserInfo_InvalidUID(t *testing.T) {
 	router := gin.New()
 	router.GET("/v1/userinfo/:uid", func(c *gin.Context) {
@@ -87,8 +91,8 @@ func TestGetUserInfo_InvalidUID(t *testing.T) {
 	}
 }
 
-// TestGetFocusList_InvalidUID 测试获取关注列表接口UID验证
-// 验证UID参数存在时返回200成功
+// ==================== 关注列表接口测试 ====================
+
 func TestGetFocusList_InvalidUID(t *testing.T) {
 	router := gin.New()
 	router.GET("/v1/focuslist/:uid", func(c *gin.Context) {
@@ -110,8 +114,8 @@ func TestGetFocusList_InvalidUID(t *testing.T) {
 	}
 }
 
-// TestGetFansList_InvalidUID 测试获取粉丝列表接口UID验证
-// 验证UID参数存在时返回200成功
+// ==================== 粉丝列表接口测试 ====================
+
 func TestGetFansList_InvalidUID(t *testing.T) {
 	router := gin.New()
 	router.GET("/v1/fanslist/:uid", func(c *gin.Context) {
@@ -133,8 +137,8 @@ func TestGetFansList_InvalidUID(t *testing.T) {
 	}
 }
 
-// TestFocusUser_InvalidParams 测试关注用户接口参数验证
-// 验证UID和flag参数存在时返回200成功
+// ==================== 关注用户接口测试 ====================
+
 func TestFocusUser_InvalidParams(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/aimuser/focus/:uid/:flag", func(c *gin.Context) {
@@ -169,8 +173,8 @@ func TestFocusUser_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestBlockUser_InvalidParams 测试拉黑用户接口参数验证
-// 验证UID和flag参数存在时返回200成功
+// ==================== 拉黑用户接口测试 ====================
+
 func TestBlockUser_InvalidParams(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/aimuser/block/:uid/:flag", func(c *gin.Context) {
@@ -205,8 +209,8 @@ func TestBlockUser_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestSetUserNotify_InvalidParams 测试设置通知开关接口参数验证
-// 验证UID和flag参数存在时返回200成功
+// ==================== 设置通知开关接口测试 ====================
+
 func TestSetUserNotify_InvalidParams(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/aimuser/notify/:uid/:flag", func(c *gin.Context) {
@@ -241,8 +245,8 @@ func TestSetUserNotify_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestGreetUser_Success 测试打招呼接口成功场景
-// 验证UID参数存在时返回200成功
+// ==================== 打招呼接口测试 ====================
+
 func TestGreetUser_Success(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/aimuser/greet/:uid", func(c *gin.Context) {
@@ -264,8 +268,8 @@ func TestGreetUser_Success(t *testing.T) {
 	}
 }
 
-// TestCollectMyInfo_InvalidBody 测试完善个人信息接口请求体验证
-// 验证空请求体时返回400错误
+// ==================== 完善个人信息接口测试 ====================
+
 func TestCollectMyInfo_InvalidBody(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/collect/myinfo", func(c *gin.Context) {
@@ -290,8 +294,8 @@ func TestCollectMyInfo_InvalidBody(t *testing.T) {
 	}
 }
 
-// TestCollectAimInfo_InvalidBody 测试设置理想对象条件接口请求体验证
-// 验证空请求体时返回400错误
+// ==================== 设置理想对象条件接口测试 ====================
+
 func TestCollectAimInfo_InvalidBody(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/collect/aiminfo", func(c *gin.Context) {
@@ -316,47 +320,8 @@ func TestCollectAimInfo_InvalidBody(t *testing.T) {
 	}
 }
 
-// TestResponseFormat 测试API响应格式
-// 验证响应包含code、msg、data字段且值正确
-func TestResponseFormat(t *testing.T) {
-	type TestResponse struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data string `json:"data"`
-	}
+// ==================== UID参数验证测试 ====================
 
-	router := gin.New()
-	router.GET("/test", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"code": 0,
-			"msg":  "success",
-			"data": "test",
-		})
-	})
-
-	req, _ := http.NewRequest("GET", "/test", nil)
-	resp := httptest.NewRecorder()
-
-	router.ServeHTTP(resp, req)
-
-	var result TestResponse
-	json.Unmarshal(resp.Body.Bytes(), &result)
-
-	if result.Code != 0 {
-		t.Errorf("Expected code 0, got %d", result.Code)
-	}
-
-	if result.Msg != "success" {
-		t.Errorf("Expected msg 'success', got %s", result.Msg)
-	}
-
-	if result.Data != "test" {
-		t.Errorf("Expected data 'test', got %s", result.Data)
-	}
-}
-
-// TestUIDValidation 测试UID参数验证
-// 验证不同格式的UID（数字、字母、雪花ID）都能被接受
 func TestUIDValidation(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -396,8 +361,8 @@ func TestUIDValidation(t *testing.T) {
 	}
 }
 
-// TestUserListQueryParams 测试用户列表查询参数验证
-// 验证必填参数（年龄范围和性别）缺失时返回400错误
+// ==================== 用户列表查询参数测试 ====================
+
 func TestUserListQueryParams(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -454,8 +419,8 @@ func TestUserListQueryParams(t *testing.T) {
 	}
 }
 
-// TestCollectInfoJSONValidation 测试完善信息接口JSON解析
-// 验证不同格式的JSON请求体都能正确解析
+// ==================== 完善信息接口JSON解析测试 ====================
+
 func TestCollectInfoJSONValidation(t *testing.T) {
 	tests := []struct {
 		name string

@@ -1,7 +1,8 @@
-﻿package handler
+package test
 
 import (
 	"backend/internal/config"
+	"backend/internal/handler"
 	"backend/pkg/response"
 	"encoding/json"
 	"net/http"
@@ -13,16 +14,14 @@ import (
 )
 
 func init() {
-	gin.SetMode(gin.TestMode)
+	InitTest()
 }
 
 // ==================== 验证码登录接口测试 ====================
 
-// TestLoginByCode_InvalidParams 测试验证码登录接口参数验证
-// 验证缺少手机号、验证码时返回BadRequest
 func TestLoginByCode_InvalidParams(t *testing.T) {
 	router := gin.New()
-	router.POST("/v1/login/code", LoginByCode)
+	router.POST("/v1/login/code", handler.LoginByCode)
 
 	tests := []struct {
 		name string
@@ -48,31 +47,11 @@ func TestLoginByCode_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestLoginByCode_WithDeviceID 测试验证码登录接口传递设备ID
-// 验证设备ID参数能正常接收
-func TestLoginByCode_WithDeviceID(t *testing.T) {
-	router := gin.New()
-	router.POST("/v1/login/code", LoginByCode)
-
-	req, _ := http.NewRequest("POST", "/v1/login/code", strings.NewReader(`{"phonenum": "13800138000", "code": "123456", "device_id": "test_device"}`))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (TestAgent)")
-	resp := httptest.NewRecorder()
-
-	router.ServeHTTP(resp, req)
-
-	if resp.Code != http.StatusBadRequest && resp.Code != http.StatusOK {
-		t.Logf("Response body: %s", resp.Body.String())
-	}
-}
-
 // ==================== 密码登录接口测试 ====================
 
-// TestLoginByPassword_InvalidParams 测试密码登录接口参数验证
-// 验证缺少手机号、密码时返回BadRequest
 func TestLoginByPassword_InvalidParams(t *testing.T) {
 	router := gin.New()
-	router.POST("/v1/login/pwd", LoginByPassword)
+	router.POST("/v1/login/pwd", handler.LoginByPassword)
 
 	tests := []struct {
 		name string
@@ -98,11 +77,27 @@ func TestLoginByPassword_InvalidParams(t *testing.T) {
 	}
 }
 
-// TestLoginByPassword_WithDeviceID 测试密码登录接口传递设备ID
-// 验证设备ID参数能正常接收
+// ==================== 登录接口集成测试 ====================
+
+func TestLoginByCode_WithDeviceID(t *testing.T) {
+	router := gin.New()
+	router.POST("/v1/login/code", handler.LoginByCode)
+
+	req, _ := http.NewRequest("POST", "/v1/login/code", strings.NewReader(`{"phonenum": "13800138000", "code": "123456", "device_id": "test_device"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (TestAgent)")
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusBadRequest && resp.Code != http.StatusOK {
+		t.Logf("Response body: %s", resp.Body.String())
+	}
+}
+
 func TestLoginByPassword_WithDeviceID(t *testing.T) {
 	router := gin.New()
-	router.POST("/v1/login/pwd", LoginByPassword)
+	router.POST("/v1/login/pwd", handler.LoginByPassword)
 
 	req, _ := http.NewRequest("POST", "/v1/login/pwd", strings.NewReader(`{"phonenum": "13800138000", "pwd": "Password123", "device_id": "test_device"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -116,17 +111,13 @@ func TestLoginByPassword_WithDeviceID(t *testing.T) {
 	}
 }
 
-// ==================== 退出登录接口测试 ====================
-
-// TestLogout_Success 测试退出登录接口
-// 验证退出登录返回Success
 func TestLogout_Success(t *testing.T) {
 	if config.DB == nil {
 		t.Skip("Database not initialized, skipping test")
 	}
 
 	router := gin.New()
-	router.POST("/v1/logout", Logout)
+	router.POST("/v1/logout", handler.Logout)
 
 	req, _ := http.NewRequest("POST", "/v1/logout", nil)
 	resp := httptest.NewRecorder()

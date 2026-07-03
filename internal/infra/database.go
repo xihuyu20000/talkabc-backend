@@ -29,7 +29,7 @@ func ensureDatabaseExists(cfg DatabaseConfig) {
 	var defaultDB *gorm.DB
 	defaultDB, err = gorm.Open("postgres", defaultDSN)
 	if err != nil {
-		logger.Fatal("Failed to connect to default database: %v", err)
+		logger.Fatalf("Failed to connect to default database: %v", err)
 	}
 	defer defaultDB.Close()
 
@@ -44,9 +44,9 @@ func ensureDatabaseExists(cfg DatabaseConfig) {
 	if !exists {
 		createSQL := fmt.Sprintf("CREATE DATABASE \"%s\"", cfg.DBName)
 		if err := defaultDB.Exec(createSQL).Error; err != nil {
-			logger.Fatal("Failed to create database: %v", err)
+			logger.Fatalf("Failed to create database: %v", err)
 		}
-		logger.Info("Database '%s' created successfully", cfg.DBName)
+		logger.Infof("Database '%s' created successfully", cfg.DBName)
 	}
 }
 
@@ -71,15 +71,15 @@ func NewDB(cfg DatabaseConfig) *gorm.DB {
 
 	db, err := gorm.Open("postgres", dsn)
 	if err != nil {
-		logger.Fatal("Failed to connect database: %v", err)
+		logger.Fatalf("Failed to connect database: %v", err)
 	}
 
 	db.LogMode(true)
 
 	if err := db.DB().Ping(); err != nil {
-		logger.Fatal("Failed to ping database: %v", err)
+		logger.Fatalf("Failed to ping database: %v", err)
 	}
 
-	logger.Info("Database connected successfully")
+	logger.Infof("Database connected successfully")
 	return db
 }

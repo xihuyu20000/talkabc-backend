@@ -32,6 +32,18 @@ import (
 func main() {
 	config.InitConfig()
 
+	logger.InitLogger(&logger.Config{
+		Level:       config.AppConfig.Logger.Level,
+		Format:      config.AppConfig.Logger.Format,
+		Output:      config.AppConfig.Logger.Output,
+		FilePath:    config.AppConfig.Logger.FilePath,
+		MaxSize:     config.AppConfig.Logger.MaxSize,
+		MaxBackups:  config.AppConfig.Logger.MaxBackups,
+		MaxAge:      config.AppConfig.Logger.MaxAge,
+		Compress:    config.AppConfig.Logger.Compress,
+	})
+	defer logger.Sync()
+
 	if config.AppConfig.System.Reset == 1 {
 		dbCfg := infra.DatabaseConfig{
 			Host:     config.AppConfig.Database.Host,
@@ -49,8 +61,6 @@ func main() {
 		}
 		infra.ResetAll(dbCfg, redisCfg)
 	}
-
-	logger.InitLogger(config.AppConfig.System.LogLevel)
 
 	dbCfg := infra.DatabaseConfig{
 		Host:     config.AppConfig.Database.Host,
@@ -72,7 +82,7 @@ func main() {
 	config.RDB = infra.NewRedis(redisCfg)
 
 	if err := sms.InitSMSGateway(&config.AppConfig.SMSProvider); err != nil {
-		logger.Warn("Failed to initialize SMS gateway: %v", err)
+		logger.Warnf("Failed to initialize SMS gateway: %v", err)
 	}
 
 	createUploadDirs()
@@ -81,7 +91,7 @@ func main() {
 
 	port := config.AppConfig.Server.Port
 
-	logger.Info("Server starting on port %d...", port)
+	logger.Infof("Server starting on port %d...", port)
 
 	r.Run(":" + strconv.Itoa(port))
 }
@@ -102,7 +112,7 @@ func createUploadDirs() {
 		// 0755是目录权限：所有者可读写执行，其他人可读执行
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			// 如果创建失败，打印错误日志但继续运行
-			logger.Error("Failed to create directory %s: %v", dir, err)
+			logger.Errorf("Failed to create directory %s: %v", dir, err)
 		}
 	}
 }
