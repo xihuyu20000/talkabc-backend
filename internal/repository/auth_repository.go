@@ -147,7 +147,7 @@ func CheckHourlyLimit(phoneNum string) (bool, error) {
 		config.RDB.Expire(context.Background(), key, 1*time.Hour)
 	}
 
-	return current > 10, nil
+	return current > int64(config.AppConfig.System.SMSHourlyLimit), nil
 }
 
 // CheckDailyFirst 获取今日首次发送标记（24小时内首次发送不需要图形验证码）
@@ -188,8 +188,8 @@ func CheckIPBlacklist(ip string) bool {
 	return exists > 0
 }
 
-// CheckRegisterIPRateLimit 检查IP注册请求频率（1分钟10次）
-// 【注册安全规则2】服务器检验通过IP检查注册请求的频率，请求频率限制在1分钟10次
+// CheckRegisterIPRateLimit 检查IP注册请求频率（1小时内每个IP发送次数限制，单位次）
+// 【注册安全规则2】服务器检验通过IP检查注册请求的频率，请求频率限制在1小时内发送次数限制，单位次
 func CheckRegisterIPRateLimit(ip string) (bool, error) {
 	key := fmt.Sprintf("%s%s", RegisterIPRateLimitPrefix, ip)
 
@@ -199,10 +199,10 @@ func CheckRegisterIPRateLimit(ip string) (bool, error) {
 	}
 
 	if current == 1 {
-		config.RDB.Expire(context.Background(), key, 1*time.Minute)
+		config.RDB.Expire(context.Background(), key, 1*time.Hour)
 	}
 
-	return current > 10, nil
+	return current > int64(config.AppConfig.System.IPRegisterHourlyLimit), nil
 }
 
 // CheckPhoneBlacklist 检查手机号是否在黑名单中
@@ -215,8 +215,8 @@ func CheckPhoneBlacklist(phoneNum string) bool {
 
 // ==================== 登录安全规则 ====================
 
-// CheckLoginIPRateLimit 检查IP登录请求频率（1分钟10次）
-// 【登录安全规则2】服务器检验通过IP检查登录请求的频率，请求频率限制在1分钟10次
+// CheckLoginIPRateLimit 检查IP登录请求频率（1小时内每个IP发送次数限制，单位次）
+// 【登录安全规则2】服务器检验通过IP检查登录请求的频率，请求频率限制在1小时内发送次数限制，单位次
 func CheckLoginIPRateLimit(ip string) (bool, error) {
 	key := fmt.Sprintf("%s%s", LoginIPRateLimitPrefix, ip)
 
@@ -229,7 +229,7 @@ func CheckLoginIPRateLimit(ip string) (bool, error) {
 		config.RDB.Expire(context.Background(), key, 1*time.Minute)
 	}
 
-	return current > 10, nil
+	return current > int64(config.AppConfig.System.IPLoginMinuteLimit), nil
 }
 
 // CheckDeviceBlacklist 检查设备是否在黑名单中
@@ -243,7 +243,7 @@ func CheckDeviceBlacklist(deviceID string) bool {
 	return exists > 0
 }
 
-// CheckLoginFailedAttempt 检查登录失败次数（5分钟内5次失败锁定15分钟）
+// CheckLoginFailedAttempt 检查登录失败次数（5分钟内5次失败锁定5分钟）
 // 【登录安全规则5】登录失败次数限制，防止暴力破解
 func CheckLoginFailedAttempt(phoneNum string) (bool, error) {
 	key := fmt.Sprintf("%s%s", LoginFailedAttemptPrefix, phoneNum)
@@ -258,7 +258,7 @@ func CheckLoginFailedAttempt(phoneNum string) (bool, error) {
 	}
 	
 	if current > 5 {
-		config.RDB.Expire(context.Background(), key, 15*time.Minute)
+		config.RDB.Expire(context.Background(), key, time.Duration(config.AppConfig.System.LoginFailureLockMinutes)*time.Minute)
 		return true, nil
 	}
 	
