@@ -1,1 +1,0 @@
-[2026-07-02 19:33:53.082] [FATAL] [infra\database.go:28] Failed to connect to default database: dial tcp 127.0.0.1:5432: connectex: No connection could be made because the target machine actively refused it.

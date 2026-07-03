@@ -44,7 +44,9 @@ func InitRouter() *gin.Engine {
 		{
 			// ==================== auth & sms ====================
 			public.GET("/auth/code-sms", handler.SendSMSCode)
+			public.POST("/auth/code-sms/verify", handler.VerifySMSCode)
 			public.GET("/auth/code-alnum", handler.GenerateAlnumCode)
+			public.POST("/auth/code-alnum/verify", handler.VerifyAlnumCode)
 			public.POST("/auth/register", handler.Register)
 			public.POST("/auth/login/code", handler.LoginByCode)
 			public.POST("/auth/login/password", handler.LoginByPassword)

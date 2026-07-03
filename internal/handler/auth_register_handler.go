@@ -7,16 +7,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+/**
+注册时的安全性规则如下：
+1. 服务器检验通过IP是否位于黑名单中，是则拦截。
+2. 服务器检验通过IP检查注册请求的频率，请求频率限制在1分钟10次。
+3. 校验手机号手机号是否位于黑名单中，是则拦截
+4. 校验手机号是否已被占用（用户已存在）。
+*/
+
 // Register 用户注册
 // @Summary 用户注册
-// @Description 使用手机号和验证码进行注册
+// @Description 使用手机号和验证码进行注册（带IP黑名单、频率限制、手机号黑名单校验）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
 // @Param phonenum formData string true "手机号"
 // @Param code formData string true "验证码"
 // @Success 200 {object} map[string]interface{} "注册成功，返回token"
-// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "注册失败"
 // @Router /api/v1/auth/register [post]
 func Register(c *gin.Context) {
@@ -28,7 +36,17 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	token, err := service.Register(phoneNum, code)
+	// 获取客户端真实IP（支持代理）
+	clientIP := c.ClientIP()
+
+	// 【注册安全规则】组装注册请求，包含IP信息用于安全校验
+	req := service.RegisterRequest{
+		PhoneNum: phoneNum,
+		Code:     code,
+		IP:       clientIP,
+	}
+
+	token, err := service.Register(req)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return
