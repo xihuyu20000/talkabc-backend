@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/middleware"
@@ -25,7 +25,7 @@ import (
 // @Success 200 {object} map[string]interface{} "保存成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "保存失败"
-// @Router /api/v1/profile/me [post]
+// @Router /profile/me [post]
 func CollectMyInfo(c *gin.Context) {
 	userID := middleware.GetUID(c)
 
@@ -87,7 +87,7 @@ func CollectMyInfo(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "保存成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "保存失败"
-// @Router /api/v1/profile/preferences [post]
+// @Router /profile/preferences [post]
 func CollectAimInfo(c *gin.Context) {
 	userID := middleware.GetUID(c)
 

@@ -3,6 +3,7 @@ package repository
 import (
 	"backend/internal/config"
 	"backend/internal/model"
+	"backend/pkg/logger"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -83,10 +84,11 @@ func CreateVerificationCode(phoneNum, code, codeType, tag string) error {
 	key := getVerificationCodeKey(phoneNum, codeType, tag)
 	expireMinutes := config.AppConfig.Security.SMSValidMinutes
 	if expireMinutes <= 0 {
-		// 【功能1】默认有效期5分钟
 		expireMinutes = 5
 	}
-	return config.RDB.Set(context.Background(), key, code, time.Duration(expireMinutes)*time.Minute).Err()
+	err := config.RDB.Set(context.Background(), key, code, time.Duration(expireMinutes)*time.Minute).Err()
+	logger.Debug("[Redis] SET key=%s, ttl=%dmin, err=%v", key, expireMinutes, err)
+	return err
 }
 
 // VerifyAndDeleteVerificationCode 验证并删除验证码（原子操作，保证一次性使用）
@@ -122,7 +124,8 @@ func VerifyAndDeleteVerificationCode(phoneNum, code, codeType, tag string) (bool
 // 【功能3】服务器端校验60秒冷却期
 func CheckSMSCooldown(phoneNum string) bool {
 	key := fmt.Sprintf("%s%s", SMSCooldownKeyPrefix, phoneNum)
-	exists, _ := config.RDB.Exists(context.Background(), key).Result()
+	exists, err := config.RDB.Exists(context.Background(), key).Result()
+	logger.Debug("[Redis] EXISTS key=%s, result=%d, err=%v", key, exists, err)
 	return exists > 0
 }
 
@@ -130,7 +133,10 @@ func CheckSMSCooldown(phoneNum string) bool {
 // 【功能3】发送成功后设置60秒冷却期，防止频繁发送
 func SetSMSCooldown(phoneNum string) error {
 	key := fmt.Sprintf("%s%s", SMSCooldownKeyPrefix, phoneNum)
-	return config.RDB.Set(context.Background(), key, "1", time.Duration(config.AppConfig.Security.SMSCooldownSeconds)*time.Second).Err()
+	ttl := time.Duration(config.AppConfig.Security.SMSCooldownSeconds) * time.Second
+	err := config.RDB.Set(context.Background(), key, "1", ttl).Err()
+	logger.Debug("[Redis] SET key=%s, value=1, ttl=%ds, err=%v", key, config.AppConfig.Security.SMSCooldownSeconds, err)
+	return err
 }
 
 // CheckHourlyLimit 检查1小时内发送次数是否超过限制（10次）
@@ -139,15 +145,20 @@ func CheckHourlyLimit(phoneNum string) (bool, error) {
 	key := fmt.Sprintf("%s%s", SMSHourlyCountKeyPrefix, phoneNum)
 	
 	current, err := config.RDB.Incr(context.Background(), key).Result()
+	logger.Debug("[Redis] INCR key=%s, result=%d, err=%v", key, current, err)
 	if err != nil {
 		return false, err
 	}
 
 	if current == 1 {
-		config.RDB.Expire(context.Background(), key, 1*time.Hour)
+		expireErr := config.RDB.Expire(context.Background(), key, 1*time.Hour).Err()
+		logger.Debug("[Redis] EXPIRE key=%s, ttl=1h, err=%v", key, expireErr)
 	}
 
-	return current > int64(config.AppConfig.Security.SMSHourlyLimit), nil
+	limit := config.AppConfig.Security.SMSHourlyLimit
+	exceeded := current > int64(limit)
+	logger.Debug("[SMS] Hourly limit check - key=%s, current=%d, limit=%d, exceeded=%v", key, current, limit, exceeded)
+	return exceeded, nil
 }
 
 // CheckDailyFirst 获取今日首次发送标记（24小时内首次发送不需要图形验证码）
@@ -156,12 +167,14 @@ func CheckDailyFirst(phoneNum string) (bool, error) {
 	key := fmt.Sprintf("%s%s", SMSDailyFirstKeyPrefix, phoneNum)
 	
 	exists, err := config.RDB.Exists(context.Background(), key).Result()
+	logger.Debug("[Redis] EXISTS key=%s, result=%d, err=%v", key, exists, err)
 	if err != nil {
 		return false, err
 	}
 
 	if exists == 0 {
-		config.RDB.Set(context.Background(), key, "1", 24*time.Hour)
+		setErr := config.RDB.Set(context.Background(), key, "1", 24*time.Hour).Err()
+		logger.Debug("[Redis] SET key=%s, value=1, ttl=24h, err=%v", key, setErr)
 		return true, nil
 	}
 

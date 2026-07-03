@@ -5,6 +5,7 @@ import (
 	"backend/internal/model"
 	"backend/internal/repository"
 	"backend/internal/sms"
+	"backend/pkg/logger"
 	"backend/pkg/utils"
 	"context"
 	"crypto/rand"
@@ -51,73 +52,94 @@ type LoginRequest struct {
 //   7. 设置冷却期
 //   8. 存储验证码到Redis（带过期时间）
 func GenerateSMSCode(req GenerateSMSCodeRequest) error {
+	logger.Debug("[SMS] GenerateSMSCode start - PhoneNum: %s, Tag: %s, CaptchaID: %s, CaptchaCode: %s",
+		req.PhoneNum, req.Tag, req.CaptchaID, req.CaptchaCode)
+
 	if req.PhoneNum == "" {
+		logger.Debug("[SMS] GenerateSMSCode failed - PhoneNum is empty")
 		return fmt.Errorf("手机号不能为空")
 	}
 
-	// 【功能10】默认业务标签为default
 	if req.Tag == "" {
 		req.Tag = "default"
+		logger.Debug("[SMS] GenerateSMSCode - Tag empty, set to default")
 	}
 
-	// 【功能3】检查60秒冷却期（服务器端校验）
-	if repository.CheckSMSCooldown(req.PhoneNum) {
+	cooldownResult := repository.CheckSMSCooldown(req.PhoneNum)
+	logger.Debug("[SMS] CheckSMSCooldown result: %v (PhoneNum: %s)", cooldownResult, req.PhoneNum)
+	if cooldownResult {
+		logger.Debug("[SMS] GenerateSMSCode failed - Cooldown active")
 		return fmt.Errorf("发送过于频繁，请稍后再试")
 	}
 
-	// 【功能8】检查1小时内发送次数限制（10次）
 	hourlyLimitExceeded, err := repository.CheckHourlyLimit(req.PhoneNum)
+	logger.Debug("[SMS] CheckHourlyLimit result: exceeded=%v, err=%v (PhoneNum: %s)",
+		hourlyLimitExceeded, err, req.PhoneNum)
 	if err != nil {
+		logger.Error("[SMS] CheckHourlyLimit error: %v", err)
 		return fmt.Errorf("验证失败")
 	}
 	if hourlyLimitExceeded {
+		logger.Debug("[SMS] GenerateSMSCode failed - Hourly limit exceeded")
 		return fmt.Errorf("发送次数过多，请1小时后再试")
 	}
 
-	// 【功能9】判断是否为每日首次发送（首次不需要图形验证码）
 	dailyFirst, err := repository.CheckDailyFirst(req.PhoneNum)
+	logger.Debug("[SMS] CheckDailyFirst result: dailyFirst=%v, err=%v (PhoneNum: %s)",
+		dailyFirst, err, req.PhoneNum)
 	if err != nil {
+		logger.Error("[SMS] CheckDailyFirst error: %v", err)
 		return fmt.Errorf("验证失败")
 	}
 
-	// 【功能7】非每日首次发送时，必须先验证图形验证码
 	if !dailyFirst {
+		logger.Debug("[SMS] Not daily first, need captcha verification")
 		if req.CaptchaID == "" || req.CaptchaCode == "" {
+			logger.Debug("[SMS] GenerateSMSCode failed - Captcha missing")
 			return fmt.Errorf("请先获取并验证图形验证码")
 		}
 
 		err = verifyCaptcha(req.CaptchaID, req.CaptchaCode)
+		logger.Debug("[SMS] verifyCaptcha result: err=%v", err)
 		if err != nil {
 			return err
 		}
+	} else {
+		logger.Debug("[SMS] Daily first, skip captcha verification")
 	}
 
-	// 【功能2】生成6位纯数字验证码
 	code := generateRandomCode(6)
+	logger.Debug("[SMS] Generated 6-digit code (hidden for security)")
 
-	// 【功能3】设置60秒冷却期
 	err = repository.SetSMSCooldown(req.PhoneNum)
+	logger.Debug("[SMS] SetSMSCooldown result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
 	if err != nil {
+		logger.Error("[SMS] SetSMSCooldown error: %v", err)
 		return fmt.Errorf("发送失败")
 	}
 
-	// 【功能1】存储验证码到Redis（带TTL，默认5分钟）
-	// 【功能4】新验证码会覆盖旧的，保证同一时间只有一个有效验证码
-	// 【功能10】使用业务标签隔离不同场景的验证码
 	err = repository.CreateVerificationCode(req.PhoneNum, code, repository.VerificationCodeTypeSMS, req.Tag)
+	logger.Debug("[SMS] CreateVerificationCode result: err=%v (PhoneNum: %s, Tag: %s)",
+		err, req.PhoneNum, req.Tag)
 	if err != nil {
+		logger.Error("[SMS] CreateVerificationCode error: %v", err)
 		return fmt.Errorf("发送失败")
 	}
 
-	// 通过短信网关发送实际短信
 	gateway := sms.GetGateway()
+	logger.Debug("[SMS] GetGateway result: gateway=%v", gateway != nil)
 	if gateway != nil {
 		err = gateway.SendVerificationCode(context.Background(), req.PhoneNum, code)
+		logger.Debug("[SMS] SendVerificationCode result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
 		if err != nil {
+			logger.Error("[SMS] SendVerificationCode error: %v", err)
 			return fmt.Errorf("发送失败: %v", err)
 		}
+	} else {
+		logger.Debug("[SMS] No SMS gateway configured, skipping actual send")
 	}
 
+	logger.Debug("[SMS] GenerateSMSCode success - PhoneNum: %s, Tag: %s", req.PhoneNum, req.Tag)
 	return nil
 }
 

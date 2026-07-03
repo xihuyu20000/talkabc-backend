@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/service"
@@ -32,7 +32,7 @@ import (
 // @Success 200 {object} map[string]interface{} "注册成功，返回token"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "注册失败"
-// @Router /api/v1/auth/register [post]
+// @Router /auth/register [post]
 func Register(c *gin.Context) {
 	phoneNum := c.PostForm("phonenum")
 	code := c.PostForm("code")
@@ -122,7 +122,7 @@ bcrypt cost 设置 10～12，平衡安全与性能
 // @Success 200 {object} map[string]interface{} "发起成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或频率限制"
 // @Failure 500 {object} map[string]interface{} "发起失败"
-// @Router /api/v1/auth/reset-password/initiate [post]
+// @Router /auth/reset-password/initiate [post]
 func InitiateResetPassword(c *gin.Context) {
 	phoneNum := c.PostForm("phonenum")
 	// 【重置凭证】获取设备ID，用于绑定唯一信息，防止跨账号盗用
@@ -163,7 +163,7 @@ func InitiateResetPassword(c *gin.Context) {
 // @Param token query string true "重置Token"
 // @Success 200 {object} map[string]interface{} "Token有效"
 // @Failure 400 {object} map[string]interface{} "Token无效或已过期"
-// @Router /api/v1/auth/reset-password/validate [get]
+// @Router /auth/reset-password/validate [get]
 func ValidateResetToken(c *gin.Context) {
 	token := c.Query("token")
 
@@ -195,7 +195,7 @@ func ValidateResetToken(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "重置成功"
 // @Failure 400 {object} map[string]interface{} "参数错误或密码校验失败"
 // @Failure 500 {object} map[string]interface{} "重置失败"
-// @Router /api/v1/auth/reset-password/complete [post]
+// @Router /auth/reset-password/complete [post]
 func CompleteResetPassword(c *gin.Context) {
 	token := c.PostForm("token")
 	pwd1 := c.PostForm("pwd1")

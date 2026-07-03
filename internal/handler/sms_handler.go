@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/config"
@@ -38,7 +38,7 @@ import (
 // @Success 200 {object} map[string]interface{} "发送成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或验证失败"
 // @Failure 500 {object} map[string]interface{} "发送失败"
-// @Router /api/v1/auth/code-sms [get]
+// @Router /auth/code-sms [get]
 func SendSMSCode(c *gin.Context) {
 	// 【功能10】支持业务标签参数，不同业务场景使用不同的验证码key
 	req := service.GenerateSMSCodeRequest{
@@ -67,7 +67,7 @@ func SendSMSCode(c *gin.Context) {
 // @Param body body map[string]string true "包含phonenum、code、tag"
 // @Success 200 {object} map[string]interface{} "验证成功"
 // @Failure 400 {object} map[string]interface{} "参数错误或验证码不正确"
-// @Router /api/v1/auth/code-sms/verify [post]
+// @Router /auth/code-sms/verify [post]
 func VerifySMSCode(c *gin.Context) {
 	var req struct {
 		PhoneNum string `json:"phonenum"`
@@ -104,7 +104,7 @@ func VerifySMSCode(c *gin.Context) {
 // @Produce application/json
 // @Success 200 {object} map[string]interface{} "生成成功"
 // @Failure 500 {object} map[string]interface{} "生成失败"
-// @Router /api/v1/auth/code-alnum [get]
+// @Router /auth/code-alnum [get]
 func GenerateAlnumCode(c *gin.Context) {
 	// 使用base64Captcha库生成数字验证码图片
 	driver := base64Captcha.NewDriverDigit(80, 240, 4, 0.7, 80)
@@ -138,7 +138,7 @@ func GenerateAlnumCode(c *gin.Context) {
 // @Param body body map[string]string true "包含captcha_id和code"
 // @Success 200 {object} map[string]interface{} "验证成功"
 // @Failure 400 {object} map[string]interface{} "参数错误或验证码不正确"
-// @Router /api/v1/auth/code-alnum/verify [post]
+// @Router /auth/code-alnum/verify [post]
 func VerifyAlnumCode(c *gin.Context) {
 	var req struct {
 		CaptchaID string `json:"captcha_id"`

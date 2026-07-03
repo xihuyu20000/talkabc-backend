@@ -25,7 +25,7 @@ info:
   title: TalkABC API
   version: "1.0"
 paths:
-  /api/v1/ads/banners:
+  /ads/banners:
     get:
       consumes:
       - application/json
@@ -46,7 +46,7 @@ paths:
       summary: 获取最新广告横幅
       tags:
       - 广告
-  /api/v1/auth/code-alnum:
+  /auth/code-alnum:
     get:
       consumes:
       - application/json
@@ -68,7 +68,7 @@ paths:
       summary: 生成图形验证码
       tags:
       - 认证
-  /api/v1/auth/code-alnum/verify:
+  /auth/code-alnum/verify:
     post:
       consumes:
       - application/json
@@ -98,7 +98,7 @@ paths:
       summary: 验证图形验证码
       tags:
       - 认证
-  /api/v1/auth/code-sms:
+  /auth/code-sms:
     get:
       consumes:
       - application/json
@@ -144,7 +144,7 @@ paths:
       summary: 发送短信验证码
       tags:
       - 认证
-  /api/v1/auth/code-sms/verify:
+  /auth/code-sms/verify:
     post:
       consumes:
       - application/json
@@ -175,7 +175,7 @@ paths:
       summary: 验证短信验证码
       tags:
       - 认证
-  /api/v1/auth/login/code:
+  /auth/login/code:
     post:
       consumes:
       - application/json
@@ -218,7 +218,7 @@ paths:
       summary: 验证码登录
       tags:
       - 认证
-  /api/v1/auth/login/password:
+  /auth/login/password:
     post:
       consumes:
       - application/json
@@ -260,7 +260,7 @@ paths:
       summary: 密码登录
       tags:
       - 认证
-  /api/v1/auth/logout:
+  /auth/logout:
     post:
       consumes:
       - application/json
@@ -278,7 +278,7 @@ paths:
       summary: 退出登录
       tags:
       - 认证
-  /api/v1/auth/register:
+  /auth/register:
     post:
       consumes:
       - application/json
@@ -326,7 +326,7 @@ paths:
       summary: 用户注册
       tags:
       - 认证
-  /api/v1/auth/reset-password/complete:
+  /auth/reset-password/complete:
     post:
       consumes:
       - application/json
@@ -374,7 +374,7 @@ paths:
       summary: 完成密码重置
       tags:
       - 认证
-  /api/v1/auth/reset-password/initiate:
+  /auth/reset-password/initiate:
     post:
       consumes:
       - application/json
@@ -411,7 +411,7 @@ paths:
       summary: 发起密码重置
       tags:
       - 认证
-  /api/v1/auth/reset-password/validate:
+  /auth/reset-password/validate:
     get:
       consumes:
       - application/json
@@ -438,7 +438,7 @@ paths:
       summary: 验证重置Token
       tags:
       - 认证
-  /api/v1/friends/{uid}/{flag}:
+  /friends/{uid}/{flag}:
     post:
       consumes:
       - application/json
@@ -477,7 +477,7 @@ paths:
       summary: 添加好友
       tags:
       - 社交
-  /api/v1/gifts/send/{uid}/{giftid}:
+  /gifts/send/{uid}/{giftid}:
     post:
       consumes:
       - application/json
@@ -516,7 +516,7 @@ paths:
       summary: 发送礼物
       tags:
       - 社交
-  /api/v1/messages/latest:
+  /messages/latest:
     get:
       consumes:
       - application/json
@@ -539,7 +539,7 @@ paths:
       summary: 获取最新用户消息
       tags:
       - 消息
-  /api/v1/messages/system:
+  /messages/system:
     get:
       consumes:
       - application/json
@@ -562,7 +562,7 @@ paths:
       summary: 获取系统消息列表
       tags:
       - 消息
-  /api/v1/messages/users/{uid}:
+  /messages/users/{uid}:
     get:
       consumes:
       - application/json
@@ -591,7 +591,7 @@ paths:
       summary: 获取用户消息历史
       tags:
       - 消息
-  /api/v1/messages/users/{uid}/clear:
+  /messages/users/{uid}/clear:
     post:
       consumes:
       - application/json
@@ -620,7 +620,7 @@ paths:
       summary: 清除聊天记录
       tags:
       - 消息
-  /api/v1/messages/users/{uid}/top/{flag}:
+  /messages/users/{uid}/top/{flag}:
     post:
       consumes:
       - application/json
@@ -659,7 +659,7 @@ paths:
       summary: 设置消息置顶
       tags:
       - 消息
-  /api/v1/moments:
+  /moments:
     get:
       consumes:
       - application/json
@@ -721,7 +721,7 @@ paths:
       summary: 发布动态
       tags:
       - 动态
-  /api/v1/moments/{mid}/comments:
+  /moments/{mid}/comments:
     get:
       consumes:
       - application/json
@@ -755,7 +755,7 @@ paths:
       summary: 获取动态评论列表
       tags:
       - 动态
-  /api/v1/moments/me:
+  /moments/me:
     get:
       consumes:
       - application/json
@@ -778,7 +778,7 @@ paths:
       summary: 获取我的最新动态
       tags:
       - 动态
-  /api/v1/moments/users/{uid}:
+  /moments/users/{uid}:
     get:
       consumes:
       - application/json
@@ -807,7 +807,7 @@ paths:
       summary: 获取指定用户动态
       tags:
       - 动态
-  /api/v1/notifications/add-me:
+  /notifications/add-me:
     get:
       consumes:
       - application/json
@@ -830,7 +830,7 @@ paths:
       summary: 获取添加我的列表
       tags:
       - 互动通知
-  /api/v1/notifications/comment-me:
+  /notifications/comment-me:
     get:
       consumes:
       - application/json
@@ -853,7 +853,7 @@ paths:
       summary: 获取评论我的列表
       tags:
       - 互动通知
-  /api/v1/notifications/friend-request/{uid}/{flag}:
+  /notifications/friend-request/{uid}/{flag}:
     post:
       consumes:
       - application/json
@@ -892,7 +892,7 @@ paths:
       summary: 同意好友请求
       tags:
       - 互动通知
-  /api/v1/notifications/like-me:
+  /notifications/like-me:
     get:
       consumes:
       - application/json
@@ -915,7 +915,7 @@ paths:
       summary: 获取喜欢我的列表
       tags:
       - 互动通知
-  /api/v1/notifications/praise-me:
+  /notifications/praise-me:
     get:
       consumes:
       - application/json
@@ -938,7 +938,7 @@ paths:
       summary: 获取赞我的列表
       tags:
       - 互动通知
-  /api/v1/notifications/visit-me:
+  /notifications/visit-me:
     get:
       consumes:
       - application/json
@@ -961,7 +961,7 @@ paths:
       summary: 获取访问我的列表
       tags:
       - 互动通知
-  /api/v1/profile/me:
+  /profile/me:
     post:
       consumes:
       - application/json
@@ -997,7 +997,7 @@ paths:
       summary: 完善个人信息
       tags:
       - 个人资料
-  /api/v1/profile/preferences:
+  /profile/preferences:
     post:
       consumes:
       - application/json
@@ -1033,7 +1033,7 @@ paths:
       summary: 设置理想对象条件
       tags:
       - 个人资料
-  /api/v1/uploads/audio:
+  /uploads/audio:
     post:
       consumes:
       - multipart/form-data
@@ -1067,7 +1067,7 @@ paths:
       summary: 上传音频
       tags:
       - 文件上传
-  /api/v1/uploads/file:
+  /uploads/file:
     post:
       consumes:
       - multipart/form-data
@@ -1101,7 +1101,7 @@ paths:
       summary: 上传文件
       tags:
       - 文件上传
-  /api/v1/uploads/image:
+  /uploads/image:
     post:
       consumes:
       - multipart/form-data
@@ -1135,7 +1135,7 @@ paths:
       summary: 上传图片
       tags:
       - 文件上传
-  /api/v1/uploads/video:
+  /uploads/video:
     post:
       consumes:
       - multipart/form-data
@@ -1169,7 +1169,7 @@ paths:
       summary: 上传视频
       tags:
       - 文件上传
-  /api/v1/users:
+  /users:
     get:
       consumes:
       - application/json
@@ -1245,7 +1245,7 @@ paths:
       summary: 获取用户列表
       tags:
       - 用户
-  /api/v1/users/{uid}:
+  /users/{uid}:
     get:
       consumes:
       - application/json
@@ -1274,7 +1274,7 @@ paths:
       summary: 获取用户信息
       tags:
       - 用户
-  /api/v1/users/{uid}/fans:
+  /users/{uid}/fans:
     get:
       consumes:
       - application/json
@@ -1303,7 +1303,7 @@ paths:
       summary: 获取粉丝列表
       tags:
       - 用户
-  /api/v1/users/{uid}/following:
+  /users/{uid}/following:
     get:
       consumes:
       - application/json
@@ -1332,7 +1332,7 @@ paths:
       summary: 获取关注列表
       tags:
       - 用户
-  /api/v1/users/{uid}/greet:
+  /users/{uid}/greet:
     post:
       consumes:
       - application/json
@@ -1366,7 +1366,7 @@ paths:
       summary: 打招呼
       tags:
       - 用户
-  /api/v1/users/{uid}/notification/{flag}:
+  /users/{uid}/notification/{flag}:
     post:
       consumes:
       - application/json
@@ -1405,7 +1405,7 @@ paths:
       summary: 设置用户通知
       tags:
       - 用户
-  /api/v1/users/avatar:
+  /users/avatar:
     post:
       consumes:
       - multipart/form-data

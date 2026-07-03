@@ -51,6 +51,8 @@ type AliyunSMSConfig struct {
 	RegionID        string `json:"region_id"`
 	SignName        string `json:"sign_name"`
 	TemplateCode    string `json:"template_code"`
+	SchemeName      string `json:"scheme_name"`
+	CountryCode     string `json:"country_code"`
 }
 
 type HuaweiSMSConfig struct {

@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/middleware"
@@ -31,7 +31,7 @@ import (
 // @Param dating_purpose query string false "交友目的"
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/users [get]
+// @Router /users [get]
 func GetUserList(c *gin.Context) {
 	options := make(map[string]string)
 
@@ -94,7 +94,7 @@ func GetUserList(c *gin.Context) {
 // @Param uid path string true "用户UID"
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/users/{uid} [get]
+// @Router /users/{uid} [get]
 func GetUserInfo(c *gin.Context) {
 	uid := c.Param("uid")
 
@@ -117,7 +117,7 @@ func GetUserInfo(c *gin.Context) {
 // @Param uid path string true "用户UID"
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/users/{uid}/following [get]
+// @Router /users/{uid}/following [get]
 func GetFocusList(c *gin.Context) {
 	uid := c.Param("uid")
 
@@ -140,7 +140,7 @@ func GetFocusList(c *gin.Context) {
 // @Param uid path string true "用户UID"
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/users/{uid}/fans [get]
+// @Router /users/{uid}/fans [get]
 func GetFansList(c *gin.Context) {
 	uid := c.Param("uid")
 
@@ -165,7 +165,7 @@ func GetFansList(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "设置成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "设置失败"
-// @Router /api/v1/users/{uid}/notification/{flag} [post]
+// @Router /users/{uid}/notification/{flag} [post]
 func SetUserNotify(c *gin.Context) {
 	userID := middleware.GetUID(c)
 	targetID := c.Param("uid")
@@ -197,7 +197,7 @@ func SetUserNotify(c *gin.Context) {
 // @Param text formData string true "消息内容"
 // @Success 200 {object} map[string]interface{} "发送成功"
 // @Failure 500 {object} map[string]interface{} "发送失败"
-// @Router /api/v1/users/{uid}/greet [post]
+// @Router /users/{uid}/greet [post]
 func GreetUser(c *gin.Context) {
 	userID := middleware.GetUID(c)
 	targetID := c.Param("uid")

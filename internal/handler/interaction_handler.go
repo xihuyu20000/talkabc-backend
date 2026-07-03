@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/middleware"
@@ -17,7 +17,7 @@ import (
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/notifications/praise-me [get]
+// @Router /notifications/praise-me [get]
 func GetPraiseMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -39,7 +39,7 @@ func GetPraiseMeList(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/notifications/comment-me [get]
+// @Router /notifications/comment-me [get]
 func GetCommentMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -61,7 +61,7 @@ func GetCommentMeList(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/notifications/add-me [get]
+// @Router /notifications/add-me [get]
 func GetAddMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -83,7 +83,7 @@ func GetAddMeList(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/notifications/visit-me [get]
+// @Router /notifications/visit-me [get]
 func GetVisitMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -105,7 +105,7 @@ func GetVisitMeList(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/notifications/like-me [get]
+// @Router /notifications/like-me [get]
 func GetLikeMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -130,7 +130,7 @@ func GetLikeMeList(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "操作成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "操作失败"
-// @Router /api/v1/notifications/friend-request/{uid}/{flag} [post]
+// @Router /notifications/friend-request/{uid}/{flag} [post]
 func AgreeFriendRequest(c *gin.Context) {
 	userID := middleware.GetUID(c)
 	targetID := c.Param("uid")

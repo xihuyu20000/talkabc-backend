@@ -24,7 +24,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/ads/banners": {
+        "/ads/banners": {
             "get": {
                 "description": "获取最新的广告横幅列表",
                 "consumes": [
@@ -55,7 +55,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/code-alnum": {
+        "/auth/code-alnum": {
             "get": {
                 "description": "使用base64Captcha生成数字图形验证码图片，返回验证码ID和base64图片数据。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 使用base64Captcha库生成不可预测的验证码；3. 验证码存储在Redis中，不记录到日志文件",
                 "consumes": [
@@ -86,7 +86,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/code-alnum/verify": {
+        "/auth/code-alnum/verify": {
             "post": {
                 "description": "验证客户端传入的图形验证码是否正确。安全规则：1. 验证通过后立即删除验证码，防止重复使用；2. 验证码过期或不存在时返回错误",
                 "consumes": [
@@ -131,7 +131,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/code-sms": {
+        "/auth/code-sms": {
             "get": {
                 "description": "向指定手机号发送短信验证码。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 验证码为6位纯数字；3. 每个手机号60秒内只能发送一次（服务器端校验）；4. 同一手机号同一时间只有一个有效验证码（最新的为准）；5. 验证码最多使用1次（验证后立即删除）；6. 验证码不记录到日志文件；7. 发送前验证图形验证码（每日首次发送免图形验证码）；8. 1小时内发送次数限制10次；9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）",
                 "consumes": [
@@ -196,7 +196,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/code-sms/verify": {
+        "/auth/code-sms/verify": {
             "post": {
                 "description": "验证客户端传入的短信验证码是否正确。安全规则：1. 使用Lua脚本保证验证和删除的原子性；2. 验证码一次性使用（无论验证是否成功，验证码都会被删除）；3. 不同业务类型的验证码独立验证（通过tag区分）",
                 "consumes": [
@@ -241,7 +241,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/login/code": {
+        "/auth/login/code": {
             "post": {
                 "description": "使用手机号和验证码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后清理验证码，防止二次复用；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）",
                 "consumes": [
@@ -301,7 +301,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/login/password": {
+        "/auth/login/password": {
             "post": {
                 "description": "使用手机号和密码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后重置失败次数；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；密码存储：使用bcrypt加密（cost=10，自动内置盐）",
                 "consumes": [
@@ -361,7 +361,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/logout": {
+        "/auth/logout": {
             "post": {
                 "security": [
                     {
@@ -390,7 +390,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/register": {
+        "/auth/register": {
             "post": {
                 "description": "使用手机号、验证码和密码进行注册。安全规则：1. IP黑名单检查；2. IP注册频率限制（1分钟10次）；3. 手机号黑名单检查；4. 手机号唯一性检查；5. 设备黑名单检查；6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）；7. 注册成功后清理验证码；8. 记录注册操作日志（不可删除）",
                 "consumes": [
@@ -457,7 +457,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/reset-password/complete": {
+        "/auth/reset-password/complete": {
             "post": {
                 "description": "使用重置Token设置新密码。安全规则：1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）；2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）；3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码；4. 记录敏感操作日志（不可删除）；5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用",
                 "consumes": [
@@ -524,7 +524,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/reset-password/initiate": {
+        "/auth/reset-password/initiate": {
             "post": {
                 "description": "根据手机号发起密码重置，生成重置Token并发送。安全规则：1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h；2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；3. Token设计：单次有效（使用后立即销毁）、短有效期（5分钟）、不可预测（crypto/rand生成）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）",
                 "consumes": [
@@ -577,7 +577,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/reset-password/validate": {
+        "/auth/reset-password/validate": {
             "get": {
                 "description": "验证重置Token是否存在、未使用、未过期。Token设计：单次有效、短有效期（5分钟）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）",
                 "consumes": [
@@ -617,7 +617,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/friends/{uid}/{flag}": {
+        "/friends/{uid}/{flag}": {
             "post": {
                 "security": [
                     {
@@ -676,7 +676,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/gifts/send/{uid}/{giftid}": {
+        "/gifts/send/{uid}/{giftid}": {
             "post": {
                 "security": [
                     {
@@ -735,7 +735,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/messages/latest": {
+        "/messages/latest": {
             "get": {
                 "security": [
                     {
@@ -771,7 +771,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/messages/system": {
+        "/messages/system": {
             "get": {
                 "security": [
                     {
@@ -807,7 +807,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/messages/users/{uid}": {
+        "/messages/users/{uid}": {
             "get": {
                 "security": [
                     {
@@ -852,7 +852,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/messages/users/{uid}/clear": {
+        "/messages/users/{uid}/clear": {
             "post": {
                 "security": [
                     {
@@ -897,7 +897,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/messages/users/{uid}/top/{flag}": {
+        "/messages/users/{uid}/top/{flag}": {
             "post": {
                 "security": [
                     {
@@ -956,7 +956,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/moments": {
+        "/moments": {
             "get": {
                 "description": "获取最新发布的动态列表",
                 "consumes": [
@@ -1049,7 +1049,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/moments/me": {
+        "/moments/me": {
             "get": {
                 "security": [
                     {
@@ -1085,7 +1085,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/moments/users/{uid}": {
+        "/moments/users/{uid}": {
             "get": {
                 "security": [
                     {
@@ -1130,7 +1130,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/moments/{mid}/comments": {
+        "/moments/{mid}/comments": {
             "get": {
                 "security": [
                     {
@@ -1182,7 +1182,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/notifications/add-me": {
+        "/notifications/add-me": {
             "get": {
                 "security": [
                     {
@@ -1218,7 +1218,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/notifications/comment-me": {
+        "/notifications/comment-me": {
             "get": {
                 "security": [
                     {
@@ -1254,7 +1254,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/notifications/friend-request/{uid}/{flag}": {
+        "/notifications/friend-request/{uid}/{flag}": {
             "post": {
                 "security": [
                     {
@@ -1313,7 +1313,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/notifications/like-me": {
+        "/notifications/like-me": {
             "get": {
                 "security": [
                     {
@@ -1349,7 +1349,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/notifications/praise-me": {
+        "/notifications/praise-me": {
             "get": {
                 "security": [
                     {
@@ -1385,7 +1385,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/notifications/visit-me": {
+        "/notifications/visit-me": {
             "get": {
                 "security": [
                     {
@@ -1421,7 +1421,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/profile/me": {
+        "/profile/me": {
             "post": {
                 "security": [
                     {
@@ -1476,7 +1476,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/profile/preferences": {
+        "/profile/preferences": {
             "post": {
                 "security": [
                     {
@@ -1531,7 +1531,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/uploads/audio": {
+        "/uploads/audio": {
             "post": {
                 "security": [
                     {
@@ -1583,7 +1583,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/uploads/file": {
+        "/uploads/file": {
             "post": {
                 "security": [
                     {
@@ -1635,7 +1635,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/uploads/image": {
+        "/uploads/image": {
             "post": {
                 "security": [
                     {
@@ -1687,7 +1687,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/uploads/video": {
+        "/uploads/video": {
             "post": {
                 "security": [
                     {
@@ -1739,7 +1739,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users": {
+        "/users": {
             "get": {
                 "security": [
                     {
@@ -1855,7 +1855,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/avatar": {
+        "/users/avatar": {
             "post": {
                 "security": [
                     {
@@ -1907,7 +1907,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/{uid}": {
+        "/users/{uid}": {
             "get": {
                 "security": [
                     {
@@ -1952,7 +1952,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/{uid}/fans": {
+        "/users/{uid}/fans": {
             "get": {
                 "security": [
                     {
@@ -1997,7 +1997,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/{uid}/following": {
+        "/users/{uid}/following": {
             "get": {
                 "security": [
                     {
@@ -2042,7 +2042,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/{uid}/greet": {
+        "/users/{uid}/greet": {
             "post": {
                 "security": [
                     {
@@ -2094,7 +2094,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/users/{uid}/notification/{flag}": {
+        "/users/{uid}/notification/{flag}": {
             "post": {
                 "security": [
                     {

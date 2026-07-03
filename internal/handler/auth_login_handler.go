@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/middleware"
@@ -34,7 +34,7 @@ import (
 // @Success 200 {object} map[string]interface{} "登录成功，返回token"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "登录失败"
-// @Router /api/v1/auth/login/code [post]
+// @Router /auth/login/code [post]
 func LoginByCode(c *gin.Context) {
 	phoneNum := c.PostForm("phonenum")
 	code := c.PostForm("code")
@@ -80,7 +80,7 @@ func LoginByCode(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "登录成功，返回token"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "登录失败"
-// @Router /api/v1/auth/login/password [post]
+// @Router /auth/login/password [post]
 func LoginByPassword(c *gin.Context) {
 	phoneNum := c.PostForm("phonenum")
 	password := c.PostForm("pwd")
@@ -122,7 +122,7 @@ func LoginByPassword(c *gin.Context) {
 // @Produce application/json
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "退出成功"
-// @Router /api/v1/auth/logout [post]
+// @Router /auth/logout [post]
 func Logout(c *gin.Context) {
 	uid := middleware.GetUID(c)
 

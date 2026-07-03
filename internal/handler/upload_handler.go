@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/middleware"
@@ -18,7 +18,7 @@ import (
 // @Success 200 {object} map[string]interface{} "上传成功，返回头像URL"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 500 {object} map[string]interface{} "上传失败"
-// @Router /api/v1/users/avatar [post]
+// @Router /users/avatar [post]
 func UploadAvatar(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -63,7 +63,7 @@ func UploadAvatar(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 500 {object} map[string]interface{} "上传失败"
-// @Router /api/v1/uploads/image [post]
+// @Router /uploads/image [post]
 func UploadImage(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -92,7 +92,7 @@ func UploadImage(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 500 {object} map[string]interface{} "上传失败"
-// @Router /api/v1/uploads/audio [post]
+// @Router /uploads/audio [post]
 func UploadAudio(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -121,7 +121,7 @@ func UploadAudio(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 500 {object} map[string]interface{} "上传失败"
-// @Router /api/v1/uploads/video [post]
+// @Router /uploads/video [post]
 func UploadVideo(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -150,7 +150,7 @@ func UploadVideo(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "上传成功，返回文件URL"
 // @Failure 400 {object} map[string]interface{} "请求参数错误"
 // @Failure 500 {object} map[string]interface{} "上传失败"
-// @Router /api/v1/uploads/file [post]
+// @Router /uploads/file [post]
 func UploadFile(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {

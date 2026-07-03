@@ -12,11 +12,13 @@ security:
 sms_provider:
   default: "aliyun"              # 默认短信服务商：aliyun, huawei, tencent
   aliyun:
-    access_key_id: ""             # 阿里云AccessKey ID
-    access_key_secret: ""         # 阿里云AccessKey Secret
+    access_key_id: "LTAI5t5mcECvLgmdRVxh3Z84"             # 阿里云AccessKey ID
+    access_key_secret: "JB6g95jjzjb92AHOmzEbcsJ0PRTyo"         # 阿里云AccessKey Secret
     region_id: "cn-hangzhou"      # 阿里云区域ID
-    sign_name: ""                 # 短信签名
-    template_code: ""             # 短信模板Code
+    sign_name: "速通互联验证码"                 # 短信签名
+    template_code: "100001"             # 短信模板Code
+    scheme_name: "test"               # 短信方案名称（用于Dypnsapi）
+    country_code: "86"            # 国家码，默认中国86
   huawei:
     app_key: ""                   # 华为云AppKey
     app_secret: ""               # 华为云AppSecret

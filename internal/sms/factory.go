@@ -16,6 +16,8 @@ func InitSMSGateway(cfg *config.SMSProviderConfig) error {
 			RegionID:        cfg.Aliyun.RegionID,
 			SignName:        cfg.Aliyun.SignName,
 			TemplateCode:    cfg.Aliyun.TemplateCode,
+			SchemeName:      cfg.Aliyun.SchemeName,
+			CountryCode:     cfg.Aliyun.CountryCode,
 		}
 		client, err := NewAliyunSMSGateway(aliyunConfig)
 		if err != nil {

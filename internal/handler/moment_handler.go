@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/middleware"
@@ -16,7 +16,7 @@ import (
 // @Produce application/json
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/moments [get]
+// @Router /moments [get]
 func GetLatestMoment(c *gin.Context) {
 	moments, err := service.GetLatestMoment()
 	if err != nil {
@@ -36,7 +36,7 @@ func GetLatestMoment(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/moments/me [get]
+// @Router /moments/me [get]
 func GetMyLatestMoment(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -59,7 +59,7 @@ func GetMyLatestMoment(c *gin.Context) {
 // @Param uid path string true "用户UID"
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/moments/users/{uid} [get]
+// @Router /moments/users/{uid} [get]
 func GetUserMoment(c *gin.Context) {
 	uid := c.Param("uid")
 
@@ -83,7 +83,7 @@ func GetUserMoment(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/moments/{mid}/comments [get]
+// @Router /moments/{mid}/comments [get]
 func GetMomentComments(c *gin.Context) {
 	midStr := c.Param("mid")
 
@@ -115,7 +115,7 @@ func GetMomentComments(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "发布成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "发布失败"
-// @Router /api/v1/moments [post]
+// @Router /moments [post]
 func PublishMoment(c *gin.Context) {
 	userID := middleware.GetUID(c)
 

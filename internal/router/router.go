@@ -127,5 +127,12 @@ func InitRouter() *gin.Engine {
 	// ==================== websocket ====================
 	r.GET("/ws", handler.WebSocketHandler)
 
+	r.Any("/api/v1/api/v1/*path", func(c *gin.Context) {
+		c.JSON(400, gin.H{
+			"code": 400,
+			"msg":  "请求路径错误：URL 前缀重复。请检查客户端配置，移除 baseURL 中的 /api/v1 前缀或请求路径中的重复前缀",
+		})
+	})
+
 	return r
 }

@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"backend/internal/middleware"
@@ -20,7 +20,7 @@ import (
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/messages/system [get]
+// @Router /messages/system [get]
 func GetSystemMsgList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -42,7 +42,7 @@ func GetSystemMsgList(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/messages/latest [get]
+// @Router /messages/latest [get]
 func GetLatestUserMsg(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -65,7 +65,7 @@ func GetLatestUserMsg(c *gin.Context) {
 // @Param uid path string true "目标用户UID"
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/messages/users/{uid} [get]
+// @Router /messages/users/{uid} [get]
 func GetUserMsgHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	targetID := c.Param("uid")
@@ -91,7 +91,7 @@ func GetUserMsgHistory(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "设置成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "设置失败"
-// @Router /api/v1/messages/users/{uid}/top/{flag} [post]
+// @Router /messages/users/{uid}/top/{flag} [post]
 func SetMessageTop(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	targetID := c.Param("uid")
@@ -122,7 +122,7 @@ func SetMessageTop(c *gin.Context) {
 // @Param uid path string true "目标用户UID"
 // @Success 200 {object} map[string]interface{} "清除成功"
 // @Failure 500 {object} map[string]interface{} "清除失败"
-// @Router /api/v1/messages/users/{uid}/clear [post]
+// @Router /messages/users/{uid}/clear [post]
 func ClearChatHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	targetID := c.Param("uid")
@@ -150,7 +150,7 @@ func ClearChatHistory(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "操作成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "操作失败"
-// @Router /api/v1/friends/{uid}/{flag} [post]
+// @Router /friends/{uid}/{flag} [post]
 func AddFriend(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	targetID := c.Param("uid")
@@ -183,7 +183,7 @@ func AddFriend(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "发送成功"
 // @Failure 400 {object} map[string]interface{} "参数错误"
 // @Failure 500 {object} map[string]interface{} "发送失败"
-// @Router /api/v1/gifts/send/{uid}/{giftid} [post]
+// @Router /gifts/send/{uid}/{giftid} [post]
 func SendGift(c *gin.Context) {
 	senderID := middleware.GetUID(c)
 	receiverID := c.Param("uid")
@@ -214,7 +214,7 @@ func SendGift(c *gin.Context) {
 // @Produce application/json
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
-// @Router /api/v1/ads/banners [get]
+// @Router /ads/banners [get]
 func GetLatestAdBanner(c *gin.Context) {
 	banners, err := service.GetLatestAdBanner()
 	if err != nil {

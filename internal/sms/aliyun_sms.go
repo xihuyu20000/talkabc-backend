@@ -2,10 +2,13 @@ package sms
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
-	dysmsapi20170525 "github.com/alibabacloud-go/dysmsapi-20170525/v4/client"
+	dypnsapi20170525 "github.com/alibabacloud-go/dypnsapi-20170525/v3/client"
+	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
 )
 
@@ -15,21 +18,29 @@ type AliyunSMSConfig struct {
 	RegionID        string
 	SignName        string
 	TemplateCode    string
+	SchemeName      string
+	CountryCode     string
 }
 
 type AliyunSMSGateway struct {
 	config *AliyunSMSConfig
-	client *dysmsapi20170525.Client
+	client *dypnsapi20170525.Client
 }
 
 func NewAliyunSMSGateway(config *AliyunSMSConfig) (*AliyunSMSGateway, error) {
-	client, err := dysmsapi20170525.NewClient(&openapi.Config{
+	cfg := &openapi.Config{
 		AccessKeyId:     tea.String(config.AccessKeyID),
 		AccessKeySecret: tea.String(config.AccessKeySecret),
-		RegionId:        tea.String(config.RegionID),
-	})
+		Endpoint:        tea.String("dypnsapi.aliyuncs.com"),
+	}
+
+	client, err := dypnsapi20170525.NewClient(cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.CountryCode == "" {
+		config.CountryCode = "86"
 	}
 
 	return &AliyunSMSGateway{
@@ -39,9 +50,24 @@ func NewAliyunSMSGateway(config *AliyunSMSConfig) (*AliyunSMSGateway, error) {
 }
 
 func (g *AliyunSMSGateway) SendVerificationCode(ctx context.Context, phoneNum, code string) error {
-	return g.SendText(ctx, phoneNum, g.config.TemplateCode, map[string]string{
-		"code": code,
-	})
+	sendSmsVerifyCodeRequest := &dypnsapi20170525.SendSmsVerifyCodeRequest{
+		SchemeName:    tea.String(g.config.SchemeName),
+		CountryCode:   tea.String(g.config.CountryCode),
+		PhoneNumber:   tea.String(phoneNum),
+		SignName:      tea.String(g.config.SignName),
+		TemplateParam: tea.String(fmt.Sprintf("{\"code\":\"%s\"}", code)),
+		TemplateCode:  tea.String(g.config.TemplateCode),
+	}
+
+	runtime := &util.RuntimeOptions{}
+
+	resp, err := g.client.SendSmsVerifyCodeWithOptions(sendSmsVerifyCodeRequest, runtime)
+	if err != nil {
+		return g.handleError(err)
+	}
+
+	fmt.Printf("[LOG] SMS response: %v\n", resp)
+	return nil
 }
 
 func (g *AliyunSMSGateway) SendText(ctx context.Context, phoneNum, templateID string, params map[string]string) error {
@@ -50,26 +76,46 @@ func (g *AliyunSMSGateway) SendText(ctx context.Context, phoneNum, templateID st
 		if paramStr != "" {
 			paramStr += ","
 		}
-		paramStr += fmt.Sprintf("%s:%s", k, v)
+		paramStr += fmt.Sprintf("\"%s\":\"%s\"", k, v)
 	}
 
-	request := &dysmsapi20170525.SendSmsRequest{
-		PhoneNumbers:  tea.String(phoneNum),
-		SignName:     tea.String(g.config.SignName),
-		TemplateCode:  tea.String(templateID),
+	sendSmsVerifyCodeRequest := &dypnsapi20170525.SendSmsVerifyCodeRequest{
+		SchemeName:    tea.String(g.config.SchemeName),
+		CountryCode:   tea.String(g.config.CountryCode),
+		PhoneNumber:   tea.String(phoneNum),
+		SignName:      tea.String(g.config.SignName),
 		TemplateParam: tea.String(fmt.Sprintf("{%s}", paramStr)),
+		TemplateCode:  tea.String(templateID),
 	}
 
-	response, err := g.client.SendSms(request)
+	runtime := &util.RuntimeOptions{}
+
+	resp, err := g.client.SendSmsVerifyCodeWithOptions(sendSmsVerifyCodeRequest, runtime)
 	if err != nil {
-		return err
+		return g.handleError(err)
 	}
 
-	if tea.StringValue(response.Body.Code) != "OK" {
-		return fmt.Errorf("send sms failed: %s", tea.StringValue(response.Body.Message))
-	}
-
+	fmt.Printf("[LOG] SMS response: %v\n", resp)
 	return nil
+}
+
+func (g *AliyunSMSGateway) handleError(err error) error {
+	var error = &tea.SDKError{}
+	if _t, ok := err.(*tea.SDKError); ok {
+		error = _t
+	} else {
+		error.Message = tea.String(err.Error())
+	}
+
+	var data interface{}
+	d := json.NewDecoder(strings.NewReader(tea.StringValue(error.Data)))
+	d.Decode(&data)
+	if m, ok := data.(map[string]interface{}); ok {
+		recommend, _ := m["Recommend"]
+		return fmt.Errorf("send sms failed: %s, recommend: %v", tea.StringValue(error.Message), recommend)
+	}
+
+	return fmt.Errorf("send sms failed: %s", tea.StringValue(error.Message))
 }
 
 func (g *AliyunSMSGateway) GetName() string {
