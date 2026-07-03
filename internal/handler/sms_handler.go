@@ -117,7 +117,7 @@ func GenerateAlnumCode(c *gin.Context) {
 	}
 
 	// 【功能1】图形验证码同样使用Redis TTL控制有效期（5分钟）
-	err = config.RDB.Set(context.Background(), id, answer, time.Duration(config.AppConfig.System.SMSValidMinutes)*time.Minute).Err()
+	err = config.RDB.Set(context.Background(), id, answer, time.Duration(config.AppConfig.Security.SMSValidMinutes)*time.Minute).Err()
 	if err != nil {
 		response.InternalError(c, "保存验证码失败")
 		return

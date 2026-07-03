@@ -14,6 +14,7 @@ import (
 
 type Config struct {
 	System   SystemConfig   `json:"system"`
+	Security SecurityConfig `json:"security"`
 	Server   ServerConfig   `json:"server"`
 	Database DatabaseConfig `json:"database"`
 	JWT      JWTConfig     `json:"jwt"`
@@ -23,14 +24,17 @@ type Config struct {
 }
 
 type SystemConfig struct {
-	Reset           int    `json:"reset"`
-	LogLevel        string `json:"log_level"`
-	SMSValidMinutes int    `json:"sms_valid_minutes"`
-	SMSCooldownSeconds int `json:"sms_cooldown_seconds"`
-	SMSHourlyLimit     int    `json:"sms_hourly_limit"`
-	IPRegisterHourlyLimit int    `json:"ip_register_hourly_limit"`
-	IPLoginMinuteLimit int    `json:"ip_login_minute_limit"`
-	LoginFailureLockMinutes int    `json:"login_failure_lock_minutes"`
+	Reset    int    `json:"reset"`
+	LogLevel string `json:"log_level"`
+}
+
+type SecurityConfig struct {
+	SMSValidMinutes        int `json:"sms_valid_minutes"`
+	SMSCooldownSeconds     int `json:"sms_cooldown_seconds"`
+	SMSHourlyLimit         int `json:"sms_hourly_limit"`
+	IPRegisterHourlyLimit  int `json:"ip_register_hourly_limit"`
+	IPLoginMinuteLimit     int `json:"ip_login_minute_limit"`
+	LoginFailureLockMinutes int `json:"login_failure_lock_minutes"`
 }
 
 type ServerConfig struct {
@@ -103,12 +107,13 @@ func InitConfig() {
 	// 系统配置
 	parseArgv("system.reset", 0, "system reset flag")
 	parseArgv("system.log_level", "info", "log level")
-	parseArgv("system.sms_valid_minutes", 5, "sms valid minutes")
-	parseArgv("system.sms_cooldown_seconds", 60, "sms cooldown seconds")
-	parseArgv("system.sms_hourly_limit", 10, "sms hourly limit")
-	parseArgv("system.ip_register_hourly_limit", 10, "ip register hourly limit")
-	parseArgv("system.ip_login_minute_limit", 10, "ip login minute limit")
-	parseArgv("system.login_failure_lock_minutes", 5, "login failure lock minutes")
+	// 安全配置
+	parseArgv("security.sms_valid_minutes", 5, "sms valid minutes")
+	parseArgv("security.sms_cooldown_seconds", 60, "sms cooldown seconds")
+	parseArgv("security.sms_hourly_limit", 10, "sms hourly limit")
+	parseArgv("security.ip_register_hourly_limit", 10, "ip register hourly limit")
+	parseArgv("security.ip_login_minute_limit", 10, "ip login minute limit")
+	parseArgv("security.login_failure_lock_minutes", 5, "login failure lock minutes")
 
 	// 服务器配置
 	parseArgv("server.port", 8080, "server port")

@@ -1,12 +1,14 @@
 system:
   reset: 1              # 重置标志(0=不重置, 1=重置所有数据)
-  sms_valid_minutes: 5  # 短信验证码有效期，单位分钟
-  sms_cooldown_seconds: 60  # 短信验证码冷却期，单位秒
-  sms_hourly_limit: 10  # 1小时内发送次数限制，单位次
-  ip_register_hourly_limit: 10  # 注册时1小时内每个IP发送次数限制，单位次
-  ip_login_minute_limit: 10 # 登录时1分钟内每个IP登录次数限制，单位次
-  login_failure_lock_minutes: 5 # 登录多次失败锁定时间，单位分钟，默认5分钟
-  
+  log_level: info       # 日志级别
+security:
+  sms_valid_minutes: 5              # 短信验证码有效期，单位分钟
+  sms_cooldown_seconds: 60          # 短信验证码冷却期，单位秒
+  sms_hourly_limit: 10              # 1小时内发送次数限制，单位次
+  ip_register_hourly_limit: 10      # 注册时1小时内每个IP发送次数限制，单位次
+  ip_login_minute_limit: 10         # 登录时1分钟内每个IP登录次数限制，单位次
+  login_failure_lock_minutes: 5     # 登录多次失败锁定时间，单位分钟
+
 
 server:
   port: 8080

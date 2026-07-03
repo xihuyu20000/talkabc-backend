@@ -81,7 +81,7 @@ func getVerificationCodeKey(phoneNum, codeType, tag string) string {
 // 【功能4】新验证码使用SET操作覆盖旧值，保证同一时间只有一个有效验证码
 func CreateVerificationCode(phoneNum, code, codeType, tag string) error {
 	key := getVerificationCodeKey(phoneNum, codeType, tag)
-	expireMinutes := config.AppConfig.System.SMSValidMinutes
+	expireMinutes := config.AppConfig.Security.SMSValidMinutes
 	if expireMinutes <= 0 {
 		// 【功能1】默认有效期5分钟
 		expireMinutes = 5
@@ -130,7 +130,7 @@ func CheckSMSCooldown(phoneNum string) bool {
 // 【功能3】发送成功后设置60秒冷却期，防止频繁发送
 func SetSMSCooldown(phoneNum string) error {
 	key := fmt.Sprintf("%s%s", SMSCooldownKeyPrefix, phoneNum)
-	return config.RDB.Set(context.Background(), key, "1", time.Duration(config.AppConfig.System.SMSCooldownSeconds)*time.Second).Err()
+	return config.RDB.Set(context.Background(), key, "1", time.Duration(config.AppConfig.Security.SMSCooldownSeconds)*time.Second).Err()
 }
 
 // CheckHourlyLimit 检查1小时内发送次数是否超过限制（10次）
@@ -147,7 +147,7 @@ func CheckHourlyLimit(phoneNum string) (bool, error) {
 		config.RDB.Expire(context.Background(), key, 1*time.Hour)
 	}
 
-	return current > int64(config.AppConfig.System.SMSHourlyLimit), nil
+	return current > int64(config.AppConfig.Security.SMSHourlyLimit), nil
 }
 
 // CheckDailyFirst 获取今日首次发送标记（24小时内首次发送不需要图形验证码）
@@ -202,7 +202,7 @@ func CheckRegisterIPRateLimit(ip string) (bool, error) {
 		config.RDB.Expire(context.Background(), key, 1*time.Hour)
 	}
 
-	return current > int64(config.AppConfig.System.IPRegisterHourlyLimit), nil
+	return current > int64(config.AppConfig.Security.IPRegisterHourlyLimit), nil
 }
 
 // CheckPhoneBlacklist 检查手机号是否在黑名单中
@@ -229,7 +229,7 @@ func CheckLoginIPRateLimit(ip string) (bool, error) {
 		config.RDB.Expire(context.Background(), key, 1*time.Minute)
 	}
 
-	return current > int64(config.AppConfig.System.IPLoginMinuteLimit), nil
+	return current > int64(config.AppConfig.Security.IPLoginMinuteLimit), nil
 }
 
 // CheckDeviceBlacklist 检查设备是否在黑名单中
@@ -258,7 +258,7 @@ func CheckLoginFailedAttempt(phoneNum string) (bool, error) {
 	}
 	
 	if current > 5 {
-		config.RDB.Expire(context.Background(), key, time.Duration(config.AppConfig.System.LoginFailureLockMinutes)*time.Minute)
+		config.RDB.Expire(context.Background(), key, time.Duration(config.AppConfig.Security.LoginFailureLockMinutes)*time.Minute)
 		return true, nil
 	}
 	
