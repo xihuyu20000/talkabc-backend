@@ -10,6 +10,9 @@ var gateway SMSGateway
 func InitSMSGateway(cfg *config.SMSProviderConfig) error {
 	switch cfg.Default {
 	case "aliyun":
+		log.Printf("[SMS] Initializing aliyun gateway - AccessKeyID: %s, RegionID: %s, SignName: %s, TemplateCode: %s",
+			cfg.Aliyun.AccessKeyID, cfg.Aliyun.RegionID, cfg.Aliyun.SignName, cfg.Aliyun.TemplateCode)
+		
 		aliyunConfig := &AliyunSMSConfig{
 			AccessKeyID:     cfg.Aliyun.AccessKeyID,
 			AccessKeySecret: cfg.Aliyun.AccessKeySecret,
@@ -19,8 +22,15 @@ func InitSMSGateway(cfg *config.SMSProviderConfig) error {
 			SchemeName:      cfg.Aliyun.SchemeName,
 			CountryCode:     cfg.Aliyun.CountryCode,
 		}
+		
+		if aliyunConfig.SchemeName == "" {
+			aliyunConfig.SchemeName = "DysmsVerify"
+			log.Printf("[SMS] SchemeName not set, using default: %s", aliyunConfig.SchemeName)
+		}
+		
 		client, err := NewAliyunSMSGateway(aliyunConfig)
 		if err != nil {
+			log.Printf("[SMS] Failed to create aliyun gateway: %v", err)
 			return err
 		}
 		gateway = client

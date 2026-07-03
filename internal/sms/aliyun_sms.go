@@ -28,10 +28,18 @@ type AliyunSMSGateway struct {
 }
 
 func NewAliyunSMSGateway(config *AliyunSMSConfig) (*AliyunSMSGateway, error) {
+	if config.AccessKeyID == "" || config.AccessKeySecret == "" {
+		return nil, fmt.Errorf("aliyun sms credentials are empty")
+	}
+
 	cfg := &openapi.Config{
 		AccessKeyId:     tea.String(config.AccessKeyID),
 		AccessKeySecret: tea.String(config.AccessKeySecret),
-		Endpoint:        tea.String("dypnsapi.aliyuncs.com"),
+		RegionId:        tea.String(config.RegionID),
+	}
+
+	if config.RegionID == "" {
+		cfg.RegionId = tea.String("cn-hangzhou")
 	}
 
 	client, err := dypnsapi20170525.NewClient(cfg)

@@ -1,8 +1,9 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
 	"backend/internal/repository"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +28,8 @@ func UploadAvatar(c *gin.Context) {
 		response.BadRequest(c, "请上传头像")
 		return
 	}
+
+	logger.Infof("[Handler] UploadAvatar - UID: %s, Filename: %s, Size: %d", uid, file.Filename, file.Size)
 
 	err = c.SaveUploadedFile(file, "./uploads/avatars/"+file.Filename)
 	if err != nil {
@@ -71,6 +74,8 @@ func UploadImage(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] UploadImage - Filename: %s, Size: %d", file.Filename, file.Size)
+
 	err = c.SaveUploadedFile(file, "./uploads/messages/"+file.Filename)
 	if err != nil {
 		response.InternalError(c, "文件上传失败")
@@ -99,6 +104,8 @@ func UploadAudio(c *gin.Context) {
 		response.BadRequest(c, "请上传音频文件")
 		return
 	}
+
+	logger.Infof("[Handler] UploadAudio - Filename: %s, Size: %d", file.Filename, file.Size)
 
 	err = c.SaveUploadedFile(file, "./uploads/messages/"+file.Filename)
 	if err != nil {
@@ -129,6 +136,8 @@ func UploadVideo(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] UploadVideo - Filename: %s, Size: %d", file.Filename, file.Size)
+
 	err = c.SaveUploadedFile(file, "./uploads/messages/"+file.Filename)
 	if err != nil {
 		response.InternalError(c, "文件上传失败")
@@ -157,6 +166,8 @@ func UploadFile(c *gin.Context) {
 		response.BadRequest(c, "请上传文件")
 		return
 	}
+
+	logger.Infof("[Handler] UploadFile - Filename: %s, Size: %d", file.Filename, file.Size)
 
 	err = c.SaveUploadedFile(file, "./uploads/messages/"+file.Filename)
 	if err != nil {

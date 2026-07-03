@@ -36,6 +36,7 @@ func initCORSConfig() cors.Config {
 func InitRouter() *gin.Engine {
 	r := gin.Default()
 
+	r.Use(middleware.RequestLogger())
 	r.Use(cors.New(initCORSConfig()))
 
 	apiV1 := r.Group("/api/v1")
@@ -58,6 +59,10 @@ func InitRouter() *gin.Engine {
 
 		private := apiV1.Group("/", middleware.JWT())
 		{
+			// ==================== system ====================
+			private.GET("/system/log-level", handler.GetLogLevel)
+			private.POST("/system/log-level", handler.SetLogLevel)
+
 			// ==================== auth ====================
 			private.POST("/auth/logout", handler.Logout)
 
@@ -108,6 +113,7 @@ func InitRouter() *gin.Engine {
 			private.GET("/moments/latest", handler.GetLatestMoment)
 			private.GET("/users/:uid/moments", handler.GetUserMoment)
 			private.GET("/moments/:mid/comments", handler.GetMomentComments)
+			private.POST("/moments", handler.PublishMoment)
 
 			// ==================== diamonds ====================
 			private.POST("/diamonds/buy/:did", handler.BuyDiamond)

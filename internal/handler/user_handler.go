@@ -1,8 +1,9 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 	"strconv"
 
@@ -75,6 +76,8 @@ func GetUserList(c *gin.Context) {
 		options["dating_purpose"] = datingPurpose
 	}
 
+	logger.Infof("[Handler] GetUserList - Options: %v", options)
+
 	users, err := service.GetUserList(options)
 	if err != nil {
 		response.InternalError(c, err.Error())
@@ -97,6 +100,8 @@ func GetUserList(c *gin.Context) {
 // @Router /users/{uid} [get]
 func GetUserInfo(c *gin.Context) {
 	uid := c.Param("uid")
+
+	logger.Infof("[Handler] GetUserInfo - UID: %s", uid)
 
 	user, err := service.GetUserInfo(uid)
 	if err != nil {
@@ -121,6 +126,8 @@ func GetUserInfo(c *gin.Context) {
 func GetFocusList(c *gin.Context) {
 	uid := c.Param("uid")
 
+	logger.Infof("[Handler] GetFocusList - UID: %s", uid)
+
 	users, err := service.GetFocusList(uid)
 	if err != nil {
 		response.InternalError(c, err.Error())
@@ -143,6 +150,8 @@ func GetFocusList(c *gin.Context) {
 // @Router /users/{uid}/fans [get]
 func GetFansList(c *gin.Context) {
 	uid := c.Param("uid")
+
+	logger.Infof("[Handler] GetFansList - UID: %s", uid)
 
 	users, err := service.GetFansList(uid)
 	if err != nil {
@@ -177,6 +186,8 @@ func SetUserNotify(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] SetUserNotify - UserID: %s, TargetID: %s, Flag: %d", userID, targetID, flag)
+
 	err = service.SetUserNotify(userID, targetID, flag)
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -203,6 +214,8 @@ func GreetUser(c *gin.Context) {
 	targetID := c.Param("uid")
 
 	text := c.PostForm("text")
+
+	logger.Infof("[Handler] GreetUser - UserID: %s, TargetID: %s, Text: %s", userID, targetID, text)
 
 	err := service.GreetUser(userID, targetID, text)
 	if err != nil {

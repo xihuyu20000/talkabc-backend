@@ -83,7 +83,7 @@ func GenerateSMSCode(req GenerateSMSCodeRequest) error {
 		logger.Debugf("[SMS] GenerateSMSCode failed - Hourly limit exceeded")
 		return fmt.Errorf("发送次数过多，请1小时后再试")
 	}
-
+	// 增加配置项，是否打开CheckDailyFirst的判断规则
 	dailyFirst, err := repository.CheckDailyFirst(req.PhoneNum)
 	logger.Debugf("[SMS] CheckDailyFirst result: dailyFirst=%v, err=%v (PhoneNum: %s)",
 		dailyFirst, err, req.PhoneNum)

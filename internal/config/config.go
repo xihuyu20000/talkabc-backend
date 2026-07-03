@@ -1,122 +1,123 @@
 package config
 
 import (
+	"backend/pkg/logger"
+	"fmt"
 	"log"
-	"strings"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/gorm"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 // ==================== 配置结构体定义 ====================
 
 type Config struct {
-	System       SystemConfig       `json:"system"`
-	Logger       LoggerConfig       `json:"logger"`
-	Security     SecurityConfig     `json:"security"`
-	SMSProvider  SMSProviderConfig  `json:"sms_provider"`
-	Server       ServerConfig       `json:"server"`
-	Database     DatabaseConfig     `json:"database"`
-	JWT          JWTConfig          `json:"jwt"`
-	Upload       UploadConfig       `json:"upload"`
-	Redis        RedisConfig        `json:"redis"`
-	CORS         CORSConfig         `json:"cors"`
+	System       SystemConfig       `yaml:"system" json:"system"`
+	Logger       LoggerConfig       `yaml:"logger" json:"logger"`
+	Security     SecurityConfig     `yaml:"security" json:"security"`
+	SMSProvider  SMSProviderConfig  `yaml:"sms_provider" json:"sms_provider"`
+	Server       ServerConfig       `yaml:"server" json:"server"`
+	Database     DatabaseConfig     `yaml:"database" json:"database"`
+	JWT          JWTConfig          `yaml:"jwt" json:"jwt"`
+	Upload       UploadConfig       `yaml:"upload" json:"upload"`
+	Redis        RedisConfig        `yaml:"redis" json:"redis"`
+	CORS         CORSConfig         `yaml:"cors" json:"cors"`
 }
 
 type SystemConfig struct {
-	Reset int `json:"reset"`
+	Reset int `yaml:"reset" json:"reset"`
 }
 
 type LoggerConfig struct {
-	Level       string `json:"level"`
-	Format      string `json:"format"`
-	Output      string `json:"output"`
-	FilePath    string `json:"file_path"`
-	MaxSize     int    `json:"max_size"`
-	MaxBackups  int    `json:"max_backups"`
-	MaxAge      int    `json:"max_age"`
-	Compress    bool   `json:"compress"`
+	Level       string `yaml:"level" json:"level"`
+	Format      string `yaml:"format" json:"format"`
+	Output      string `yaml:"output" json:"output"`
+	FilePath    string `yaml:"file_path" json:"file_path"`
+	MaxSize     int    `yaml:"max_size" json:"max_size"`
+	MaxBackups  int    `yaml:"max_backups" json:"max_backups"`
+	MaxAge      int    `yaml:"max_age" json:"max_age"`
+	Compress    bool   `yaml:"compress" json:"compress"`
 }
 
 type SecurityConfig struct {
-	SMSValidMinutes        int    `json:"sms_valid_minutes"`
-	SMSCooldownSeconds     int    `json:"sms_cooldown_seconds"`
-	SMSHourlyLimit         int    `json:"sms_hourly_limit"`
-	IPRegisterHourlyLimit  int    `json:"ip_register_hourly_limit"`
-	IPLoginMinuteLimit     int    `json:"ip_login_minute_limit"`
-	LoginFailureLockMinutes int    `json:"login_failure_lock_minutes"`
+	SMSValidMinutes         int  `yaml:"sms_valid_minutes" json:"sms_valid_minutes"`
+	SMSCooldownSeconds      int  `yaml:"sms_cooldown_seconds" json:"sms_cooldown_seconds"`
+	SMSHourlyLimit          int  `yaml:"sms_hourly_limit" json:"sms_hourly_limit"`
+	IPRegisterHourlyLimit   int  `yaml:"ip_register_hourly_limit" json:"ip_register_hourly_limit"`
+	IPLoginMinuteLimit      int  `yaml:"ip_login_minute_limit" json:"ip_login_minute_limit"`
+	LoginFailureLockMinutes int  `yaml:"login_failure_lock_minutes" json:"login_failure_lock_minutes"`
+	RequireDailyCaptcha     bool `yaml:"require_daily_captcha" json:"require_daily_captcha"`
 }
 
 type SMSProviderConfig struct {
-	Default  string           `json:"default"`
-	Aliyun   AliyunSMSConfig  `json:"aliyun"`
-	Huawei   HuaweiSMSConfig  `json:"huawei"`
-	Tencent  TencentSMSConfig `json:"tencent"`
+	Default  string           `yaml:"default" json:"default"`
+	Aliyun   AliyunSMSConfig  `yaml:"aliyun" json:"aliyun"`
+	Huawei   HuaweiSMSConfig  `yaml:"huawei" json:"huawei"`
+	Tencent  TencentSMSConfig `yaml:"tencent" json:"tencent"`
 }
 
 type AliyunSMSConfig struct {
-	AccessKeyID     string `json:"access_key_id"`
-	AccessKeySecret string `json:"access_key_secret"`
-	RegionID        string `json:"region_id"`
-	SignName        string `json:"sign_name"`
-	TemplateCode    string `json:"template_code"`
-	SchemeName      string `json:"scheme_name"`
-	CountryCode     string `json:"country_code"`
+	AccessKeyID     string `yaml:"access_key_id" json:"access_key_id"`
+	AccessKeySecret string `yaml:"access_key_secret" json:"access_key_secret"`
+	RegionID        string `yaml:"region_id" json:"region_id"`
+	SignName        string `yaml:"sign_name" json:"sign_name"`
+	TemplateCode    string `yaml:"template_code" json:"template_code"`
+	SchemeName      string `yaml:"scheme_name" json:"scheme_name"`
+	CountryCode     string `yaml:"country_code" json:"country_code"`
 }
 
 type HuaweiSMSConfig struct {
-	AppKey    string `json:"app_key"`
-	AppSecret string `json:"app_secret"`
-	SignName  string `json:"sign_name"`
-	TemplateID string `json:"template_id"`
+	AppKey    string `yaml:"app_key" json:"app_key"`
+	AppSecret string `yaml:"app_secret" json:"app_secret"`
+	SignName  string `yaml:"sign_name" json:"sign_name"`
+	TemplateID string `yaml:"template_id" json:"template_id"`
 }
 
 type TencentSMSConfig struct {
-	SecretID     string `json:"secret_id"`
-	SecretKey    string `json:"secret_key"`
-	RegionID     string `json:"region_id"`
-	SignName     string `json:"sign_name"`
-	TemplateID   string `json:"template_id"`
+	SecretID   string `yaml:"secret_id" json:"secret_id"`
+	SecretKey  string `yaml:"secret_key" json:"secret_key"`
+	RegionID   string `yaml:"region_id" json:"region_id"`
+	SignName   string `yaml:"sign_name" json:"sign_name"`
+	TemplateID string `yaml:"template_id" json:"template_id"`
 }
 
 type ServerConfig struct {
-	Port int `json:"port"`
+	Port int `yaml:"port" json:"port"`
 }
 
 type DatabaseConfig struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	DBName   string `json:"dbname"`
-	SSLMode  string `json:"sslmode"`
+	Host     string `yaml:"host" json:"host"`
+	Port     int    `yaml:"port" json:"port"`
+	User     string `yaml:"user" json:"user"`
+	Password string `yaml:"password" json:"password"`
+	DBName   string `yaml:"dbname" json:"dbname"`
+	SSLMode  string `yaml:"sslmode" json:"sslmode"`
 }
 
 type JWTConfig struct {
-	Secret      string `json:"secret"`
-	ExpiresHour int    `json:"expires_hour"`
+	Secret      string `yaml:"secret" json:"secret"`
+	ExpiresHour int    `yaml:"expires_hour" json:"expires_hour"`
 }
 
 type UploadConfig struct {
-	AvatarPath  string `json:"avatar_path"`
-	MomentPath  string `json:"moment_path"`
-	MessagePath string `json:"message_path"`
+	AvatarPath  string `yaml:"avatar_path" json:"avatar_path"`
+	MomentPath  string `yaml:"moment_path" json:"moment_path"`
+	MessagePath string `yaml:"message_path" json:"message_path"`
 }
 
 type RedisConfig struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Password string `json:"password"`
-	DB       int    `json:"db"`
+	Host     string `yaml:"host" json:"host"`
+	Port     int    `yaml:"port" json:"port"`
+	Password string `yaml:"password" json:"password"`
+	DB       int    `yaml:"db" json:"db"`
 }
 
 type CORSConfig struct {
-	Origins     []string `json:"origins"`
-	Methods     []string `json:"methods"`
-	Headers     []string `json:"headers"`
-	Credentials bool     `json:"credentials"`
+	Origins     []string `yaml:"origins" json:"origins"`
+	Methods     []string `yaml:"methods" json:"methods"`
+	Headers     []string `yaml:"headers" json:"headers"`
+	Credentials bool     `yaml:"credentials" json:"credentials"`
 }
 
 // ==================== 全局变量 ====================
@@ -125,102 +126,94 @@ var AppConfig Config
 var DB *gorm.DB
 var RDB *redis.Client
 
-// ==================== 命令行参数解析工具函数 ====================
 
-// parseArgv 统一解析命令行参数并绑定到viper
-// 支持 int 和 string 类型，通过类型断言自动选择对应的 pflag 方法
-func parseArgv(cfgKey string, defaultValue interface{}, usage string) {
-	var argName = strings.ReplaceAll(cfgKey, ".", "-")
-	switch v := defaultValue.(type) {
-	case int:
-		pflag.Int(argName, v, usage)
-	case string:
-		pflag.String(argName, v, usage)
-	default:
-		log.Printf("Unsupported type for config key: %s", cfgKey)
-		return
+
+func getDefaultConfig() *Config {
+	return &Config{
+		System: SystemConfig{Reset: 0},
+		Security: SecurityConfig{
+			SMSValidMinutes:         5,
+			SMSCooldownSeconds:      60,
+			SMSHourlyLimit:          10,
+			IPRegisterHourlyLimit:   10,
+			IPLoginMinuteLimit:      10,
+			LoginFailureLockMinutes: 5,
+		},
+		SMSProvider: SMSProviderConfig{
+			Default: "aliyun",
+			Aliyun: AliyunSMSConfig{
+				RegionID: "cn-hangzhou",
+			},
+		},
+		Server: ServerConfig{Port: 8080},
+		Database: DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			User:     "postgres",
+			Password: "",
+			DBName:   "talkabc",
+			SSLMode:  "disable",
+		},
+		JWT: JWTConfig{
+			Secret:      "talkabc_secret_key",
+			ExpiresHour: 24,
+		},
+		Redis: RedisConfig{
+			Host:     "localhost",
+			Port:     6379,
+			Password: "",
+			DB:       0,
+		},
+		Upload: UploadConfig{
+			AvatarPath:  "./uploads/avatars",
+			MomentPath:  "./uploads/moments",
+			MessagePath: "./uploads/messages",
+		},
+		CORS: CORSConfig{
+			Origins:     []string{"http://localhost:3000", "http://localhost:8080"},
+			Methods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			Headers:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
+			Credentials: true,
+		},
 	}
-	pflag.Parse()
-	viper.BindPFlag(cfgKey, pflag.CommandLine.Lookup(argName))
-	viper.SetDefault(cfgKey, defaultValue)
 }
+func loadConfig(filePath string, cfg *Config) error {
+	v := viper.New()
+	v.SetConfigFile(filePath)
+	v.SetConfigType("yaml")
 
-// ==================== 配置初始化函数 ====================
+	if err := v.ReadInConfig(); err != nil {
+		return err
+	}
 
+	if err := v.Unmarshal(cfg); err != nil {
+		return err
+	}
+
+	return nil
+}
+// InitConfig 初始化全局配置
+// 加载流程：
+//   1. 先创建带有默认值的配置对象
+//   2. 尝试从配置文件加载，配置文件中的值覆盖默认值
+//   3. 配置文件优先级：./config.yaml
 func InitConfig() {
-	// 系统配置
-	parseArgv("system.reset", 0, "system reset flag")
+	// 1. 先创建带有默认值的配置对象
+	cfg := getDefaultConfig()
 
-	// 日志配置
-	parseArgv("logger.level", "info", "log level")
-	parseArgv("logger.format", "console", "log format (console/json)")
-	parseArgv("logger.output", "both", "log output (console/file/both)")
-	parseArgv("logger.file_path", "./logs/app.log", "log file path")
-	parseArgv("logger.max_size", 100, "max log file size (MB)")
-	parseArgv("logger.max_backups", 30, "max backup log files")
-	parseArgv("logger.max_age", 7, "max log file age (days)")
-	viper.SetDefault("logger.compress", true)
-
-	// 安全配置
-	parseArgv("security.sms_valid_minutes", 5, "sms valid minutes")
-	parseArgv("security.sms_cooldown_seconds", 60, "sms cooldown seconds")
-	parseArgv("security.sms_hourly_limit", 10, "sms hourly limit")
-	parseArgv("security.ip_register_hourly_limit", 10, "ip register hourly limit")
-	parseArgv("security.ip_login_minute_limit", 10, "ip login minute limit")
-	parseArgv("security.login_failure_lock_minutes", 5, "login failure lock minutes")
-
-	// 短信服务商配置
-	parseArgv("sms_provider.default", "aliyun", "default sms provider (aliyun, huawei, tencent)")
-	parseArgv("sms_provider.aliyun.access_key_id", "", "aliyun sms access key id")
-	parseArgv("sms_provider.aliyun.access_key_secret", "", "aliyun sms access key secret")
-	parseArgv("sms_provider.aliyun.region_id", "cn-hangzhou", "aliyun sms region id")
-	parseArgv("sms_provider.aliyun.sign_name", "", "aliyun sms sign name")
-	parseArgv("sms_provider.aliyun.template_code", "", "aliyun sms template code")
-
-	// 服务器配置
-	parseArgv("server.port", 8080, "server port")
-
-	// 数据库配置
-	parseArgv("database.host", "localhost", "database host")
-	parseArgv("database.port", 5432, "database port")
-	parseArgv("database.user", "postgres", "database user")
-	parseArgv("database.password", "", "database password")
-	parseArgv("database.dbname", "talkabc", "database name")
-	parseArgv("database.sslmode", "disable", "database sslmode")
-
-	// JWT配置
-	parseArgv("jwt.secret", "talkabc_secret_key", "jwt secret")
-	parseArgv("jwt.expires_hour", 24, "jwt expires hour")
-
-	// Redis配置
-	parseArgv("redis.host", "localhost", "redis host")
-	parseArgv("redis.port", 6379, "redis port")
-	parseArgv("redis.password", "", "redis password")
-	parseArgv("redis.db", 0, "redis db")
-
-	// 上传配置
-	parseArgv("upload.avatar_path", "./uploads/avatars", "avatar path")
-	parseArgv("upload.moment_path", "./uploads/moments", "moment path")
-	parseArgv("upload.message_path", "./uploads/messages", "message path")
-
-	// CORS配置（数组类型，单独设置默认值）
-	viper.SetDefault("cors.origins", []string{"http://localhost:3000", "http://localhost:8080"})
-	viper.SetDefault("cors.methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	viper.SetDefault("cors.headers", []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"})
-	viper.SetDefault("cors.credentials", true)
-
-	// 配置文件读取
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Config file not found: %v", err)
+	// 2. 尝试从配置文件加载，覆盖默认值
+	if err := loadConfig("./config.yaml", cfg); err != nil {
+		log.Printf("Failed to load config from ./config.yaml: %v", err)
 	}
 
-	// 配置反序列化到结构体
-	if err := viper.Unmarshal(&AppConfig); err != nil {
-		log.Fatalf("Failed to unmarshal: %v", err)
-	}
+	// 3. 将加载的配置赋值给全局变量
+	AppConfig = *cfg
+
+	// 4. 初始化日志
+	logger.InitLogger(&AppConfig.Logger)
+
+	// 5. 输出配置信息
+	logger.Debugf("[Config] System - Reset: %d", AppConfig.System.Reset)
+	str := fmt.Sprintf("%+v", AppConfig)
+	fmt.Printf("[Config] Full config: \n%s", str)
 }

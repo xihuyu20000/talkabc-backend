@@ -1,8 +1,9 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -18,6 +19,8 @@ import (
 // @Failure 500 {object} map[string]interface{} "获取失败"
 // @Router /moments [get]
 func GetLatestMoment(c *gin.Context) {
+	logger.Infof("[Handler] GetLatestMoment")
+
 	moments, err := service.GetLatestMoment()
 	if err != nil {
 		response.InternalError(c, err.Error())
@@ -39,6 +42,8 @@ func GetLatestMoment(c *gin.Context) {
 // @Router /moments/me [get]
 func GetMyLatestMoment(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetMyLatestMoment - UID: %s", uid)
 
 	moments, err := service.GetMyLatestMoment(uid)
 	if err != nil {
@@ -62,6 +67,8 @@ func GetMyLatestMoment(c *gin.Context) {
 // @Router /moments/users/{uid} [get]
 func GetUserMoment(c *gin.Context) {
 	uid := c.Param("uid")
+
+	logger.Infof("[Handler] GetUserMoment - UID: %s", uid)
 
 	moments, err := service.GetUserMoment(uid)
 	if err != nil {
@@ -92,6 +99,8 @@ func GetMomentComments(c *gin.Context) {
 		response.BadRequest(c, "动态ID参数错误")
 		return
 	}
+
+	logger.Infof("[Handler] GetMomentComments - MomentID: %d", mid)
 
 	comments, err := service.GetMomentComments(uint(mid))
 	if err != nil {
@@ -139,6 +148,8 @@ func PublishMoment(c *gin.Context) {
 			}
 		}
 	}
+
+	logger.Infof("[Handler] PublishMoment - UserID: %s, Text: %s, Location: %s, FileCount: %d", userID, req.Text, req.Location, len(files))
 
 	err := service.PublishMoment(userID, req.Text, files, req.Location)
 	if err != nil {

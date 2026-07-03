@@ -1,9 +1,10 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/config"
 	"backend/internal/middleware"
 	ws "backend/internal/websocket"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 	"net/http"
 
@@ -71,6 +72,8 @@ func WebSocketHandler(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] WebSocketHandler - UID: %s, DeviceID: %s", uid, deviceId)
+
 	conn, err := wsUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 1, "msg": "连接升级失败"})
@@ -100,6 +103,8 @@ func WebSocketHandler(c *gin.Context) {
 //   3. 返回在线状态数据（1=在线，0=离线）
 func GetOnlineStatus(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetOnlineStatus - UID: %s", uid)
 
 	status := ws.GetOnlineStatus(uid)
 	response.Success(c, gin.H{"uid": uid, "online": status})

@@ -30,19 +30,14 @@ import (
 )
 
 func main() {
+	// 1.加载配置文件
 	config.InitConfig()
 
-	logger.InitLogger(&logger.Config{
-		Level:       config.AppConfig.Logger.Level,
-		Format:      config.AppConfig.Logger.Format,
-		Output:      config.AppConfig.Logger.Output,
-		FilePath:    config.AppConfig.Logger.FilePath,
-		MaxSize:     config.AppConfig.Logger.MaxSize,
-		MaxBackups:  config.AppConfig.Logger.MaxBackups,
-		MaxAge:      config.AppConfig.Logger.MaxAge,
-		Compress:    config.AppConfig.Logger.Compress,
-	})
+	// 2.加载日志配置
 	defer logger.Sync()
+
+
+
 
 	if config.AppConfig.System.Reset == 1 {
 		dbCfg := infra.DatabaseConfig{

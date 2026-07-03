@@ -1,8 +1,9 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -67,6 +68,8 @@ func CollectMyInfo(c *gin.Context) {
 	info["favors"] = req.Favors
 	info["dating_purposes"] = req.DatingPurposes
 
+	logger.Infof("[Handler] CollectMyInfo - UserID: %s, Nickname: %s, Gender: %d, BirthYear: %d", userID, req.Nickname, req.Gender, req.BirthYear)
+
 	err := service.CollectMyInfo(userID, info)
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -114,6 +117,8 @@ func CollectAimInfo(c *gin.Context) {
 	info["edulevel"] = req.EduLevel
 	info["starsign"] = req.StarSign
 	info["favors"] = req.Favors
+
+	logger.Infof("[Handler] CollectAimInfo - UserID: %s, Gender: %d, Height: %v", userID, req.Gender, req.Height)
 
 	err := service.CollectAimInfo(userID, info)
 	if err != nil {

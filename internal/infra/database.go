@@ -75,6 +75,7 @@ func NewDB(cfg DatabaseConfig) *gorm.DB {
 	}
 
 	db.LogMode(true)
+	db.SetLogger(logger.NewGormLogger())
 
 	if err := db.DB().Ping(); err != nil {
 		logger.Fatalf("Failed to ping database: %v", err)

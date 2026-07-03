@@ -3,9 +3,11 @@
 import (
 	"backend/internal/middleware"
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
-	"github.com/gin-gonic/gin"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 // GetPraiseMeList 获取赞我的列表
@@ -20,6 +22,8 @@ import (
 // @Router /notifications/praise-me [get]
 func GetPraiseMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetPraiseMeList - UID: %s", uid)
 
 	list, err := service.GetPraiseMeList(uid)
 	if err != nil {
@@ -43,6 +47,8 @@ func GetPraiseMeList(c *gin.Context) {
 func GetCommentMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
+	logger.Infof("[Handler] GetCommentMeList - UID: %s", uid)
+
 	list, err := service.GetCommentMeList(uid)
 	if err != nil {
 		response.InternalError(c, err.Error())
@@ -64,6 +70,8 @@ func GetCommentMeList(c *gin.Context) {
 // @Router /notifications/add-me [get]
 func GetAddMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetAddMeList - UID: %s", uid)
 
 	list, err := service.GetAddMeList(uid)
 	if err != nil {
@@ -87,6 +95,8 @@ func GetAddMeList(c *gin.Context) {
 func GetVisitMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
+	logger.Infof("[Handler] GetVisitMeList - UID: %s", uid)
+
 	list, err := service.GetVisitMeList(uid)
 	if err != nil {
 		response.InternalError(c, err.Error())
@@ -108,6 +118,8 @@ func GetVisitMeList(c *gin.Context) {
 // @Router /notifications/like-me [get]
 func GetLikeMeList(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetLikeMeList - UID: %s", uid)
 
 	list, err := service.GetLikeMeList(uid)
 	if err != nil {
@@ -141,6 +153,8 @@ func AgreeFriendRequest(c *gin.Context) {
 		response.BadRequest(c, "flag参数错误")
 		return
 	}
+
+	logger.Infof("[Handler] AgreeFriendRequest - UserID: %s, TargetID: %s, Flag: %d", userID, targetID, flag)
 
 	err = service.AgreeFriendRequest(userID, targetID, flag)
 	if err != nil {

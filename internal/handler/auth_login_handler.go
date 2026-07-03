@@ -1,10 +1,11 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
 	"backend/internal/repository"
 	"backend/internal/service"
 	"backend/internal/websocket"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -59,6 +60,8 @@ func LoginByCode(c *gin.Context) {
 		UA:       ua,
 	}
 
+	logger.Infof("[Handler] LoginByCode - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
+
 	token, err := service.LoginByCode(req)
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -104,6 +107,8 @@ func LoginByPassword(c *gin.Context) {
 		DeviceID: deviceID,
 		UA:       ua,
 	}
+
+	logger.Infof("[Handler] LoginByPassword - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
 
 	token, err := service.LoginByPassword(req)
 	if err != nil {

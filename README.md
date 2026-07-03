@@ -1,4 +1,4 @@
-# LetsTalk 社交 App 后端服务
+# TalkABC 社交 App 后端服务
 
 基于 Go + Gin + GORM + PostgreSQL + Redis 开发的社交应用后端 API 服务，支持 WebSocket 实时通信。
 
@@ -28,28 +28,35 @@ backend/
 ├── cmd/                          # 程序入口目录
 │   └── server/
 │       └── main.go              # 程序入口文件
-├── config.yaml                  # 配置文件
+├── config/                       # 配置文件目录
+│   └── logger.yaml              # 日志独立配置文件
+├── config.yaml                  # 主配置文件
 ├── go.mod                      # Go模块依赖管理文件
 ├── go.sum                      # 依赖校验文件
 ├── internal/                    # 内部包（只能被本项目引用）
 │   ├── config/                 # 配置模块（仅配置读取）
 │   │   └── config.go           # 配置加载（使用Viper库读取YAML配置）
 │   ├── handler/                # HTTP处理器层（类似MVC中的Controller）
-│   │   ├── auth_handler.go     # 认证相关接口（登录、注册等）
-│   │   ├── chat_handler.go     # 聊天消息接口（消息列表、好友管理等）
-│   │   ├── interaction_handler.go  # 互动相关接口（通知列表、好友操作）
-│   │   ├── moment_handler.go   # 动态相关接口（动态列表、发布）
-│   │   ├── payment_handler.go  # 支付相关接口（钻石、会员）
-│   │   ├── upload_handler.go   # 文件上传接口（头像、图片、音视频、文件）
-│   │   ├── user_handler.go     # 用户相关接口（用户信息、关注列表等）
-│   │   └── ws_handler.go       # WebSocket连接处理
+│   │   ├── auth_login_handler.go    # 登录相关接口
+│   │   ├── auth_register_handler.go # 注册/密码重置接口
+│   │   ├── chat_handler.go          # 聊天消息接口（消息列表、好友管理等）
+│   │   ├── interaction_handler.go   # 互动相关接口（通知列表、好友操作）
+│   │   ├── moment_handler.go        # 动态相关接口（动态列表、发布）
+│   │   ├── payment_handler.go       # 支付相关接口（钻石、会员）
+│   │   ├── profile_handler.go       # 个人资料接口（完善资料、偏好设置）
+│   │   ├── sms_handler.go           # 短信验证码接口
+│   │   ├── sys_handler.go           # 系统接口（日志级别管理）
+│   │   ├── upload_handler.go        # 文件上传接口（头像、图片、音视频、文件）
+│   │   ├── user_handler.go          # 用户相关接口（用户信息、关注列表等）
+│   │   └── ws_handler.go            # WebSocket连接处理
 │   ├── infra/                  # 基础设施层（数据库、Redis、迁移、重置）
 │   │   ├── database.go         # 数据库连接（使用GORM连接PostgreSQL）
 │   │   ├── migrate.go          # 数据库自动迁移（根据模型自动创建表）
 │   │   ├── redis.go            # Redis连接（使用go-redis连接Redis）
 │   │   └── reset.go            # 数据重置功能（删除数据库、日志、上传文件、Redis）
 │   ├── middleware/             # 中间件（拦截器）
-│   │   └── jwt.go              # JWT认证中间件（验证用户登录状态）
+│   │   ├── jwt.go              # JWT认证中间件（验证用户登录状态）
+│   │   └── logger.go           # 请求日志中间件（统一记录请求信息）
 │   ├── model/                 # 数据模型层（对应数据库表结构）
 │   │   └── models.go          # 所有数据模型定义
 │   ├── repository/            # 数据访问层（直接操作数据库）
@@ -69,15 +76,24 @@ backend/
 │   │   ├── payment_service.go
 │   │   └── user_service.go
 │   ├── test/                 # 测试代码
-│   │   ├── helper_test.go    # 测试辅助工具
-│   │   └── integration_test.go # 集成测试
+│   │   ├── helper_test.go    # 测试辅助工具（统一初始化日志、Redis）
+│   │   ├── integration_test.go # 集成测试
+│   │   ├── auth_login_test.go  # 登录模块测试
+│   │   ├── auth_register_test.go # 注册模块测试
+│   │   ├── sms_test.go         # 短信验证码测试
+│   │   ├── user_test.go        # 用户模块测试
+│   │   └── moment_test.go      # 动态模块测试
 │   └── websocket/            # WebSocket实时通信
 │       ├── client.go         # WebSocket客户端连接管理
 │       ├── hub.go            # WebSocket连接管理器（处理客户端注册/注销）
 │       └── message.go        # WebSocket消息类型和数据结构定义
 └── pkg/                      # 公共包（可被外部项目引用）
-    └── response/             # 响应封装
-        └── response.go       # 统一API响应格式
+    ├── logger/               # 企业级日志模块（zap + lumberjack）
+    │   └── logger.go         # 日志核心实现
+    ├── response/             # 响应封装
+    │   └── response.go       # 统一API响应格式
+    └── utils/                # 工具函数
+        └── snowflake.go      # 雪花ID生成器
 ```
 
 ---
@@ -111,7 +127,11 @@ backend/
     ↓
 路由匹配 (router.go)
     ↓
-中间件处理 (middleware/jwt.go) - JWT认证（私有接口）
+请求日志中间件 (middleware/logger.go) - 生成request_id，记录请求开始
+    ↓
+CORS中间件 (cors) - 跨域处理
+    ↓
+JWT认证中间件 (middleware/jwt.go) - 私有接口验证
     ↓
 Handler处理 (handler/*.go) - 参数验证、调用Service
     ↓
@@ -122,6 +142,8 @@ Repository处理 (repository/*.go) - 数据库操作
 数据库响应
     ↓
 逐层返回
+    ↓
+请求日志中间件 - 记录请求结束（状态码、耗时）
     ↓
 客户端收到JSON响应
 ```
@@ -156,11 +178,16 @@ WS Handler验证JWT token
 | gorilla/websocket | WebSocket库 | 实现实时双向通信 |
 | JWT | 用户认证 | 无状态令牌认证 |
 | Viper | 配置管理 | 读取YAML配置文件和命令行参数 |
-| bcrypt | 密码加密 | 安全的密码哈希算法 |
+| bcrypt | 密码加密 | 安全的密码哈希算法（cost=10） |
+| zap | 结构化日志 | 高性能、结构化日志库 |
+| lumberjack | 日志文件切割 | 自动按大小/时间分割日志文件 |
+| snowflake | ID生成 | 分布式唯一ID生成器 |
 
 ---
 
 ## 配置说明
+
+### 主配置文件 (config.yaml)
 
 编辑 `config.yaml`:
 
@@ -168,8 +195,47 @@ WS Handler验证JWT token
 # 系统配置
 system:
   reset: 0                 # 重置标志(0=不重置, 1=重置所有数据)
-  log_level: info          # 日志级别(debug/info/warn/error/fatal)
-  sms_valid_minutes: 5     # 短信验证码有效期（分钟）
+
+# 日志配置（已独立到 config/logger.yaml，此处保留为兼容）
+logger:
+  level: debug          # 日志级别: debug, info, warn, error, fatal
+  format: console       # 日志格式: console, json
+  output: both          # 输出方式: console, file, both
+  file_path: ./logs/app.log
+  max_size: 100         # 单个日志文件最大大小(MB)
+  max_backups: 30       # 保留的最大日志文件数
+  max_age: 7            # 日志文件保留天数
+  compress: true        # 是否压缩归档日志
+
+# 安全配置
+security:
+  sms_valid_minutes: 5              # 短信验证码有效期（分钟）
+  sms_cooldown_seconds: 60          # 短信发送冷却时间（秒）
+  sms_hourly_limit: 10              # 每小时发送次数限制
+  ip_register_hourly_limit: 10      # 注册时每小时每个IP发送次数限制
+  ip_login_minute_limit: 10         # 登录时每分钟每个IP登录次数限制
+  login_failure_lock_minutes: 5     # 登录失败锁定时间（分钟）
+
+# 短信服务商配置
+sms_provider:
+  default: "aliyun"              # 默认短信服务商：aliyun, huawei, tencent
+  aliyun:
+    access_key_id: ""            # 阿里云AccessKey ID
+    access_key_secret: ""        # 阿里云AccessKey Secret
+    region_id: "cn-hangzhou"     # 阿里云区域ID
+    sign_name: ""                # 短信签名
+    template_code: ""            # 短信模板Code
+  huawei:
+    app_key: ""                  # 华为云AppKey
+    app_secret: ""               # 华为云AppSecret
+    sign_name: ""                # 短信签名
+    template_id: ""              # 短信模板ID
+  tencent:
+    secret_id: ""                # 腾讯云SecretID
+    secret_key: ""               # 腾讯云SecretKey
+    region_id: "ap-guangzhou"    # 腾讯云区域ID
+    sign_name: ""                # 短信签名
+    template_id: ""              # 短信模板ID
 
 # 服务器配置
 server:
@@ -201,6 +267,39 @@ redis:
   port: 6379                      # Redis默认端口（版本5）
   password: ""                    # Redis密码（无密码时为空）
   db: 0                           # Redis数据库编号
+
+# CORS配置
+cors:
+  origins:
+    - "*"                         # 允许所有来源（生产环境应改为具体域名）
+  methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  headers:
+    - Origin
+    - Content-Type
+    - Authorization
+    - Accept
+    - X-Requested-With
+  credentials: true               # 是否允许携带凭证
+```
+
+### 日志配置文件 (config/logger.yaml)
+
+日志配置已独立为单独文件，优先级高于 config.yaml 中的 logger 配置：
+
+```yaml
+level: debug          # 日志级别: debug, info, warn, error, fatal
+format: console       # 日志格式: console（人类可读）, json（机器可读）
+output: both          # 输出方式: console, file, both
+file_path: ./logs/app.log  # 日志文件路径
+max_size: 100         # 单个日志文件最大大小(MB)
+max_backups: 30       # 保留的最大日志文件数
+max_age: 7            # 日志文件保留天数
+compress: true        # 是否压缩归档日志
 ```
 
 ---
@@ -250,99 +349,139 @@ go build -o talkabc.exe ./cmd/server
 
 服务启动后会：
 1. 加载配置文件（config.yaml）
-2. 如果配置 `reset=1`，执行数据重置
-3. 连接数据库（PostgreSQL，不存在则自动创建）
-4. 自动创建所有数据表（根据models.go中的定义）
-5. 初始化Redis连接
-6. 创建上传文件目录
-7. 监听 8080 端口
+2. 加载日志配置文件（config/logger.yaml）
+3. 如果配置 `reset=1`，执行数据重置
+4. 连接数据库（PostgreSQL，不存在则自动创建）
+5. 自动创建所有数据表（根据models.go中的定义）
+6. 初始化Redis连接
+7. 初始化短信网关
+8. 创建上传文件目录
+9. 监听 8080 端口
 
 ---
 
 ## API接口文档
 
-### 系统模块 `/api/v1/sys`
+### 认证模块 `/api/v1/auth`
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| GET | `/api/v1/sys/code-sms` | 获取手机验证码 | 否 |
-| GET | `/api/v1/sys/code-alnum` | 获取图形验证码 | 否 |
-| POST | `/api/v1/sys/register` | 用户注册 | 否 |
-| POST | `/api/v1/sys/login-code` | 验证码登录 | 否 |
-| POST | `/api/v1/sys/login-pwd` | 密码登录 | 否 |
-| POST | `/api/v1/sys/logout` | 当前用户退出系统 | 是 |
-| POST | `/api/v1/sys/reset-pwd` | 重置密码 | 否 |
+| GET | `/api/v1/auth/code-sms` | 获取手机验证码 | 否 |
+| POST | `/api/v1/auth/code-sms/verify` | 验证手机验证码 | 否 |
+| GET | `/api/v1/auth/code-alnum` | 获取图形验证码 | 否 |
+| POST | `/api/v1/auth/code-alnum/verify` | 验证图形验证码 | 否 |
+| POST | `/api/v1/auth/register` | 用户注册 | 否 |
+| POST | `/api/v1/auth/login/code` | 验证码登录 | 否 |
+| POST | `/api/v1/auth/login/password` | 密码登录 | 否 |
+| POST | `/api/v1/auth/logout` | 用户退出 | 是 |
+| POST | `/api/v1/auth/reset-password/initiate` | 发起密码重置 | 否 |
+| GET | `/api/v1/auth/reset-password/validate` | 验证重置Token | 否 |
+| POST | `/api/v1/auth/reset-password/complete` | 完成密码重置 | 否 |
 
-### 用户模块 `/api/v1/user`
-
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/api/v1/user/users` | 用户列表（发现页） | 是 |
-| GET | `/api/v1/user/info/:uid` | 特定用户的信息 | 是 |
-| GET | `/api/v1/user/focuslist/:uid` | 特定用户的关注列表 | 是 |
-| GET | `/api/v1/user/fanslist/:uid` | 特定用户的粉丝列表 | 是 |
-| POST | `/api/v1/user/notify/:uid/:flag` | 取消/上线提醒当前用户 | 是 |
-| POST | `/api/v1/user/greet/:uid` | 打招呼对特定用户 | 是 |
-| POST | `/api/v1/user/upload-avatar` | 上传头像 | 是 |
-| POST | `/api/v1/user/collect-myinfo` | 完善个人信息 | 是 |
-| POST | `/api/v1/user/collect-aiminfo` | 设置理想对象条件 | 是 |
-| GET | `/api/v1/user/adbanner` | 最新广告位用户列表 | 是 |
-| POST | `/api/v1/user/gift/:uid/:giftid` | 向特定用户赠送特定礼物 | 是 |
-| GET | `/api/v1/user/praise-me` | 赞我的用户列表 | 是 |
-| GET | `/api/v1/user/comment-me` | 评论我动态的用户列表 | 是 |
-| GET | `/api/v1/user/add-me` | 加我好友的用户列表 | 是 |
-| GET | `/api/v1/user/visit-me` | 访问我的用户列表 | 是 |
-| GET | `/api/v1/user/like-me` | 喜欢我的用户列表 | 是 |
-| POST | `/api/v1/user/agree-friend/:uid/:flag` | 取消/同意好友申请 | 是 |
-| POST | `/api/v1/user/add/:uid/:flag` | 取消/添加好友 | 是 |
-
-### 聊天消息模块 `/api/v1/msg`
+### 用户模块 `/api/v1/users`
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| GET | `/api/v1/msg/sysmsgs` | 当前用户的系统消息列表 | 是 |
-| GET | `/api/v1/msg/latest` | 当前用户的最新消息列表 | 是 |
-| GET | `/api/v1/msg/:uid` | 与特定用户的消息列表 | 是 |
-| POST | `/api/v1/msg/pintop/:uid/:flag` | 取消/置顶用户消息 | 是 |
-| POST | `/api/v1/msg/clear/:uid` | 清空聊天记录 | 是 |
+| GET | `/api/v1/users` | 用户列表（发现页） | 是 |
+| GET | `/api/v1/users/:uid` | 用户信息 | 是 |
+| GET | `/api/v1/users/:uid/following` | 关注列表 | 是 |
+| GET | `/api/v1/users/:uid/fans` | 粉丝列表 | 是 |
+| POST | `/api/v1/users/:uid/greet` | 打招呼 | 是 |
+| POST | `/api/v1/users/:uid/notification/:flag` | 设置通知 | 是 |
 
-### 动态模块 `/api/v1/moment`
-
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/api/v1/moment/latest` | 所有用户的最新动态列表 | 是 |
-| GET | `/api/v1/moment/:uid/latest` | 特定用户的动态列表 | 是 |
-| GET | `/api/v1/moment/:mid/comments` | 某个动态的所有评论列表 | 是 |
-
-### 文件上传模块 `/api/v1/upload`
+### 个人资料模块 `/api/v1/profile`
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| POST | `/api/v1/upload/image` | 上传图片文件 | 是 |
-| POST | `/api/v1/upload/audio` | 上传音频文件 | 是 |
-| POST | `/api/v1/upload/video` | 上传视频文件 | 是 |
-| POST | `/api/v1/upload/file` | 上传文件 | 是 |
+| POST | `/api/v1/profile/me` | 完善个人信息 | 是 |
+| POST | `/api/v1/profile/preferences` | 设置理想对象条件 | 是 |
 
-### 钻石模块 `/api/v1/diamond`
+### 聊天消息模块 `/api/v1/messages`
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| POST | `/api/v1/diamond/buy/:did` | 购买钻石 | 是 |
-| GET | `/api/v1/diamond/stock` | 我的钻石余额 | 是 |
-| GET | `/api/v1/diamond/history` | 我的钻石购买历史 | 是 |
+| GET | `/api/v1/messages/system` | 系统消息列表 | 是 |
+| GET | `/api/v1/messages/latest` | 最新消息列表 | 是 |
+| GET | `/api/v1/messages/:uid` | 与特定用户的消息列表 | 是 |
+| POST | `/api/v1/messages/top/:uid/:flag` | 置顶/取消置顶消息 | 是 |
+| DELETE | `/api/v1/messages/:uid` | 清空聊天记录 | 是 |
 
-### 会员模块 `/api/v1/member`
+### 动态模块 `/api/v1/moments`
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| POST | `/api/v1/member/buy/:vid` | 升级会员 | 是 |
-| GET | `/api/v1/member/history` | 我的会员购买历史 | 是 |
+| GET | `/api/v1/moments/latest` | 最新动态列表 | 是 |
+| GET | `/api/v1/users/:uid/moments` | 特定用户的动态列表 | 是 |
+| GET | `/api/v1/moments/:mid/comments` | 动态评论列表 | 是 |
+| POST | `/api/v1/moments` | 发布动态 | 是 |
+
+### 文件上传模块 `/api/v1/uploads`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/users/avatar` | 上传头像 | 是 |
+| POST | `/api/v1/uploads/image` | 上传图片文件 | 是 |
+| POST | `/api/v1/uploads/audio` | 上传音频文件 | 是 |
+| POST | `/api/v1/uploads/video` | 上传视频文件 | 是 |
+| POST | `/api/v1/uploads/file` | 上传文件 | 是 |
+
+### 互动通知模块 `/api/v1/notifications`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | `/api/v1/notifications/praise` | 赞我的列表 | 是 |
+| GET | `/api/v1/notifications/comment` | 评论我的列表 | 是 |
+| GET | `/api/v1/notifications/friend` | 加我的列表 | 是 |
+| GET | `/api/v1/notifications/visit` | 访问我的列表 | 是 |
+| GET | `/api/v1/notifications/like` | 喜欢我的列表 | 是 |
+
+### 好友模块 `/api/v1/friendships`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/friendships/:uid/:flag` | 添加/取消好友 | 是 |
+| POST | `/api/v1/friendships/agree/:uid/:flag` | 同意/拒绝好友申请 | 是 |
+
+### 礼物模块 `/api/v1/gifts`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/gifts/send/:uid/:giftid` | 赠送礼物 | 是 |
+
+### 广告模块 `/api/v1/ads`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | `/api/v1/ads/latest` | 最新广告位 | 是 |
+
+### 钻石模块 `/api/v1/diamonds`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/diamonds/buy/:did` | 购买钻石 | 是 |
+| GET | `/api/v1/diamonds/stock` | 钻石余额 | 是 |
+| GET | `/api/v1/diamonds/history` | 购买历史 | 是 |
+
+### 会员模块 `/api/v1/memberships`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/memberships/buy/:vid` | 购买会员 | 是 |
+| GET | `/api/v1/memberships/history` | 购买历史 | 是 |
+
+### 系统模块 `/api/v1/system`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | `/api/v1/system/log-level` | 获取当前日志级别 | 是 |
+| POST | `/api/v1/system/log-level` | 动态修改日志级别 | 是 |
 
 ### WebSocket模块
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| GET | `/ws?token=xxx` | WebSocket连接 | 是（token参数） |
+| GET | `/ws?token=xxx&deviceId=xxx` | WebSocket连接 | 是（token参数） |
+| GET | `/api/v1/onlinestatus` | 获取在线状态 | 是 |
 
 ### WebSocket消息类型（客户端发送）
 
@@ -372,7 +511,7 @@ go build -o talkabc.exe ./cmd/server
 客户端通过 WebSocket 协议连接服务器，需在 URL 参数中携带 JWT token：
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws?token=your_jwt_token');
+const ws = new WebSocket('ws://localhost:8080/ws?token=your_jwt_token&deviceId=your_device_id');
 ```
 
 ### 消息协议
@@ -483,7 +622,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### JWT认证流程
 
 ```
-1. 用户登录（POST /sys/login-code 或 /sys/login-pwd）
+1. 用户登录（POST /api/v1/auth/login/code 或 /api/v1/auth/login/password）
 2. 服务器验证后返回JWT令牌
 3. 客户端在后续请求的Header中携带令牌
 4. 服务器通过JWT中间件验证令牌
@@ -500,6 +639,19 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## 日志模块
 
+### 核心设计
+
+项目采用企业级日志方案，基于 **zap + lumberjack** 实现：
+
+| 特性 | 说明 |
+|------|------|
+| 全局单例 | 整个项目只初始化一次 logger，禁止到处 new 日志对象 |
+| 独立配置 | 通过 `config/logger.yaml` 统一控制日志行为 |
+| 分层输出 | 同时输出到控制台和文件 |
+| 自动切割 | 按大小/时间分割日志，自动清理过期日志 |
+| 链路追踪 | 支持从 context 中提取 request_id/trace_id |
+| 动态级别 | 运行时可通过 API 动态修改日志级别 |
+
 ### 日志级别
 
 支持以下日志级别（从低到高）：
@@ -514,36 +666,73 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### 日志配置
 
-通过配置文件或命令行参数设置日志级别：
+通过独立配置文件 `config/logger.yaml` 设置：
 
-**配置文件方式：**
 ```yaml
-system:
-  log_level: info
+level: debug          # 日志级别
+format: console       # console/json
+output: both          # console/file/both
+file_path: ./logs/app.log
+max_size: 100         # MB
+max_backups: 30       # 保留备份数
+max_age: 7            # 保留天数
+compress: true        # 是否压缩
 ```
 
-**命令行方式：**
+### 请求日志中间件
+
+系统自动记录每个HTTP请求的完整信息：
+
+```
+INFO  Request start - method: POST, path: /api/v1/auth/login/code, client_ip: 192.168.1.100
+INFO  Request end - method: POST, path: /api/v1/auth/login/code, status: 200, latency: 15.3ms
+```
+
+### 动态日志级别
+
+支持通过 API 实时修改日志级别：
+
 ```bash
-./talkabc.exe --system-log-level=debug
+# 获取当前日志级别
+curl -H "Authorization: Bearer xxx" http://localhost:8080/api/v1/system/log-level
+
+# 修改日志级别为 debug
+curl -H "Authorization: Bearer xxx" -X POST -d '{"level":"debug"}' http://localhost:8080/api/v1/system/log-level
 ```
 
 ### 日志输出
 
 日志同时输出到：
-1. **控制台** - 实时查看
-2. **文件** - `./logs/app_YYYY-MM-DD.log`
+1. **控制台** - 实时查看，人类可读格式
+2. **文件** - `./logs/app.log`，自动按大小切割
 
 ### 日志格式
 
+**Console格式（开发环境）：**
 ```
-[2026-06-30 10:30:45.123] [INFO] [config/database.go:78] Database connected successfully
+[2026-07-03 10:30:45.123] [INFO] [service:talkabc] [env:development] [request_id:abc123] Request processed
 ```
 
-格式说明：
-- `[时间戳]` - 精确到毫秒
-- `[日志级别]` - DEBUG/INFO/WARN/ERROR/FATAL
-- `[文件名:行号]` - 调用位置
-- `消息内容` - 日志正文
+**JSON格式（生产环境）：**
+```json
+{
+  "time": "2026-07-03T10:30:45.123Z",
+  "level": "info",
+  "service": "talkabc",
+  "env": "development",
+  "request_id": "abc123",
+  "message": "Request processed"
+}
+```
+
+### 敏感信息脱敏
+
+系统提供工具函数对敏感信息进行脱敏处理：
+
+| 函数 | 说明 | 示例 |
+|------|------|------|
+| `logger.MaskToken` | Token脱敏 | `abc123def456` → `abc1***456` |
+| `logger.MaskSensitive` | 通用敏感信息脱敏 | 根据长度动态隐藏中间部分 |
 
 ---
 
@@ -591,8 +780,6 @@ system:
 | 参数 | 类型 | 默认值 | 说明 | 配置文件对应 |
 |------|------|--------|------|-------------|
 | `--system-reset` | int | 0 | 系统重置标志(0=不重置, 1=重置) | `system.reset` |
-| `--system-log-level` | string | info | 日志级别 | `system.log_level` |
-| `--system-sms-valid-minutes` | int | 5 | 短信验证码有效期（分钟） | `system.sms_valid_minutes` |
 | `--server-port` | int | 8080 | 服务器监听端口 | `server.port` |
 | `--database-host` | string | localhost | 数据库主机地址 | `database.host` |
 | `--database-port` | int | 5432 | 数据库端口 | `database.port` |
@@ -679,3 +866,15 @@ system:
 - 15. 新增交友目的标签表 `dating_purposes` 和用户-交友目的关联表 `user_dating_purpose_rel`
 - 16. 更新礼物初始数据，参考抖音礼物品类和价格体系（22种礼物）
 - 17. 修复config.go中viper默认值键名与结构体字段不匹配的问题
+- 18. 修复路由重复前缀问题（/api/v1/api/v1），添加fallback路由处理
+- 19. 修复短信验证码每小时发送限制逻辑，使用SETNX初始化Redis计数器
+- 20. 实现企业级日志系统（zap + lumberjack），支持结构化日志、文件切割、日志分级
+- 21. 日志配置独立为 `config/logger.yaml` 文件，便于维护
+- 22. 新增请求日志中间件，自动记录每个HTTP请求的方法、路径、状态码、耗时
+- 23. 支持运行时动态修改日志级别（通过API接口）
+- 24. 实现上下文链路追踪，自动从context提取request_id/trace_id
+- 25. 新增敏感信息脱敏工具函数（MaskToken、MaskSensitive）
+- 26. 分离单元测试和集成测试，集成测试移到 `internal/test` 目录
+- 27. 所有Handler方法添加请求参数日志记录
+- 28. Handler层拆分为独立文件（auth_login、auth_register、profile、sys）
+- 29. 新增系统API接口（获取/修改日志级别）

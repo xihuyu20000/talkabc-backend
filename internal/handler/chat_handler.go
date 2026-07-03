@@ -1,8 +1,9 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 	"strconv"
 
@@ -23,6 +24,8 @@ import (
 // @Router /messages/system [get]
 func GetSystemMsgList(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetSystemMsgList - UID: %s", uid)
 
 	msgs, err := service.GetSystemMsgList(uid)
 	if err != nil {
@@ -45,6 +48,8 @@ func GetSystemMsgList(c *gin.Context) {
 // @Router /messages/latest [get]
 func GetLatestUserMsg(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetLatestUserMsg - UID: %s", uid)
 
 	msgs, err := service.GetLatestUserMsg(uid)
 	if err != nil {
@@ -69,6 +74,8 @@ func GetLatestUserMsg(c *gin.Context) {
 func GetUserMsgHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	targetID := c.Param("uid")
+
+	logger.Infof("[Handler] GetUserMsgHistory - UID: %s, TargetID: %s", uid, targetID)
 
 	msgs, err := service.GetUserMsgHistory(uid, targetID)
 	if err != nil {
@@ -103,6 +110,8 @@ func SetMessageTop(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] SetMessageTop - UID: %s, TargetID: %s, Flag: %d", uid, targetID, flag)
+
 	err = service.SetMessageTop(uid, targetID, flag)
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -126,6 +135,8 @@ func SetMessageTop(c *gin.Context) {
 func ClearChatHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	targetID := c.Param("uid")
+
+	logger.Infof("[Handler] ClearChatHistory - UID: %s, TargetID: %s", uid, targetID)
 
 	err := service.ClearChatHistory(uid, targetID)
 	if err != nil {
@@ -162,6 +173,8 @@ func AddFriend(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] AddFriend - UID: %s, TargetID: %s, Flag: %d", uid, targetID, flag)
+
 	err = service.AddFriend(uid, targetID, flag)
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -195,6 +208,8 @@ func SendGift(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] SendGift - SenderID: %s, ReceiverID: %s, GiftID: %d", senderID, receiverID, giftID)
+
 	err = service.SendGift(senderID, receiverID, uint(giftID))
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -216,6 +231,8 @@ func SendGift(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "获取失败"
 // @Router /ads/banners [get]
 func GetLatestAdBanner(c *gin.Context) {
+	logger.Infof("[Handler] GetLatestAdBanner")
+
 	banners, err := service.GetLatestAdBanner()
 	if err != nil {
 		response.InternalError(c, err.Error())

@@ -3,6 +3,7 @@
 import (
 	"backend/internal/config"
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 	"context"
 	"time"
@@ -48,6 +49,9 @@ func SendSMSCode(c *gin.Context) {
 		Tag:         c.Query("tag"),
 	}
 
+	logger.Infof("[Handler] SendSMSCode - PhoneNum: %s, Tag: %s, CaptchaID: %s, CaptchaCode: %s",
+		req.PhoneNum, req.Tag, req.CaptchaID, req.CaptchaCode)
+
 	// 调用service层执行完整的验证码发送逻辑（包含所有安全校验）
 	err := service.GenerateSMSCode(req)
 	if err != nil {
@@ -85,6 +89,8 @@ func VerifySMSCode(c *gin.Context) {
 		response.BadRequest(c, "手机号和验证码不能为空")
 		return
 	}
+
+	logger.Infof("[Handler] VerifySMSCode - PhoneNum: %s, Tag: %s", req.PhoneNum, req.Tag)
 
 	// 调用service层执行验证（使用Lua脚本保证原子性，实现功能5）
 	err := service.VerifySMSCode(req.PhoneNum, req.Code, req.Tag)

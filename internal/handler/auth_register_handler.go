@@ -1,7 +1,8 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -58,6 +59,8 @@ func Register(c *gin.Context) {
 		DeviceID: deviceID,
 		UA:       ua,
 	}
+
+	logger.Infof("[Handler] Register - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
 
 	token, err := service.Register(req)
 	if err != nil {
@@ -145,6 +148,8 @@ func InitiateResetPassword(c *gin.Context) {
 		UA:       ua,
 	}
 
+	logger.Infof("[Handler] InitiateResetPassword - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
+
 	err := service.InitiateResetPassword(req)
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -171,6 +176,8 @@ func ValidateResetToken(c *gin.Context) {
 		response.BadRequest(c, "重置链接无效")
 		return
 	}
+
+	logger.Infof("[Handler] ValidateResetToken - Token: %s", logger.MaskToken(token))
 
 	// 【重置凭证】验证Token是否有效（不标记为已使用，允许前端预先校验）
 	_, err := service.ValidateResetToken(token)
@@ -221,6 +228,8 @@ func CompleteResetPassword(c *gin.Context) {
 		IP:       clientIP,
 		UA:       ua,
 	}
+
+	logger.Infof("[Handler] CompleteResetPassword - Token: %s, DeviceID: %s, IP: %s", logger.MaskToken(req.Token), req.DeviceID, req.IP)
 
 	err := service.CompleteResetPassword(req)
 	if err != nil {

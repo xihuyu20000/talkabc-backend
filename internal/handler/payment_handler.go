@@ -1,8 +1,9 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
 	"backend/internal/service"
+	"backend/pkg/logger"
 	"backend/pkg/response"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -30,6 +31,8 @@ func BuyDiamond(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] BuyDiamond - UID: %s, DiamondID: %d", uid, did)
+
 	err = service.BuyDiamond(uid, uint(did))
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -52,6 +55,8 @@ func BuyDiamond(c *gin.Context) {
 func GetDiamondStock(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
+	logger.Infof("[Handler] GetDiamondStock - UID: %s", uid)
+
 	diamond, err := service.GetDiamondStock(uid)
 	if err != nil {
 		response.InternalError(c, err.Error())
@@ -73,6 +78,8 @@ func GetDiamondStock(c *gin.Context) {
 //   3. 返回记录列表数据
 func GetDiamondHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetDiamondHistory - UID: %s", uid)
 
 	records, err := service.GetDiamondHistory(uid)
 	if err != nil {
@@ -105,6 +112,8 @@ func BuyMember(c *gin.Context) {
 		return
 	}
 
+	logger.Infof("[Handler] BuyMember - UID: %s, MemberID: %d", uid, vid)
+
 	err = service.BuyMember(uid, uint(vid))
 	if err != nil {
 		response.Error(c, 1, err.Error())
@@ -126,6 +135,8 @@ func BuyMember(c *gin.Context) {
 //   3. 返回记录列表数据
 func GetMemberHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
+
+	logger.Infof("[Handler] GetMemberHistory - UID: %s", uid)
 
 	records, err := service.GetMemberHistory(uid)
 	if err != nil {
