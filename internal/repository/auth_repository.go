@@ -130,7 +130,7 @@ func CheckSMSCooldown(phoneNum string) bool {
 // 【功能3】发送成功后设置60秒冷却期，防止频繁发送
 func SetSMSCooldown(phoneNum string) error {
 	key := fmt.Sprintf("%s%s", SMSCooldownKeyPrefix, phoneNum)
-	return config.RDB.Set(context.Background(), key, "1", 60*time.Second).Err()
+	return config.RDB.Set(context.Background(), key, "1", time.Duration(config.AppConfig.System.SMSCooldownSeconds)*time.Second).Err()
 }
 
 // CheckHourlyLimit 检查1小时内发送次数是否超过限制（10次）

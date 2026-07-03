@@ -23,6 +23,7 @@ type SystemConfig struct {
 	Reset           int    `json:"reset"`
 	LogLevel        string `json:"log_level"`
 	SMSValidMinutes int    `json:"sms_valid_minutes"`
+	SMSCooldownSeconds int `json:"sms_cooldown_seconds"`
 }
 
 type ServerConfig struct {
@@ -71,6 +72,7 @@ func InitConfig() {
 	pflag.Int("system-reset", 0, "system reset flag")
 	pflag.String("system-log-level", "info", "log level")
 	pflag.Int("system-sms-valid-minutes", 5, "sms valid minutes")
+	pflag.Int("system-sms-cooldown-seconds", 60, "sms cooldown seconds")
 	pflag.Int("server-port", 8080, "server port")
 	pflag.String("database-host", "localhost", "database host")
 	pflag.Int("database-port", 5432, "database port")
@@ -93,6 +95,7 @@ func InitConfig() {
 	viper.BindPFlag("system.reset", pflag.CommandLine.Lookup("system-reset"))
 	viper.BindPFlag("system.log_level", pflag.CommandLine.Lookup("system-log-level"))
 	viper.BindPFlag("system.sms_valid_minutes", pflag.CommandLine.Lookup("system-sms-valid-minutes"))
+	viper.BindPFlag("system.sms_cooldown_seconds", pflag.CommandLine.Lookup("system-sms-cooldown-seconds"))
 	viper.BindPFlag("server.port", pflag.CommandLine.Lookup("server-port"))
 	viper.BindPFlag("database.host", pflag.CommandLine.Lookup("database-host"))
 	viper.BindPFlag("database.port", pflag.CommandLine.Lookup("database-port"))
@@ -113,6 +116,7 @@ func InitConfig() {
 	viper.SetDefault("system.reset", 0)
 	viper.SetDefault("system.log_level", "info")
 	viper.SetDefault("system.sms_valid_minutes", 5)
+	viper.SetDefault("sms_cooldown_seconds", 60)
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", 5432)

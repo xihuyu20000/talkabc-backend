@@ -1,6 +1,7 @@
 system:
   reset: 1              # 重置标志(0=不重置, 1=重置所有数据)
   sms_valid_minutes: 5  # 短信验证码有效期，单位分钟
+  sms_cooldown_seconds: 60  # 短信验证码冷却期，单位秒
 
 server:
   port: 8080
