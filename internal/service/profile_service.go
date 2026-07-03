@@ -19,6 +19,10 @@ func CollectMyInfo(uid string, info map[string]interface{}) error {
 		user.Language = v
 	}
 	if v, ok := info["nickname"].(string); ok {
+		// 【昵称校验规则】保存昵称前先进行有效性校验
+		if err := ValidateNickname(v); err != nil {
+			return err
+		}
 		user.Nickname = v
 	}
 	if v, ok := info["birthyear"].(int); ok {

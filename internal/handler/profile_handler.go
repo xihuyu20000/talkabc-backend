@@ -8,6 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+/**
+昵称的有效性检查包括：
+- 是否含有特殊字符：可通过正则判断
+- 是否长度合法
+- 是否含有暴力色情等违规字符：可通过敏感字库过滤
+*/
 // CollectMyInfo 完善个人信息
 // @Summary 完善个人信息
 // @Description 用户完善个人资料信息
