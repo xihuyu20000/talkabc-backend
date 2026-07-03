@@ -41,13 +41,13 @@ type LoggerConfig struct {
 }
 
 type SecurityConfig struct {
-	SMSValidMinutes         int  `yaml:"sms_valid_minutes" json:"sms_valid_minutes"`
-	SMSCooldownSeconds      int  `yaml:"sms_cooldown_seconds" json:"sms_cooldown_seconds"`
-	SMSHourlyLimit          int  `yaml:"sms_hourly_limit" json:"sms_hourly_limit"`
-	IPRegisterHourlyLimit   int  `yaml:"ip_register_hourly_limit" json:"ip_register_hourly_limit"`
-	IPLoginMinuteLimit      int  `yaml:"ip_login_minute_limit" json:"ip_login_minute_limit"`
-	LoginFailureLockMinutes int  `yaml:"login_failure_lock_minutes" json:"login_failure_lock_minutes"`
-	RequireDailyCaptcha     bool `yaml:"require_daily_captcha" json:"require_daily_captcha"`
+	SMSValidMinutes         int `yaml:"sms_valid_minutes" json:"sms_valid_minutes"`
+	SMSCooldownSeconds      int `yaml:"sms_cooldown_seconds" json:"sms_cooldown_seconds"`
+	SMSHourlyLimit          int `yaml:"sms_hourly_limit" json:"sms_hourly_limit"`
+	IPRegisterHourlyLimit   int `yaml:"ip_register_hourly_limit" json:"ip_register_hourly_limit"`
+	IPLoginMinuteLimit      int `yaml:"ip_login_minute_limit" json:"ip_login_minute_limit"`
+	LoginFailureLockMinutes int `yaml:"login_failure_lock_minutes" json:"login_failure_lock_minutes"`
+	RequireDailyCaptcha     int `yaml:"require_daily_captcha" json:"require_daily_captcha"`
 }
 
 type SMSProviderConfig struct {
@@ -138,6 +138,7 @@ func getDefaultConfig() *Config {
 			IPRegisterHourlyLimit:   10,
 			IPLoginMinuteLimit:      10,
 			LoginFailureLockMinutes: 5,
+			RequireDailyCaptcha:     1,
 		},
 		SMSProvider: SMSProviderConfig{
 			Default: "aliyun",

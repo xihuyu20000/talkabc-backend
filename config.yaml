@@ -18,7 +18,7 @@ security:
   ip_register_hourly_limit: 10      # 注册时1小时内每个IP发送次数限制，单位次
   ip_login_minute_limit: 10         # 登录时1分钟内每个IP登录次数限制，单位次
   login_failure_lock_minutes: 5     # 登录多次失败锁定时间，单位分钟
-  require_daily_captcha: true       # 是否启用每日首次免验证码规则（true=启用，false=每次都需要验证码）
+  require_daily_captcha: 1          # 是否启用每日首次免验证码规则（1=启用，0=所有请求都不需要验证码）
 
 sms_provider:
   default: "aliyun"              # 默认短信服务商：aliyun, huawei, tencent

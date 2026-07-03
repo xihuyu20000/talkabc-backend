@@ -1,6 +1,7 @@
 package service
 
 import (
+	"backend/internal/config"
 	"backend/internal/middleware"
 	"backend/internal/model"
 	"backend/internal/repository"
@@ -83,29 +84,34 @@ func GenerateSMSCode(req GenerateSMSCodeRequest) error {
 		logger.Debugf("[SMS] GenerateSMSCode failed - Hourly limit exceeded")
 		return fmt.Errorf("发送次数过多，请1小时后再试")
 	}
-	// 增加配置项，是否打开CheckDailyFirst的判断规则
-	dailyFirst, err := repository.CheckDailyFirst(req.PhoneNum)
-	logger.Debugf("[SMS] CheckDailyFirst result: dailyFirst=%v, err=%v (PhoneNum: %s)",
-		dailyFirst, err, req.PhoneNum)
-	if err != nil {
-		logger.Errorf("[SMS] CheckDailyFirst error: %v", err)
-		return fmt.Errorf("验证失败")
-	}
-
-	if !dailyFirst {
-		logger.Debugf("[SMS] Not daily first, need captcha verification")
-		if req.CaptchaID == "" || req.CaptchaCode == "" {
-			logger.Debugf("[SMS] GenerateSMSCode failed - Captcha missing")
-			return fmt.Errorf("请先获取并验证图形验证码")
+	// 根据配置项决定是否启用每日首次免验证码规则
+	if config.AppConfig.Security.RequireDailyCaptcha == 1 {
+		dailyFirst, err := repository.CheckDailyFirst(req.PhoneNum)
+		logger.Debugf("[SMS] CheckDailyFirst result: dailyFirst=%v, err=%v (PhoneNum: %s)",
+			dailyFirst, err, req.PhoneNum)
+		if err != nil {
+			logger.Errorf("[SMS] CheckDailyFirst error: %v", err)
+			return fmt.Errorf("验证失败")
 		}
 
-		err = verifyCaptcha(req.CaptchaID, req.CaptchaCode)
-		logger.Debugf("[SMS] verifyCaptcha result: err=%v", err)
-		if err != nil {
-			return err
+		if !dailyFirst {
+			logger.Debugf("[SMS] Not daily first, need captcha verification")
+			if req.CaptchaID == "" || req.CaptchaCode == "" {
+				logger.Debugf("[SMS] GenerateSMSCode failed - Captcha missing")
+				return fmt.Errorf("请先获取并验证图形验证码")
+			}
+
+			err = verifyCaptcha(req.CaptchaID, req.CaptchaCode)
+			logger.Debugf("[SMS] verifyCaptcha result: err=%v", err)
+			if err != nil {
+				return err
+			}
+		} else {
+			logger.Debugf("[SMS] Daily first, skip captcha verification")
 		}
 	} else {
-		logger.Debugf("[SMS] Daily first, skip captcha verification")
+		logger.Debugf("[SMS] RequireDailyCaptcha disabled (value: %d), skip captcha verification for all requests",
+			config.AppConfig.Security.RequireDailyCaptcha)
 	}
 
 	code := generateRandomCode(6)
