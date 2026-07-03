@@ -22,11 +22,18 @@ var wsUpgrader = websocket.Upgrader{
 	},
 }
 
-// WebSocketHandler WebSocket连接处理接口
-// 请求方式：GET（WebSocket握手请求）
-// 请求路径：/ws
-// 请求参数：token - JWT令牌（Query参数）；deviceId - 设备标识（Query参数，支持多端同时在线）
-// 返回值：WebSocket连接升级成功或错误信息
+// @Summary WebSocket连接握手
+// @Description 建立WebSocket连接，用于实时消息通信。客户端需携带JWT令牌进行身份认证。连接成功后，服务端会自动管理用户在线状态，并支持多端同时在线。
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Param token query string true "JWT令牌"
+// @Param deviceId query string false "设备标识，不传则使用客户端IP"
+// @Success 101 "WebSocket连接升级成功"
+// @Failure 400 {object} response.Response "缺少token或用户ID无效"
+// @Failure 401 {object} response.Response "token无效"
+// @Failure 500 {object} response.Response "连接升级失败"
+// @Router /ws [get]
 //
 // 业务流程：
 //   1. 从查询参数获取JWT令牌和设备标识deviceId
@@ -77,11 +84,15 @@ func WebSocketHandler(c *gin.Context) {
 	client.ReadPump()
 }
 
-// GetOnlineStatus 获取在线状态接口
-// 请求方式：GET
-// 请求路径：/v1/onlinestatus
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：当前用户的在线状态
+// @Summary 获取用户在线状态
+// @Description 查询指定用户的在线状态。通过JWT令牌获取当前用户ID，然后从Redis中查询该用户的在线状态。支持多端在线状态管理。
+// @Tags WebSocket
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} response.Response "在线状态数据"
+// @Failure 500 {object} response.Response "查询失败"
+// @Router /v1/onlinestatus [get]
 //
 // 业务流程：
 //   1. 从 JWT token 获取当前用户ID

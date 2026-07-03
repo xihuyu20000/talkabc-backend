@@ -51,7 +51,7 @@
         },
         "/api/v1/auth/code-alnum": {
             "get": {
-                "description": "向指定手机号发送字母数字组合的验证码",
+                "description": "使用base64Captcha生成数字图形验证码图片，返回验证码ID和base64图片数据。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 使用base64Captcha库生成不可预测的验证码；3. 验证码存储在Redis中，不记录到日志文件",
                 "consumes": [
                     "application/json"
                 ],
@@ -61,26 +61,10 @@
                 "tags": [
                     "认证"
                 ],
-                "summary": "生成字母数字验证码",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "手机号",
-                        "name": "phonenum",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
+                "summary": "生成图形验证码",
                 "responses": {
                     "200": {
                         "description": "生成成功",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -96,9 +80,54 @@
                 }
             }
         },
+        "/api/v1/auth/code-alnum/verify": {
+            "post": {
+                "description": "验证客户端传入的图形验证码是否正确。安全规则：1. 验证通过后立即删除验证码，防止重复使用；2. 验证码过期或不存在时返回错误",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "验证图形验证码",
+                "parameters": [
+                    {
+                        "description": "包含captcha_id和code",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "验证成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或验证码不正确",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/code-sms": {
             "get": {
-                "description": "向指定手机号发送短信验证码",
+                "description": "向指定手机号发送短信验证码。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 验证码为6位纯数字；3. 每个手机号60秒内只能发送一次（服务器端校验）；4. 同一手机号同一时间只有一个有效验证码（最新的为准）；5. 验证码最多使用1次（验证后立即删除）；6. 验证码不记录到日志文件；7. 发送前验证图形验证码（每日首次发送免图形验证码）；8. 1小时内发送次数限制10次；9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）",
                 "consumes": [
                     "application/json"
                 ],
@@ -116,6 +145,24 @@
                         "name": "phonenum",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "图形验证码ID（非每日首次发送时必填）",
+                        "name": "captcha_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "图形验证码（非每日首次发送时必填）",
+                        "name": "captcha_code",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "业务标签（如register、login，默认default）",
+                        "name": "tag",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -127,7 +174,7 @@
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
+                        "description": "请求参数错误或验证失败",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -143,9 +190,54 @@
                 }
             }
         },
+        "/api/v1/auth/code-sms/verify": {
+            "post": {
+                "description": "验证客户端传入的短信验证码是否正确。安全规则：1. 使用Lua脚本保证验证和删除的原子性；2. 验证码一次性使用（无论验证是否成功，验证码都会被删除）；3. 不同业务类型的验证码独立验证（通过tag区分）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "验证短信验证码",
+                "parameters": [
+                    {
+                        "description": "包含phonenum、code、tag",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "验证成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或验证码不正确",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/login/code": {
             "post": {
-                "description": "使用手机号和验证码登录",
+                "description": "使用手机号和验证码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后清理验证码，防止二次复用；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）",
                 "consumes": [
                     "application/json"
                 ],
@@ -170,6 +262,12 @@
                         "name": "code",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备ID",
+                        "name": "device_id",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -181,7 +279,7 @@
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
+                        "description": "请求参数错误或安全校验失败",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -199,7 +297,7 @@
         },
         "/api/v1/auth/login/password": {
             "post": {
-                "description": "使用手机号和密码登录",
+                "description": "使用手机号和密码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后重置失败次数；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；密码存储：使用bcrypt加密（cost=10，自动内置盐）",
                 "consumes": [
                     "application/json"
                 ],
@@ -224,6 +322,12 @@
                         "name": "pwd",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备ID",
+                        "name": "device_id",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -235,7 +339,7 @@
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
+                        "description": "请求参数错误或安全校验失败",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -282,7 +386,7 @@
         },
         "/api/v1/auth/register": {
             "post": {
-                "description": "使用手机号和验证码进行注册",
+                "description": "使用手机号、验证码和密码进行注册。安全规则：1. IP黑名单检查；2. IP注册频率限制（1分钟10次）；3. 手机号黑名单检查；4. 手机号唯一性检查；5. 设备黑名单检查；6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）；7. 注册成功后清理验证码；8. 记录注册操作日志（不可删除）",
                 "consumes": [
                     "application/json"
                 ],
@@ -307,6 +411,19 @@
                         "name": "code",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "密码（≥8位，至少包含两种字符类型）",
+                        "name": "password",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备ID",
+                        "name": "device_id",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -318,7 +435,7 @@
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
+                        "description": "请求参数错误或安全校验失败",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -334,9 +451,9 @@
                 }
             }
         },
-        "/api/v1/auth/reset-password": {
+        "/api/v1/auth/reset-password/complete": {
             "post": {
-                "description": "使用手机号和新密码重置密码",
+                "description": "使用重置Token设置新密码。安全规则：1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）；2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）；3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码；4. 记录敏感操作日志（不可删除）；5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用",
                 "consumes": [
                     "application/json"
                 ],
@@ -346,12 +463,12 @@
                 "tags": [
                     "认证"
                 ],
-                "summary": "重置密码",
+                "summary": "完成密码重置",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "手机号",
-                        "name": "phonenum",
+                        "description": "重置Token",
+                        "name": "token",
                         "in": "formData",
                         "required": true
                     },
@@ -368,6 +485,12 @@
                         "name": "pwd2",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备ID",
+                        "name": "device_id",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -379,7 +502,7 @@
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
+                        "description": "参数错误或密码校验失败",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -387,6 +510,99 @@
                     },
                     "500": {
                         "description": "重置失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/reset-password/initiate": {
+            "post": {
+                "description": "根据手机号发起密码重置，生成重置Token并发送。安全规则：1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h；2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；3. Token设计：单次有效（使用后立即销毁）、短有效期（5分钟）、不可预测（crypto/rand生成）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "发起密码重置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "手机号",
+                        "name": "phonenum",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备ID",
+                        "name": "device_id",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "发起成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误或频率限制",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "发起失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/reset-password/validate": {
+            "get": {
+                "description": "验证重置Token是否存在、未使用、未过期。Token设计：单次有效、短有效期（5分钟）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "验证重置Token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "重置Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token有效",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Token无效或已过期",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1928,6 +2144,111 @@
                             "additionalProperties": true
                         }
                     }
+                }
+            }
+        },
+        "/v1/onlinestatus": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "查询指定用户的在线状态。通过JWT令牌获取当前用户ID，然后从Redis中查询该用户的在线状态。支持多端在线状态管理。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WebSocket"
+                ],
+                "summary": "获取用户在线状态",
+                "responses": {
+                    "200": {
+                        "description": "在线状态数据",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ws": {
+            "get": {
+                "description": "建立WebSocket连接，用于实时消息通信。客户端需携带JWT令牌进行身份认证。连接成功后，服务端会自动管理用户在线状态，并支持多端同时在线。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "WebSocket"
+                ],
+                "summary": "WebSocket连接握手",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT令牌",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备标识，不传则使用客户端IP",
+                        "name": "deviceId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "WebSocket连接升级成功"
+                    },
+                    "400": {
+                        "description": "缺少token或用户ID无效",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "token无效",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "连接升级失败",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "response.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "状态码：0-成功，其他-失败",
+                    "type": "integer"
+                },
+                "data": {
+                    "description": "响应数据"
+                },
+                "msg": {
+                    "description": "响应消息",
+                    "type": "string"
                 }
             }
         }
