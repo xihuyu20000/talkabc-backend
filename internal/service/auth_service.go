@@ -22,6 +22,15 @@ type GenerateSMSCodeRequest struct {
 	Tag string
 }
 
+// LoginRequest 登录请求参数（包含安全校验所需信息）
+type LoginRequest struct {
+	PhoneNum string
+	Code     string
+	Password string
+	IP       string
+	DeviceID string
+}
+
 // GenerateSMSCode 生成并发送短信验证码（带完整的频率限制和安全校验）
 // 参数说明：
 //   - req: 发送验证码请求，包含手机号、图形验证码ID、图形验证码、业务标签
@@ -180,11 +189,12 @@ func generateRandomAlnum(length int) string {
 	return result
 }
 
-// RegisterRequest 用户注册请求参数（包含IP）
+// RegisterRequest 用户注册请求参数（包含IP和设备ID）
 type RegisterRequest struct {
 	PhoneNum string
 	Code     string
 	IP       string
+	DeviceID string
 }
 
 // Register 用户注册函数（带安全校验）
@@ -193,6 +203,7 @@ type RegisterRequest struct {
 //   2. 【注册安全规则2】服务器检验通过IP检查注册请求的频率，请求频率限制在1分钟10次
 //   3. 【注册安全规则3】校验手机号是否位于黑名单中，是则拦截
 //   4. 【注册安全规则4】校验手机号是否已被占用（用户已存在）
+//   5. 【注册安全规则5】检查该设备是否在黑名单中，是则拦截
 func Register(req RegisterRequest) (string, error) {
 	if req.PhoneNum == "" || req.Code == "" {
 		return "", fmt.Errorf("手机号和验证码不能为空")
@@ -217,6 +228,11 @@ func Register(req RegisterRequest) (string, error) {
 	// 【注册安全规则3】检查手机号是否在黑名单中
 	if repository.CheckPhoneBlacklist(req.PhoneNum) {
 		return "", fmt.Errorf("当前手机号已被限制注册")
+	}
+
+	// 【注册安全规则5】检查设备是否在黑名单中
+	if repository.CheckDeviceBlacklist(req.DeviceID) {
+		return "", fmt.Errorf("当前设备已被限制注册")
 	}
 
 	// 【功能10】使用register业务标签验证短信验证码
@@ -249,15 +265,50 @@ func Register(req RegisterRequest) (string, error) {
 	return middleware.GenerateToken(user.Uid)
 }
 
-// LoginByCode 验证码登录
-func LoginByCode(phoneNum, code string) (string, error) {
-	// 【功能10】使用login业务标签
-	err := VerifySMSCode(phoneNum, code, "login")
+// LoginByCode 验证码登录（带安全校验）
+// 登录安全规则：
+//   1. 【登录安全规则1】服务器检验通过IP是否位于黑名单中，是则拦截
+//   2. 【登录安全规则2】服务器检验通过IP检查登录请求的频率，请求频率限制在1分钟10次
+//   3. 【登录安全规则3】校验手机号是否位于黑名单中，是则拦截
+//   4. 【登录安全规则4】检查该设备是否在黑名单中，是则拦截
+func LoginByCode(req LoginRequest) (string, error) {
+	if req.PhoneNum == "" || req.Code == "" {
+		return "", fmt.Errorf("手机号和验证码不能为空")
+	}
+
+	// 【登录安全规则1】检查IP是否在黑名单中
+	if req.IP != "" && repository.CheckIPBlacklist(req.IP) {
+		return "", fmt.Errorf("当前IP已被限制登录")
+	}
+
+	// 【登录安全规则2】检查IP登录请求频率（1分钟10次）
+	if req.IP != "" {
+		rateLimitExceeded, err := repository.CheckLoginIPRateLimit(req.IP)
+		if err != nil {
+			return "", fmt.Errorf("验证失败")
+		}
+		if rateLimitExceeded {
+			return "", fmt.Errorf("登录过于频繁，请稍后再试")
+		}
+	}
+
+	// 【登录安全规则3】检查手机号是否在黑名单中
+	if repository.CheckPhoneBlacklist(req.PhoneNum) {
+		return "", fmt.Errorf("当前手机号已被限制登录")
+	}
+
+	// 【登录安全规则4】检查设备是否在黑名单中
+	if repository.CheckDeviceBlacklist(req.DeviceID) {
+		return "", fmt.Errorf("当前设备已被限制登录")
+	}
+
+	// 【功能10】使用login业务标签验证短信验证码
+	err := VerifySMSCode(req.PhoneNum, req.Code, "login")
 	if err != nil {
 		return "", err
 	}
 
-	user, err := repository.GetUserByPhone(phoneNum)
+	user, err := repository.GetUserByPhone(req.PhoneNum)
 	if err != nil {
 		return "", fmt.Errorf("用户不存在")
 	}
@@ -265,14 +316,49 @@ func LoginByCode(phoneNum, code string) (string, error) {
 	return middleware.GenerateToken(user.Uid)
 }
 
-// LoginByPassword 密码登录
-func LoginByPassword(phoneNum, password string) (string, error) {
-	user, err := repository.GetUserByPhone(phoneNum)
+// LoginByPassword 密码登录（带安全校验）
+// 登录安全规则：
+//   1. 【登录安全规则1】服务器检验通过IP是否位于黑名单中，是则拦截
+//   2. 【登录安全规则2】服务器检验通过IP检查登录请求的频率，请求频率限制在1分钟10次
+//   3. 【登录安全规则3】校验手机号是否位于黑名单中，是则拦截
+//   4. 【登录安全规则4】检查该设备是否在黑名单中，是则拦截
+func LoginByPassword(req LoginRequest) (string, error) {
+	if req.PhoneNum == "" || req.Password == "" {
+		return "", fmt.Errorf("手机号和密码不能为空")
+	}
+
+	// 【登录安全规则1】检查IP是否在黑名单中
+	if req.IP != "" && repository.CheckIPBlacklist(req.IP) {
+		return "", fmt.Errorf("当前IP已被限制登录")
+	}
+
+	// 【登录安全规则2】检查IP登录请求频率（1分钟10次）
+	if req.IP != "" {
+		rateLimitExceeded, err := repository.CheckLoginIPRateLimit(req.IP)
+		if err != nil {
+			return "", fmt.Errorf("验证失败")
+		}
+		if rateLimitExceeded {
+			return "", fmt.Errorf("登录过于频繁，请稍后再试")
+		}
+	}
+
+	// 【登录安全规则3】检查手机号是否在黑名单中
+	if repository.CheckPhoneBlacklist(req.PhoneNum) {
+		return "", fmt.Errorf("当前手机号已被限制登录")
+	}
+
+	// 【登录安全规则4】检查设备是否在黑名单中
+	if repository.CheckDeviceBlacklist(req.DeviceID) {
+		return "", fmt.Errorf("当前设备已被限制登录")
+	}
+
+	user, err := repository.GetUserByPhone(req.PhoneNum)
 	if err != nil {
 		return "", fmt.Errorf("用户不存在")
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return "", fmt.Errorf("密码错误")
 	}
 

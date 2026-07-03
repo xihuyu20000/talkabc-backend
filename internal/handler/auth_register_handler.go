@@ -18,12 +18,13 @@ import (
 
 // Register 用户注册
 // @Summary 用户注册
-// @Description 使用手机号和验证码进行注册（带IP黑名单、频率限制、手机号黑名单校验）
+// @Description 使用手机号和验证码进行注册（带IP黑名单、频率限制、手机号黑名单、设备黑名单校验）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
 // @Param phonenum formData string true "手机号"
 // @Param code formData string true "验证码"
+// @Param device_id formData string false "设备ID"
 // @Success 200 {object} map[string]interface{} "注册成功，返回token"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "注册失败"
@@ -31,6 +32,8 @@ import (
 func Register(c *gin.Context) {
 	phoneNum := c.PostForm("phonenum")
 	code := c.PostForm("code")
+	// 【注册安全规则5】获取设备ID（由客户端传递，用于设备黑名单校验）
+	deviceID := c.PostForm("device_id")
 
 	if phoneNum == "" || code == "" {
 		response.BadRequest(c, "手机号和验证码不能为空")
@@ -40,11 +43,12 @@ func Register(c *gin.Context) {
 	// 获取客户端真实IP（支持代理）
 	clientIP := c.ClientIP()
 
-	// 【注册安全规则】组装注册请求，包含IP信息用于安全校验
+	// 【注册安全规则】组装注册请求，包含IP和设备ID用于安全校验
 	req := service.RegisterRequest{
 		PhoneNum: phoneNum,
 		Code:     code,
 		IP:       clientIP,
+		DeviceID: deviceID,
 	}
 
 	token, err := service.Register(req)
@@ -55,6 +59,7 @@ func Register(c *gin.Context) {
 
 	response.Success(c, gin.H{"token": token})
 }
+
 
 // ResetPassword 重置密码
 // @Summary 重置密码

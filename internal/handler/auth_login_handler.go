@@ -20,26 +20,40 @@ import (
 
 // LoginByCode 验证码登录
 // @Summary 验证码登录
-// @Description 使用手机号和验证码登录
+// @Description 使用手机号和验证码登录（带IP黑名单、频率限制、手机号黑名单、设备黑名单校验）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
 // @Param phonenum formData string true "手机号"
 // @Param code formData string true "验证码"
+// @Param device_id formData string false "设备ID"
 // @Success 200 {object} map[string]interface{} "登录成功，返回token"
-// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "登录失败"
 // @Router /api/v1/auth/login/code [post]
 func LoginByCode(c *gin.Context) {
 	phoneNum := c.PostForm("phonenum")
 	code := c.PostForm("code")
+	// 【登录安全规则4】获取设备ID（由客户端传递，用于设备黑名单校验）
+	deviceID := c.PostForm("device_id")
 
 	if phoneNum == "" || code == "" {
 		response.BadRequest(c, "手机号和验证码不能为空")
 		return
 	}
 
-	token, err := service.LoginByCode(phoneNum, code)
+	// 获取客户端真实IP（支持代理）
+	clientIP := c.ClientIP()
+
+	// 【登录安全规则】组装登录请求，包含IP和设备ID用于安全校验
+	req := service.LoginRequest{
+		PhoneNum: phoneNum,
+		Code:     code,
+		IP:       clientIP,
+		DeviceID: deviceID,
+	}
+
+	token, err := service.LoginByCode(req)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return
@@ -50,26 +64,40 @@ func LoginByCode(c *gin.Context) {
 
 // LoginByPassword 密码登录
 // @Summary 密码登录
-// @Description 使用手机号和密码登录
+// @Description 使用手机号和密码登录（带IP黑名单、频率限制、手机号黑名单、设备黑名单校验）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
 // @Param phonenum formData string true "手机号"
 // @Param pwd formData string true "密码"
+// @Param device_id formData string false "设备ID"
 // @Success 200 {object} map[string]interface{} "登录成功，返回token"
-// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "登录失败"
 // @Router /api/v1/auth/login/password [post]
 func LoginByPassword(c *gin.Context) {
 	phoneNum := c.PostForm("phonenum")
 	password := c.PostForm("pwd")
+	// 【登录安全规则4】获取设备ID（由客户端传递，用于设备黑名单校验）
+	deviceID := c.PostForm("device_id")
 
 	if phoneNum == "" || password == "" {
 		response.BadRequest(c, "手机号和密码不能为空")
 		return
 	}
 
-	token, err := service.LoginByPassword(phoneNum, password)
+	// 获取客户端真实IP（支持代理）
+	clientIP := c.ClientIP()
+
+	// 【登录安全规则】组装登录请求，包含IP和设备ID用于安全校验
+	req := service.LoginRequest{
+		PhoneNum: phoneNum,
+		Password: password,
+		IP:       clientIP,
+		DeviceID: deviceID,
+	}
+
+	token, err := service.LoginByPassword(req)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return

@@ -26,6 +26,11 @@ const (
 	RegisterIPRateLimitPrefix = "register_ip_rate_limit:"
 	// 【注册安全规则3】手机号黑名单key前缀
 	PhoneBlacklistKeyPrefix = "phone_blacklist:"
+
+	// 【登录安全规则2】登录IP频率限制key前缀
+	LoginIPRateLimitPrefix = "login_ip_rate_limit:"
+	// 【登录安全规则4】设备黑名单key前缀
+	DeviceBlacklistKeyPrefix = "device_blacklist:"
 )
 
 // GetUserByPhone 根据手机号查询用户
@@ -158,7 +163,7 @@ func DeleteCaptchaCode(captchaID string) error {
 // ==================== 注册安全规则 ====================
 
 // CheckIPBlacklist 检查IP是否在黑名单中
-// 【注册安全规则1】服务器检验通过IP是否位于黑名单中，是则拦截
+// 【注册安全规则1】【登录安全规则1】服务器检验通过IP是否位于黑名单中，是则拦截
 func CheckIPBlacklist(ip string) bool {
 	key := fmt.Sprintf("%s%s", IPBlacklistKeyPrefix, ip)
 	exists, _ := config.RDB.Exists(context.Background(), key).Result()
@@ -183,9 +188,39 @@ func CheckRegisterIPRateLimit(ip string) (bool, error) {
 }
 
 // CheckPhoneBlacklist 检查手机号是否在黑名单中
-// 【注册安全规则3】校验手机号是否位于黑名单中，是则拦截
+// 【注册安全规则3】【登录安全规则3】校验手机号是否位于黑名单中，是则拦截
 func CheckPhoneBlacklist(phoneNum string) bool {
 	key := fmt.Sprintf("%s%s", PhoneBlacklistKeyPrefix, phoneNum)
+	exists, _ := config.RDB.Exists(context.Background(), key).Result()
+	return exists > 0
+}
+
+// ==================== 登录安全规则 ====================
+
+// CheckLoginIPRateLimit 检查IP登录请求频率（1分钟10次）
+// 【登录安全规则2】服务器检验通过IP检查登录请求的频率，请求频率限制在1分钟10次
+func CheckLoginIPRateLimit(ip string) (bool, error) {
+	key := fmt.Sprintf("%s%s", LoginIPRateLimitPrefix, ip)
+
+	current, err := config.RDB.Incr(context.Background(), key).Result()
+	if err != nil {
+		return false, err
+	}
+
+	if current == 1 {
+		config.RDB.Expire(context.Background(), key, 1*time.Minute)
+	}
+
+	return current > 10, nil
+}
+
+// CheckDeviceBlacklist 检查设备是否在黑名单中
+// 【登录安全规则4】检查该设备是否在黑名单中，是则拦截
+func CheckDeviceBlacklist(deviceID string) bool {
+	if deviceID == "" {
+		return false
+	}
+	key := fmt.Sprintf("%s%s", DeviceBlacklistKeyPrefix, deviceID)
 	exists, _ := config.RDB.Exists(context.Background(), key).Result()
 	return exists > 0
 }
