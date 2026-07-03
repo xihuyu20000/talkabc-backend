@@ -23,7 +23,7 @@ func (tr *TestRouter) SetupAuthRoutes() {
 	tr.Engine.POST("/v1/login/code", handler.LoginByCode)
 	tr.Engine.POST("/v1/login/pwd", handler.LoginByPassword)
 	tr.Engine.POST("/v1/logout", handler.Logout)
-	tr.Engine.POST("/v1/resetpwd", handler.ResetPassword)
+	tr.Engine.POST("/v1/reset-password/initiate", handler.InitiateResetPassword)
 }
 
 func (tr *TestRouter) SetupUserRoutes() {

@@ -16,11 +16,15 @@ import (
 2. 服务器检验通过IP检查登录请求的频率，请求频率限制在1分钟10次。
 3. 校验手机号手机号是否位于黑名单中，是则拦截。
 4. 检查该设备是否在黑名单中，是则拦截。
+5. 检查登录失败次数（5分钟内5次失败锁定15分钟）。
+6. 检查用户账号状态（正常/封禁/注销）。
+7. 登录成功后清理验证码，防止二次复用。
+8. 记录登录操作日志（不可删除）。
 */
 
 // LoginByCode 验证码登录
 // @Summary 验证码登录
-// @Description 使用手机号和验证码登录（带IP黑名单、频率限制、手机号黑名单、设备黑名单校验）
+// @Description 使用手机号和验证码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后清理验证码，防止二次复用；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -42,15 +46,17 @@ func LoginByCode(c *gin.Context) {
 		return
 	}
 
-	// 获取客户端真实IP（支持代理）
+	// 获取客户端真实IP和UA（【登录安全规则8】记录操作日志）
 	clientIP := c.ClientIP()
+	ua := c.GetHeader("User-Agent")
 
-	// 【登录安全规则】组装登录请求，包含IP和设备ID用于安全校验
+	// 【登录安全规则】组装登录请求，包含IP、设备ID、UA用于安全校验和日志记录
 	req := service.LoginRequest{
 		PhoneNum: phoneNum,
 		Code:     code,
 		IP:       clientIP,
 		DeviceID: deviceID,
+		UA:       ua,
 	}
 
 	token, err := service.LoginByCode(req)
@@ -64,7 +70,7 @@ func LoginByCode(c *gin.Context) {
 
 // LoginByPassword 密码登录
 // @Summary 密码登录
-// @Description 使用手机号和密码登录（带IP黑名单、频率限制、手机号黑名单、设备黑名单校验）
+// @Description 使用手机号和密码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后重置失败次数；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；密码存储：使用bcrypt加密（cost=10，自动内置盐）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -86,15 +92,17 @@ func LoginByPassword(c *gin.Context) {
 		return
 	}
 
-	// 获取客户端真实IP（支持代理）
+	// 获取客户端真实IP和UA（【登录安全规则8】记录操作日志）
 	clientIP := c.ClientIP()
+	ua := c.GetHeader("User-Agent")
 
-	// 【登录安全规则】组装登录请求，包含IP和设备ID用于安全校验
+	// 【登录安全规则】组装登录请求，包含IP、设备ID、UA用于安全校验和日志记录
 	req := service.LoginRequest{
 		PhoneNum: phoneNum,
 		Password: password,
 		IP:       clientIP,
 		DeviceID: deviceID,
+		UA:       ua,
 	}
 
 	token, err := service.LoginByPassword(req)

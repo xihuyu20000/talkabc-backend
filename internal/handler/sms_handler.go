@@ -27,7 +27,7 @@ import (
 
 // SendSMSCode 发送短信验证码
 // @Summary 发送短信验证码
-// @Description 向指定手机号发送短信验证码，带频率限制和图形验证码校验
+// @Description 向指定手机号发送短信验证码。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 验证码为6位纯数字；3. 每个手机号60秒内只能发送一次（服务器端校验）；4. 同一手机号同一时间只有一个有效验证码（最新的为准）；5. 验证码最多使用1次（验证后立即删除）；6. 验证码不记录到日志文件；7. 发送前验证图形验证码（每日首次发送免图形验证码）；8. 1小时内发送次数限制10次；9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -60,7 +60,7 @@ func SendSMSCode(c *gin.Context) {
 
 // VerifySMSCode 验证短信验证码
 // @Summary 验证短信验证码
-// @Description 验证客户端传入的短信验证码是否正确（验证码一次性使用）
+// @Description 验证客户端传入的短信验证码是否正确。安全规则：1. 使用Lua脚本保证验证和删除的原子性；2. 验证码一次性使用（无论验证是否成功，验证码都会被删除）；3. 不同业务类型的验证码独立验证（通过tag区分）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -98,7 +98,7 @@ func VerifySMSCode(c *gin.Context) {
 
 // GenerateAlnumCode 生成图形验证码
 // @Summary 生成图形验证码
-// @Description 使用base64Captcha生成数字图形验证码图片，返回验证码ID和base64图片数据
+// @Description 使用base64Captcha生成数字图形验证码图片，返回验证码ID和base64图片数据。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 使用base64Captcha库生成不可预测的验证码；3. 验证码存储在Redis中，不记录到日志文件
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -131,7 +131,7 @@ func GenerateAlnumCode(c *gin.Context) {
 
 // VerifyAlnumCode 验证图形验证码
 // @Summary 验证图形验证码
-// @Description 验证客户端传入的图形验证码是否正确
+// @Description 验证客户端传入的图形验证码是否正确。安全规则：1. 验证通过后立即删除验证码，防止重复使用；2. 验证码过期或不存在时返回错误
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json

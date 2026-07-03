@@ -399,6 +399,60 @@ CREATE INDEX idx_friend_relations_user ON friend_relations(user_id);
 CREATE INDEX idx_friend_relations_target ON friend_relations(target_id);
 
 -- ============================================
+-- 安全相关表（重置密码、操作日志）
+-- ============================================
+
+-- 重置密码Token表
+-- 【重置凭证】存储重置密码的Token哈希，禁止明文存库
+CREATE TABLE IF NOT EXISTS reset_tokens (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,        -- Token哈希值（sha256）
+    user_id INTEGER NOT NULL,                      -- 关联用户ID
+    device_id VARCHAR(64),                         -- 设备标识，绑定唯一信息
+    expire_at TIMESTAMP NOT NULL,                  -- 过期时间（短信重置5-10min，邮箱15-30min）
+    used INTEGER DEFAULT 0                         -- 是否已使用：0-未使用，1-已使用
+);
+
+CREATE INDEX idx_reset_tokens_user_id ON reset_tokens(user_id);
+CREATE INDEX idx_reset_tokens_token_hash ON reset_tokens(token_hash);
+CREATE INDEX idx_reset_tokens_expire_at ON reset_tokens(expire_at);
+
+-- 敏感操作日志表
+-- 【重置流程行为风控】记录敏感操作，不可删除
+CREATE TABLE IF NOT EXISTS operation_logs (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    user_id INTEGER NOT NULL,                      -- 用户ID（0表示未登录或未知用户）
+    ip VARCHAR(50),                                -- 操作IP
+    ua VARCHAR(255),                               -- 设备UA
+    operation VARCHAR(50) NOT NULL,                -- 操作类型：register（注册）、login_code（验证码登录）、login_password（密码登录）、initiate_reset（发起重置）、complete_reset（完成重置）
+    success INTEGER DEFAULT 0,                     -- 是否成功：0-失败，1-成功
+    detail VARCHAR(500)                            -- 操作详情
+);
+
+CREATE INDEX idx_operation_logs_user_id ON operation_logs(user_id);
+CREATE INDEX idx_operation_logs_operation ON operation_logs(operation);
+CREATE INDEX idx_operation_logs_created_at ON operation_logs(created_at);
+
+-- 密码历史记录表
+-- 【最低安全策略】记录用户历史密码，防止重复使用（保留最近5次）
+CREATE TABLE IF NOT EXISTS password_histories (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    user_id INTEGER NOT NULL,                      -- 用户ID
+    password_hash VARCHAR(100) NOT NULL            -- 历史密码哈希（bcrypt）
+);
+
+CREATE INDEX idx_password_histories_user_id ON password_histories(user_id);
+
+-- ============================================
 -- 初始化数据
 -- ============================================
 

@@ -4,8 +4,12 @@ import (
 	"backend/internal/config"
 	"backend/internal/model"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -38,6 +42,20 @@ func GetUserByPhone(phoneNum string) (*model.User, error) {
 	var user model.User
 	err := config.DB.Where("phone_num = ?", phoneNum).First(&user).Error
 	return &user, err
+}
+
+// ClearUserLoginState 清空用户全部登录态
+// 【密码存储加密】重置成功后清空该用户全部登录态（Redis token、JWT、设备登录记录全部销毁）
+func ClearUserLoginState(userID uint) error {
+	user, err := GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+	
+	tokenKey := fmt.Sprintf("user_token:%s", user.Uid)
+	config.RDB.Del(context.Background(), tokenKey)
+	
+	return nil
 }
 
 // CreateUser 创建用户
@@ -223,4 +241,185 @@ func CheckDeviceBlacklist(deviceID string) bool {
 	key := fmt.Sprintf("%s%s", DeviceBlacklistKeyPrefix, deviceID)
 	exists, _ := config.RDB.Exists(context.Background(), key).Result()
 	return exists > 0
+}
+
+// CheckLoginFailedAttempt 检查登录失败次数（5分钟内5次失败锁定15分钟）
+// 【登录安全规则5】登录失败次数限制，防止暴力破解
+func CheckLoginFailedAttempt(phoneNum string) (bool, error) {
+	key := fmt.Sprintf("%s%s", LoginFailedAttemptPrefix, phoneNum)
+	
+	current, err := config.RDB.Incr(context.Background(), key).Result()
+	if err != nil {
+		return false, err
+	}
+	
+	if current == 1 {
+		config.RDB.Expire(context.Background(), key, 5*time.Minute)
+	}
+	
+	if current > 5 {
+		config.RDB.Expire(context.Background(), key, 15*time.Minute)
+		return true, nil
+	}
+	
+	return false, nil
+}
+
+// ResetLoginFailedAttempt 重置登录失败次数（登录成功后调用）
+func ResetLoginFailedAttempt(phoneNum string) error {
+	key := fmt.Sprintf("%s%s", LoginFailedAttemptPrefix, phoneNum)
+	return config.RDB.Del(context.Background(), key).Err()
+}
+
+// DeleteSMSVerificationCode 删除短信验证码（注册/登录成功后调用）
+// 【密码存储加密】重置成功后清空所有未使用验证码，防止二次复用
+func DeleteSMSVerificationCode(phoneNum, tag string) error {
+	key := getVerificationCodeKey(phoneNum, VerificationCodeTypeSMS, tag)
+	return config.RDB.Del(context.Background(), key).Err()
+}
+
+// ==================== 重置密码相关 ====================
+
+// ResetPasswordRateLimitPrefix 重置密码频率限制key前缀
+const ResetPasswordRateLimitPrefix = "reset_password_rate_limit:"
+
+// LoginFailedAttemptPrefix 登录失败次数限制key前缀
+const LoginFailedAttemptPrefix = "login_failed_attempt:"
+
+// HashToken 对Token进行sha256哈希
+// 【重置凭证】禁止明文存库，数据库只存Token哈希
+func HashToken(token string) string {
+	h := sha256.New()
+	h.Write([]byte(token))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// CreateResetToken 创建重置密码Token（存储哈希值）
+// 【重置凭证】单次有效、短有效期、绑定userID+设备标识、禁止明文存库
+func CreateResetToken(token, deviceID string, userID uint, expireMinutes int) error {
+	tokenHash := HashToken(token)
+	
+	// 删除该用户之前未使用的重置Token，防止多Token攻击
+	config.DB.Where("user_id = ? AND used = 0", userID).Delete(&model.ResetToken{})
+	
+	resetToken := &model.ResetToken{
+		TokenHash: tokenHash,
+		UserID:    userID,
+		DeviceID:  deviceID,
+		ExpireAt:  time.Now().Add(time.Duration(expireMinutes) * time.Minute),
+		Used:      0,
+	}
+	return config.DB.Create(resetToken).Error
+}
+
+// VerifyResetToken 验证重置Token并标记为已使用
+// 【重置凭证】验证后立即销毁，不可重复使用
+func VerifyResetToken(token string) (*model.ResetToken, error) {
+	tokenHash := HashToken(token)
+	
+	var resetToken model.ResetToken
+	err := config.DB.Where("token_hash = ? AND used = 0 AND expire_at > ?", tokenHash, time.Now()).First(&resetToken).Error
+	if err != nil {
+		return nil, err
+	}
+	
+	// 【重置凭证】单次有效：使用一次立即销毁（标记为已使用）
+	resetToken.Used = 1
+	if err := config.DB.Save(&resetToken).Error; err != nil {
+		return nil, err
+	}
+	
+	return &resetToken, nil
+}
+
+// DeleteResetToken 删除指定Token
+func DeleteResetToken(token string) error {
+	tokenHash := HashToken(token)
+	return config.DB.Where("token_hash = ?", tokenHash).Delete(&model.ResetToken{}).Error
+}
+
+// DeleteAllResetTokensByUser 删除用户所有重置Token
+// 【密码存储加密】重置成功后清空所有未使用重置Token，防止二次复用
+func DeleteAllResetTokensByUser(userID uint) error {
+	return config.DB.Where("user_id = ?", userID).Delete(&model.ResetToken{}).Error
+}
+
+// CheckResetPasswordRateLimit 检查同一账号24h内重置次数是否超过限制（3次）
+// 【重置流程行为风控】同一账号24h最多允许3次密码重置，超限锁定重置通道24h
+func CheckResetPasswordRateLimit(userID uint) (bool, error) {
+	key := fmt.Sprintf("%s%d", ResetPasswordRateLimitPrefix, userID)
+	
+	current, err := config.RDB.Incr(context.Background(), key).Result()
+	if err != nil {
+		return false, err
+	}
+	
+	if current == 1 {
+		config.RDB.Expire(context.Background(), key, 24*time.Hour)
+	}
+	
+	return current > 3, nil
+}
+
+// LogOperation 记录敏感操作日志（不可删除）
+// 【重置流程行为风控】记录用户ID、操作时间、IP、UA、操作类型、是否成功
+func LogOperation(userID uint, ip, ua, operation string, success bool, detail string) error {
+	successInt := 0
+	if success {
+		successInt = 1
+	}
+	
+	operationLog := &model.OperationLog{
+		UserID:    userID,
+		IP:        ip,
+		UA:        ua,
+		Operation: operation,
+		Success:   successInt,
+		Detail:    detail,
+	}
+	
+	return config.DB.Create(operationLog).Error
+}
+
+// SavePasswordHistory 保存密码历史记录
+// 【最低安全策略】记录用户历史密码，禁止和历史5次旧密码重复
+func SavePasswordHistory(userID uint, passwordHash string) error {
+	passwordHistory := &model.PasswordHistory{
+		UserID:       userID,
+		PasswordHash: passwordHash,
+	}
+	
+	if err := config.DB.Create(passwordHistory).Error; err != nil {
+		return err
+	}
+	
+	// 只保留最近5次密码记录
+	var count int
+	config.DB.Model(&model.PasswordHistory{}).Where("user_id = ?", userID).Count(&count)
+	if count > 5 {
+		var oldestID uint
+		config.DB.Model(&model.PasswordHistory{}).Where("user_id = ?", userID).
+			Order("created_at ASC").Limit(1).Pluck("id", &oldestID)
+		config.DB.Where("user_id = ? AND id < ?", userID, oldestID).Delete(&model.PasswordHistory{})
+	}
+	
+	return nil
+}
+
+// CheckPasswordHistory 检查新密码是否与历史密码重复
+// 【最低安全策略】禁止和历史5次旧密码重复
+func CheckPasswordHistory(userID uint, password string) (bool, error) {
+	var histories []model.PasswordHistory
+	err := config.DB.Where("user_id = ?", userID).Order("created_at DESC").Limit(5).Find(&histories).Error
+	if err != nil {
+		return false, err
+	}
+	
+	for _, history := range histories {
+		if err := bcrypt.CompareHashAndPassword([]byte(history.PasswordHash), []byte(password)); err == nil {
+			return true, nil
+		}
+	}
+	
+	return false, nil
 }

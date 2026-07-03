@@ -256,3 +256,35 @@ type UserDatingPurposeRel struct {
 	Uid       string `gorm:"size:20;index"` // 用户对外雪花ID
 	PurposeID uint   `gorm:"index"`         // 交友目的标签ID
 }
+
+// ResetToken 重置密码Token模型
+// 【重置凭证】存储重置密码的Token哈希，禁止明文存库
+type ResetToken struct {
+	gorm.Model
+	TokenHash  string    `gorm:"unique;size:64;not null"` // Token哈希值（sha256）
+	UserID     uint      `gorm:"not null;index"`          // 关联用户ID
+	DeviceID   string    `gorm:"size:64"`                 // 设备标识，绑定唯一信息
+	ExpireAt   time.Time `gorm:"not null"`                // 过期时间（短信重置5-10min，邮箱15-30min）
+	Used       int       `gorm:"default:0"`               // 是否已使用：0-未使用，1-已使用
+}
+
+// OperationLog 敏感操作日志模型
+// 【重置流程行为风控】记录敏感操作，不可删除
+type OperationLog struct {
+	gorm.Model
+	UserID     uint      `gorm:"not null;index"` // 用户ID
+	IP         string    `gorm:"size:50"`        // 操作IP
+	UA         string    `gorm:"size:255"`       // 设备UA
+	Operation  string    `gorm:"size:50"`        // 操作类型：initiate_reset（发起重置）、complete_reset（完成重置）
+	Success    int       `gorm:"default:0"`      // 是否成功：0-失败，1-成功
+	Detail     string    `gorm:"size:500"`       // 操作详情
+	DeletedAt  *time.Time `gorm:"default:null"`  // 软删除（保留日志不可删除）
+}
+
+// PasswordHistory 密码历史记录模型
+// 【最低安全策略】记录用户历史密码，防止重复使用
+type PasswordHistory struct {
+	gorm.Model
+	UserID       uint   `gorm:"not null;index"` // 用户ID
+	PasswordHash string `gorm:"size:100;not null"` // 历史密码哈希（bcrypt）
+}
