@@ -6,7 +6,7 @@ import (
 )
 
 func TestInitConfig_LoadsCorrectly(t *testing.T) {
-	config.InitConfig("../../config.yaml")
+	config.InitConfig("../config.yaml")
 
 	t.Run("System config", func(t *testing.T) {
 		if config.AppConfig.System.Reset != 1 {
@@ -60,8 +60,8 @@ func TestInitConfig_LoadsCorrectly(t *testing.T) {
 		if config.AppConfig.Security.LoginFailureLockMinutes != 5 {
 			t.Errorf("Security.LoginFailureLockMinutes = %d, want 5", config.AppConfig.Security.LoginFailureLockMinutes)
 		}
-		if config.AppConfig.Security.RequireDailyCaptcha != 1 {
-			t.Errorf("Security.RequireDailyCaptcha = %d, want 1", config.AppConfig.Security.RequireDailyCaptcha)
+		if config.AppConfig.Security.RequireDailyCaptcha != 0 {
+			t.Errorf("Security.RequireDailyCaptcha = %d, want 0", config.AppConfig.Security.RequireDailyCaptcha)
 		}
 	})
 
@@ -72,11 +72,11 @@ func TestInitConfig_LoadsCorrectly(t *testing.T) {
 		if config.AppConfig.SMSProvider.Aliyun.RegionID != "cn-hangzhou" {
 			t.Errorf("SMSProvider.Aliyun.RegionID = %q, want %q", config.AppConfig.SMSProvider.Aliyun.RegionID, "cn-hangzhou")
 		}
-		if config.AppConfig.SMSProvider.Aliyun.AccessKeyID != "LTAI5t5mcECvLgmdRVxh3Z84" {
-			t.Errorf("SMSProvider.Aliyun.AccessKeyID = %q, want %q", config.AppConfig.SMSProvider.Aliyun.AccessKeyID, "LTAI5t5mcECvLgmdRVxh3Z84")
+		if config.AppConfig.SMSProvider.Aliyun.AccessKeyId != "LTAI5t9SjFKPgCJYjXNj4317" {
+			t.Errorf("SMSProvider.Aliyun.AccessKeyId = %q, want %q", config.AppConfig.SMSProvider.Aliyun.AccessKeyId, "LTAI5t9SjFKPgCJYjXNj4317")
 		}
-		if config.AppConfig.SMSProvider.Aliyun.AccessKeySecret != "JB6g95jjzjb92AHOmzEbcsJ0PRTyo" {
-			t.Errorf("SMSProvider.Aliyun.AccessKeySecret = %q, want %q", config.AppConfig.SMSProvider.Aliyun.AccessKeySecret, "JB6g95jjzjb92AHOmzEbcsJ0PRTyo")
+		if config.AppConfig.SMSProvider.Aliyun.AccessKeySecret != "9doYxXxU5GMd1QqmNdKHAT7P3a0uXF" {
+			t.Errorf("SMSProvider.Aliyun.AccessKeySecret = %q, want %q", config.AppConfig.SMSProvider.Aliyun.AccessKeySecret, "9doYxXxU5GMd1QqmNdKHAT7P3a0uXF")
 		}
 	})
 

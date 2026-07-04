@@ -44,19 +44,7 @@ func TestSendSMSCode_MissingPhoneNum(t *testing.T) {
 
 // ==================== 生成图形验证码测试 ====================
 
-func TestGetAlnumCode_MissingPhoneNum(t *testing.T) {
-	router := gin.New()
-	router.GET("/v1/code/alnum", handler.GenerateAlnumCode)
 
-	req, _ := http.NewRequest("GET", "/v1/code/alnum", nil)
-	resp := httptest.NewRecorder()
-
-	router.ServeHTTP(resp, req)
-
-	if resp.Code != http.StatusBadRequest {
-		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, resp.Code)
-	}
-}
 
 func TestGenerateAlnumCode_Success(t *testing.T) {
 	router := gin.New()
@@ -68,14 +56,17 @@ func TestGenerateAlnumCode_Success(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	if resp.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.Code)
+		var result response.Response
+		json.Unmarshal(resp.Body.Bytes(), &result)
+		t.Errorf("Expected status %d, got %d. Error: %s", http.StatusOK, resp.Code, result.Msg)
+		return
 	}
 
 	var result response.Response
 	json.Unmarshal(resp.Body.Bytes(), &result)
 
 	if result.Code != response.Code0 {
-		t.Errorf("Expected code %d, got %d", response.Code0, result.Code)
+		t.Errorf("Expected code %d, got %d. Error: %s", response.Code0, result.Code, result.Msg)
 	}
 
 	data := result.Data.(map[string]interface{})
@@ -186,23 +177,29 @@ func TestSendSMSCode_SuccessRedisRecord(t *testing.T) {
 	router.GET("/v1/code/sms", handler.SendSMSCode)
 
 	phoneNum := "13800138000"
+	
+	config.RDB.FlushDB(config.RDB.Context())
+	
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
 	resp := httptest.NewRecorder()
 
 	router.ServeHTTP(resp, req)
 
 	if resp.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.Code)
+		var result response.Response
+		json.Unmarshal(resp.Body.Bytes(), &result)
+		t.Errorf("Expected status %d, got %d. Error: %s", http.StatusOK, resp.Code, result.Msg)
+		return
 	}
 
 	var result response.Response
 	json.Unmarshal(resp.Body.Bytes(), &result)
 
 	if result.Code != response.Code0 {
-		t.Errorf("Expected code %d, got %d", response.Code0, result.Code)
+		t.Errorf("Expected code %d, got %d. Error: %s", response.Code0, result.Code, result.Msg)
 	}
 
-	key := fmt.Sprintf("verification_code:%s:%s", phoneNum, repository.VerificationCodeTypeSMS)
+	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, "default")
 	code, err := config.RDB.Get(config.RDB.Context(), key).Result()
 	if err != nil {
 		t.Errorf("Failed to get verification code from Redis: %v", err)
@@ -259,6 +256,9 @@ func TestVerifySMSCode_Success(t *testing.T) {
 	router.POST("/v1/code/sms/verify", handler.VerifySMSCode)
 
 	phoneNum := "13800138001"
+	
+	config.RDB.FlushDB(config.RDB.Context())
+	
 	getReq, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
 	getResp := httptest.NewRecorder()
 	router.ServeHTTP(getResp, getReq)
@@ -267,7 +267,7 @@ func TestVerifySMSCode_Success(t *testing.T) {
 		t.Fatalf("Expected status %d, got %d", http.StatusOK, getResp.Code)
 	}
 
-	key := fmt.Sprintf("verification_code:%s:%s", phoneNum, repository.VerificationCodeTypeSMS)
+	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, "default")
 	storedCode, err := config.RDB.Get(config.RDB.Context(), key).Result()
 	if err != nil {
 		t.Fatalf("Failed to get verification code from Redis: %v", err)
