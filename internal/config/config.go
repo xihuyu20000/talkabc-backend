@@ -3,12 +3,11 @@ package config
 import (
 	"backend/pkg/logger"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/gorm"
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 // ==================== 配置结构体定义 ====================
@@ -190,15 +189,12 @@ func getDefaultConfig() *Config {
 	}
 }
 func loadConfig(filePath string, cfg *Config) error {
-	v := viper.New()
-	v.SetConfigFile(filePath)
-	v.SetConfigType("yaml")
-
-	if err := v.ReadInConfig(); err != nil {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
 		return err
 	}
 
-	if err := v.Unmarshal(cfg); err != nil {
+	if err := yaml.Unmarshal(content, cfg); err != nil {
 		return err
 	}
 
@@ -209,13 +205,17 @@ func loadConfig(filePath string, cfg *Config) error {
 //   1. 先创建带有默认值的配置对象
 //   2. 尝试从配置文件加载，配置文件中的值覆盖默认值
 //   3. 配置文件优先级：./config.yaml
-func InitConfig() {
+func InitConfigDefault() {
+	InitConfig("./config.yaml")
+}
+func InitConfig(filePath string) {
+
 	// 1. 先创建带有默认值的配置对象
 	cfg := getDefaultConfig()
 
 	// 2. 尝试从配置文件加载，覆盖默认值
-	if err := loadConfig("./config.yaml", cfg); err != nil {
-		log.Fatalf("Failed to load config from ./config.yaml: %v . System will exit now", err)
+	if err := loadConfig(filePath, cfg); err != nil {
+		logger.Fatalf("Failed to load config from %s: %v . System will exit now", filePath, err)
 		os.Exit(1)
 	}
 

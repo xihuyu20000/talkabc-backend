@@ -31,7 +31,7 @@ import (
 
 func main() {
 	// 1. 加载配置文件
-	config.InitConfig()
+	config.InitConfigDefault()
 
 	defer logger.Sync()
 
