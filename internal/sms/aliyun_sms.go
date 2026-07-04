@@ -73,7 +73,21 @@ func createApiInfo () (_result *openapi.Params) {
 }
 
 
-func AliyunSendVerificationCode(ctx context.Context, phoneNum, code, minutes string) error {
+func NewAliyunSMSGateway() *AliyunSMSGateway {
+	return &AliyunSMSGateway{
+		config: &AliyunSMSConfig{
+			AccessKeyId:     config.AppConfig.SMSProvider.Aliyun.AccessKeyId,
+			AccessKeySecret: config.AppConfig.SMSProvider.Aliyun.AccessKeySecret,
+			RegionID:        config.AppConfig.SMSProvider.Aliyun.RegionID,
+			SignName:        config.AppConfig.SMSProvider.Aliyun.SignName,
+			TemplateCode:    config.AppConfig.SMSProvider.Aliyun.TemplateCode,
+			SchemeName:      config.AppConfig.SMSProvider.Aliyun.SchemeName,
+			CountryCode:     config.AppConfig.SMSProvider.Aliyun.CountryCode,
+		},
+	}
+}
+
+func (a *AliyunSMSGateway) SendVerificationCode(ctx context.Context, phoneNum, code, minutes string) error {
   client, _err := createClient()
   if _err != nil {
     return _err
@@ -82,11 +96,11 @@ func AliyunSendVerificationCode(ctx context.Context, phoneNum, code, minutes str
   params := createApiInfo()
   // query params
   queries := map[string]interface{}{}
-  queries["SchemeName"] = tea.String("talkabc")
-  queries["CountryCode"] = tea.String("86")
+  queries["SchemeName"] = tea.String(a.config.SchemeName)
+  queries["CountryCode"] = tea.String(a.config.CountryCode)
   queries["PhoneNumber"] = tea.String(phoneNum)
-  queries["SignName"] = tea.String(config.AppConfig.SMSProvider.Aliyun.SignName)
-  queries["TemplateCode"] = tea.String(config.AppConfig.SMSProvider.Aliyun.TemplateCode)
+  queries["SignName"] = tea.String(a.config.SignName)
+  queries["TemplateCode"] = tea.String(a.config.TemplateCode)
   queries["TemplateParam"] = tea.String(fmt.Sprintf("{\"code\":\"%s\",\"min\":\"%s\"}", code, minutes))
   // runtime options
   runtime := &util.RuntimeOptions{}
@@ -103,4 +117,12 @@ func AliyunSendVerificationCode(ctx context.Context, phoneNum, code, minutes str
 	logger.Infof("[LOG] SMS response: %v", resp)
   return nil
 
+}
+
+func AliyunSendVerificationCode(ctx context.Context, phoneNum, code, minutes string) error {
+	if DefaultGateway != nil {
+		return DefaultGateway.SendVerificationCode(ctx, phoneNum, code, minutes)
+	}
+	gateway := NewAliyunSMSGateway()
+	return gateway.SendVerificationCode(ctx, phoneNum, code, minutes)
 }

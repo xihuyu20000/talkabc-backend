@@ -285,3 +285,131 @@ func TestVerifySMSCode_Success(t *testing.T) {
 	}
 }
 
+func TestSendSMSCode_MockGateway_Success(t *testing.T) {
+	if mockSMSGateway == nil {
+		t.Skip("Mock SMS gateway not initialized")
+	}
+
+	mockSMSGateway.ClearSentMessages()
+
+	router := gin.New()
+	router.GET("/v1/code/sms", handler.SendSMSCode)
+
+	phoneNum := "13900139000"
+
+	config.RDB.FlushDB(config.RDB.Context())
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		var result response.Response
+		json.Unmarshal(resp.Body.Bytes(), &result)
+		t.Errorf("Expected status %d, got %d. Error: %s", http.StatusOK, resp.Code, result.Msg)
+		return
+	}
+
+	sentMsgs := mockSMSGateway.GetSentMessages()
+	if len(sentMsgs) != 1 {
+		t.Errorf("Expected 1 sent message, got %d", len(sentMsgs))
+		return
+	}
+
+	msg := sentMsgs[0]
+	if msg.PhoneNum != phoneNum {
+		t.Errorf("Expected phoneNum %s, got %s", phoneNum, msg.PhoneNum)
+	}
+	if len(msg.Code) != 6 {
+		t.Errorf("Expected code length 6, got %d", len(msg.Code))
+	}
+	if msg.Minutes != "5" {
+		t.Errorf("Expected minutes '5', got '%s'", msg.Minutes)
+	}
+
+	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, "default")
+	storedCode, err := config.RDB.Get(config.RDB.Context(), key).Result()
+	if err != nil {
+		t.Errorf("Failed to get verification code from Redis: %v", err)
+		return
+	}
+
+	if storedCode != msg.Code {
+		t.Errorf("Verification code mismatch: stored '%s', sent '%s'", storedCode, msg.Code)
+	}
+}
+
+func TestSendSMSCode_MockGateway_Failure(t *testing.T) {
+	if mockSMSGateway == nil {
+		t.Skip("Mock SMS gateway not initialized")
+	}
+
+	mockSMSGateway.ClearSentMessages()
+	mockSMSGateway.SetShouldFail(true)
+
+	defer mockSMSGateway.SetShouldFail(false)
+
+	router := gin.New()
+	router.GET("/v1/code/sms", handler.SendSMSCode)
+
+	phoneNum := "13900139001"
+
+	config.RDB.FlushDB(config.RDB.Context())
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusBadRequest {
+		var result response.Response
+		json.Unmarshal(resp.Body.Bytes(), &result)
+		t.Errorf("Expected status %d, got %d. Error: %s", http.StatusBadRequest, resp.Code, result.Msg)
+	}
+
+	if mockSMSGateway.GetFailCount() != 1 {
+		t.Errorf("Expected 1 failure, got %d", mockSMSGateway.GetFailCount())
+	}
+}
+
+func TestSendSMSCode_MockGateway_Cooldown(t *testing.T) {
+	if mockSMSGateway == nil {
+		t.Skip("Mock SMS gateway not initialized")
+	}
+
+	mockSMSGateway.ClearSentMessages()
+
+	router := gin.New()
+	router.GET("/v1/code/sms", handler.SendSMSCode)
+
+	phoneNum := "13900139002"
+
+	config.RDB.FlushDB(config.RDB.Context())
+
+	req1, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	resp1 := httptest.NewRecorder()
+	router.ServeHTTP(resp1, req1)
+
+	if resp1.Code != http.StatusOK {
+		var result response.Response
+		json.Unmarshal(resp1.Body.Bytes(), &result)
+		t.Fatalf("First request should succeed. Status: %d, Error: %s", resp1.Code, result.Msg)
+	}
+
+	req2, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	resp2 := httptest.NewRecorder()
+	router.ServeHTTP(resp2, req2)
+
+	if resp2.Code != http.StatusBadRequest {
+		var result response.Response
+		json.Unmarshal(resp2.Body.Bytes(), &result)
+		t.Errorf("Second request should be rate limited. Status: %d, Error: %s", resp2.Code, result.Msg)
+	}
+
+	sentMsgs := mockSMSGateway.GetSentMessages()
+	if len(sentMsgs) != 1 {
+		t.Errorf("Expected 1 sent message (due to cooldown), got %d", len(sentMsgs))
+	}
+}
+

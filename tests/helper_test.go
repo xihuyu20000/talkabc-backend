@@ -4,6 +4,7 @@ import (
 	"backend/internal/config"
 	"backend/internal/handler"
 	"backend/internal/infra"
+	"backend/internal/sms"
 	"os"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 )
 
 var testRouter *TestRouter
+var mockSMSGateway *sms.MockSMSGateway
 
 func TestMain(m *testing.M) {
 	InitTestEnvironment()
@@ -29,9 +31,15 @@ func InitTestEnvironment() {
 
 	initTestDatabase()
 	initTestRedis()
+	initTestSMSGateway()
 
 	testRouter = NewTestRouter()
 	testRouter.SetupAllRoutes()
+}
+
+func initTestSMSGateway() {
+	mockSMSGateway = sms.NewMockSMSGateway()
+	sms.DefaultGateway = mockSMSGateway
 }
 
 func initTestDatabase() {
