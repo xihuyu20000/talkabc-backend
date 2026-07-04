@@ -132,17 +132,11 @@ func GenerateSMSCode(req GenerateSMSCodeRequest) error {
 		return fmt.Errorf("发送失败")
 	}
 
-	gateway := sms.GetGateway()
-	logger.Debugf("[SMS] GetGateway result: gateway=%v", gateway != nil)
-	if gateway != nil {
-		err = gateway.SendVerificationCode(context.Background(), req.PhoneNum, code)
-		logger.Debugf("[SMS] SendVerificationCode result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
-		if err != nil {
-			logger.Errorf("[SMS] SendVerificationCode error: %v", err)
-			return fmt.Errorf("发送失败: %v", err)
-		}
-	} else {
-		logger.Debugf("[SMS] No SMS gateway configured, skipping actual send")
+	err = sms.AliyunSendVerificationCode(context.Background(), req.PhoneNum, code, "5")
+	logger.Debugf("[SMS] SendVerificationCode result: err=%v (PhoneNum: %s)", err, req.PhoneNum)
+	if err != nil {
+		logger.Errorf("[SMS] SendVerificationCode error: %v", err)
+		return fmt.Errorf("发送失败: %v", err)
 	}
 
 	logger.Debugf("[SMS] GenerateSMSCode success - PhoneNum: %s, Tag: %s", req.PhoneNum, req.Tag)

@@ -23,7 +23,6 @@ import (
 	"backend/internal/config"
 	"backend/internal/infra"
 	"backend/internal/router"
-	"backend/internal/sms"
 	"backend/pkg/logger"
 	"os"
 	"strconv"
@@ -61,13 +60,7 @@ func main() {
 	infra.AutoMigrate(config.DB)
 	config.RDB = infra.NewRedis(redisCfg)
 
-	// 4. 连接短信网关
-	if err := sms.InitSMSGateway(&config.AppConfig.SMSProvider); err != nil {
-		logger.Fatalf("Failed to initialize SMS gateway: %v", err)
-		os.Exit(1)
-	}
-
-	// 5. 初始化路由
+	// 4. 初始化路由
 	r := router.InitRouter()
 
 	port := config.AppConfig.Server.Port

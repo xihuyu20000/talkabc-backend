@@ -1,21 +1,21 @@
 package sms
 
 import (
+	"backend/internal/config"
 	"backend/pkg/logger"
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
-	"strings"
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
-	dypnsapi20170525 "github.com/alibabacloud-go/dypnsapi-20170525/v3/client"
+	openapiutil "github.com/alibabacloud-go/openapi-util/service"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
+	"github.com/aliyun/credentials-go/credentials"
+	credential "github.com/aliyun/credentials-go/credentials"
 )
 
 type AliyunSMSConfig struct {
-	AccessKeyID     string
+	AccessKeyId     string
 	AccessKeySecret string
 	RegionID        string
 	SignName        string
@@ -26,109 +26,81 @@ type AliyunSMSConfig struct {
 
 type AliyunSMSGateway struct {
 	config *AliyunSMSConfig
-	client *dypnsapi20170525.Client
+	client *openapi.Client
 }
 
-func NewAliyunSMSGateway(config *AliyunSMSConfig) (*AliyunSMSGateway, error) {
-	if config.AccessKeyID == "" || config.AccessKeySecret == "" {
-		logger.Fatalf("aliyun sms credentials are empty")
-		os.Exit(1)
-	}
+func createClient () (_result *openapi.Client, _err error) {
+  credentialsConfig := new(credentials.Config).
+		SetType("access_key").
+		SetAccessKeyId(config.AppConfig.SMSProvider.Aliyun.AccessKeyId).
+		SetAccessKeySecret(config.AppConfig.SMSProvider.Aliyun.AccessKeySecret)
+  credential, _err := credential.NewCredential(credentialsConfig)
+  if _err != nil {
+    return _result, _err
+  }
 
-	cfg := &openapi.Config{
-		AccessKeyId:     tea.String(config.AccessKeyID),
-		AccessKeySecret: tea.String(config.AccessKeySecret),
-		RegionId:        tea.String(config.RegionID),
-	}
-
-	if config.RegionID == "" {
-		cfg.RegionId = tea.String("cn-hangzhou")
-	}
-
-	client, err := dypnsapi20170525.NewClient(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.CountryCode == "" {
-		config.CountryCode = "86"
-	}
-
-	return &AliyunSMSGateway{
-		config: config,
-		client: client,
-	}, nil
+  clientConfig := &openapi.Config{
+    Credential: credential,
+  }
+  // Endpoint 请参考 https://api.aliyun.com/product/Dypnsapi
+  clientConfig.Endpoint = tea.String("dypnsapi.aliyuncs.com")
+  _result = &openapi.Client{}
+  _result, _err = openapi.NewClient(clientConfig)
+  return _result, _err
 }
 
-func (g *AliyunSMSGateway) SendVerificationCode(ctx context.Context, phoneNum, code string) error {
-	sendSmsVerifyCodeRequest := &dypnsapi20170525.SendSmsVerifyCodeRequest{
-		SchemeName:    tea.String(g.config.SchemeName),
-		CountryCode:   tea.String(g.config.CountryCode),
-		PhoneNumber:   tea.String(phoneNum),
-		SignName:      tea.String(g.config.SignName),
-		TemplateParam: tea.String(fmt.Sprintf("{\"code\":\"%s\"}", code)),
-		TemplateCode:  tea.String(g.config.TemplateCode),
-	}
+func createApiInfo () (_result *openapi.Params) {
+  params := &openapi.Params{
+    // 接口名称
+    Action: tea.String("SendSmsVerifyCode"),
+    // 接口版本
+    Version: tea.String("2017-05-25"),
+    // 接口协议
+    Protocol: tea.String("HTTPS"),
+    // 接口 HTTP 方法
+    Method: tea.String("POST"),
+    AuthType: tea.String("AK"),
+    Style: tea.String("RPC"),
+    // 接口 PATH
+    Pathname: tea.String("/"),
+    // 接口请求体内容格式
+    ReqBodyType: tea.String("json"),
+    // 接口响应体内容格式
+    BodyType: tea.String("json"),
+  }
+  _result = params
+  return _result
+}
 
-	runtime := &util.RuntimeOptions{}
 
-	resp, err := g.client.SendSmsVerifyCodeWithOptions(sendSmsVerifyCodeRequest, runtime)
-	if err != nil {
-		return g.handleError(err)
-	}
+func AliyunSendVerificationCode(ctx context.Context, phoneNum, code, minutes string) error {
+  client, _err := createClient()
+  if _err != nil {
+    return _err
+  }
+
+  params := createApiInfo()
+  // query params
+  queries := map[string]interface{}{}
+  queries["SchemeName"] = tea.String("talkabc")
+  queries["CountryCode"] = tea.String("86")
+  queries["PhoneNumber"] = tea.String(phoneNum)
+  queries["SignName"] = tea.String(config.AppConfig.SMSProvider.Aliyun.SignName)
+  queries["TemplateCode"] = tea.String(config.AppConfig.SMSProvider.Aliyun.TemplateCode)
+  queries["TemplateParam"] = tea.String(fmt.Sprintf("{\"code\":\"%s\",\"min\":\"%s\"}", code, minutes))
+  // runtime options
+  runtime := &util.RuntimeOptions{}
+  request := &openapi.OpenApiRequest{
+    Query: openapiutil.Query(queries),
+  }
+  // 返回值实际为 Map 类型，可从 Map 中获得三类数据：响应体 body、响应头 headers、HTTP 返回的状态码 statusCode。
+  resp, _err := client.CallApi(params, request, runtime)
+  if _err != nil {
+	logger.Errorf("[SMS] SendVerificationCode error: %s", _err.Error())
+    return _err
+  }
 
 	logger.Infof("[LOG] SMS response: %v", resp)
-	return nil
-}
+  return nil
 
-func (g *AliyunSMSGateway) SendText(ctx context.Context, phoneNum, templateID string, params map[string]string) error {
-	paramStr := ""
-	for k, v := range params {
-		if paramStr != "" {
-			paramStr += ","
-		}
-		paramStr += fmt.Sprintf("\"%s\":\"%s\"", k, v)
-	}
-
-	sendSmsVerifyCodeRequest := &dypnsapi20170525.SendSmsVerifyCodeRequest{
-		SchemeName:    tea.String(g.config.SchemeName),
-		CountryCode:   tea.String(g.config.CountryCode),
-		PhoneNumber:   tea.String(phoneNum),
-		SignName:      tea.String(g.config.SignName),
-		TemplateParam: tea.String(fmt.Sprintf("{%s}", paramStr)),
-		TemplateCode:  tea.String(templateID),
-	}
-
-	runtime := &util.RuntimeOptions{}
-
-	resp, err := g.client.SendSmsVerifyCodeWithOptions(sendSmsVerifyCodeRequest, runtime)
-	if err != nil {
-		return g.handleError(err)
-	}
-
-	logger.Infof("[LOG] SMS response: %v", resp)
-	return nil
-}
-
-func (g *AliyunSMSGateway) handleError(err error) error {
-	var error = &tea.SDKError{}
-	if _t, ok := err.(*tea.SDKError); ok {
-		error = _t
-	} else {
-		error.Message = tea.String(err.Error())
-	}
-
-	var data interface{}
-	d := json.NewDecoder(strings.NewReader(tea.StringValue(error.Data)))
-	d.Decode(&data)
-	if m, ok := data.(map[string]interface{}); ok {
-		recommend, _ := m["Recommend"]
-		return fmt.Errorf("send sms failed: %s, recommend: %v", tea.StringValue(error.Message), recommend)
-	}
-
-	return fmt.Errorf("send sms failed: %s", tea.StringValue(error.Message))
-}
-
-func (g *AliyunSMSGateway) GetName() string {
-	return "aliyun"
 }

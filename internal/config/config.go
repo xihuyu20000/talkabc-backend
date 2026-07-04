@@ -58,7 +58,7 @@ type SMSProviderConfig struct {
 }
 
 type AliyunSMSConfig struct {
-	AccessKeyID     string `yaml:"access_key_id" json:"access_key_id"`
+	AccessKeyId     string `yaml:"access_key_id" json:"access_key_id"`
 	AccessKeySecret string `yaml:"access_key_secret" json:"access_key_secret"`
 	RegionID        string `yaml:"region_id" json:"region_id"`
 	SignName        string `yaml:"sign_name" json:"sign_name"`

@@ -284,3 +284,4 @@ func TestVerifySMSCode_Success(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, verifyResp.Code)
 	}
 }
+
