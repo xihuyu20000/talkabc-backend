@@ -6,11 +6,14 @@ import (
 	"backend/internal/repository"
 	"backend/pkg/response"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -410,6 +413,140 @@ func TestSendSMSCode_MockGateway_Cooldown(t *testing.T) {
 	sentMsgs := mockSMSGateway.GetSentMessages()
 	if len(sentMsgs) != 1 {
 		t.Errorf("Expected 1 sent message (due to cooldown), got %d", len(sentMsgs))
+	}
+}
+
+func TestGenerateAlnumCode_ImageIsBase64(t *testing.T) {
+	router := gin.New()
+	router.GET("/v1/code/alnum", handler.GenerateAlnumCode)
+
+	req, _ := http.NewRequest("GET", "/v1/code/alnum", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("Expected status %d, got %d", http.StatusOK, resp.Code)
+	}
+
+	var result response.Response
+	json.Unmarshal(resp.Body.Bytes(), &result)
+
+	data := result.Data.(map[string]interface{})
+	image := data["image"].(string)
+
+	if len(image) < 100 {
+		t.Error("Base64 image data should have reasonable length")
+	}
+
+	if !strings.HasPrefix(image, "data:image/png;base64,") {
+		t.Error("Image should be a valid data URI with base64 encoding")
+	}
+
+	base64Data := strings.TrimPrefix(image, "data:image/png;base64,")
+	decoded, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		t.Errorf("Failed to decode base64 image: %v", err)
+	}
+
+	if len(decoded) == 0 {
+		t.Error("Decoded image data should not be empty")
+	}
+}
+
+func TestGenerateAlnumCode_CaptchaExpiry(t *testing.T) {
+	router := gin.New()
+	router.GET("/v1/code/alnum", handler.GenerateAlnumCode)
+
+	req, _ := http.NewRequest("GET", "/v1/code/alnum", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("Expected status %d, got %d", http.StatusOK, resp.Code)
+	}
+
+	var result response.Response
+	json.Unmarshal(resp.Body.Bytes(), &result)
+
+	data := result.Data.(map[string]interface{})
+	captchaID := data["captcha_id"].(string)
+
+	ttl, err := config.RDB.TTL(config.RDB.Context(), captchaID).Result()
+	if err != nil {
+		t.Errorf("Failed to get TTL from Redis: %v", err)
+	}
+
+	expectedTTL := time.Duration(config.AppConfig.Security.SMSValidMinutes) * time.Minute
+	if ttl < expectedTTL-time.Second*10 {
+		t.Errorf("TTL should be approximately %v, got %v", expectedTTL, ttl)
+	}
+}
+
+func TestGenerateAlnumCode_CaptchaStoredInRedis(t *testing.T) {
+	router := gin.New()
+	router.GET("/v1/code/alnum", handler.GenerateAlnumCode)
+
+	req, _ := http.NewRequest("GET", "/v1/code/alnum", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("Expected status %d, got %d", http.StatusOK, resp.Code)
+	}
+
+	var result response.Response
+	json.Unmarshal(resp.Body.Bytes(), &result)
+
+	data := result.Data.(map[string]interface{})
+	captchaID := data["captcha_id"].(string)
+
+	storedCode, err := config.RDB.Get(config.RDB.Context(), captchaID).Result()
+	if err != nil {
+		t.Errorf("Failed to get captcha code from Redis: %v", err)
+	}
+
+	if storedCode == "" {
+		t.Error("Captcha code should not be empty in Redis")
+	}
+
+	if len(storedCode) != 4 {
+		t.Errorf("Expected captcha code length 4, got %d", len(storedCode))
+	}
+}
+
+func TestVerifyAlnumCode_Expired(t *testing.T) {
+	router := gin.New()
+	router.GET("/v1/code/alnum", handler.GenerateAlnumCode)
+	router.POST("/v1/code/alnum/verify", handler.VerifyAlnumCode)
+
+	getReq, _ := http.NewRequest("GET", "/v1/code/alnum", nil)
+	getResp := httptest.NewRecorder()
+	router.ServeHTTP(getResp, getReq)
+
+	if getResp.Code != http.StatusOK {
+		t.Fatalf("Expected status %d, got %d", http.StatusOK, getResp.Code)
+	}
+
+	var getResult response.Response
+	json.Unmarshal(getResp.Body.Bytes(), &getResult)
+
+	data := getResult.Data.(map[string]interface{})
+	captchaID := data["captcha_id"].(string)
+
+	config.RDB.Del(config.RDB.Context(), captchaID)
+
+	body := fmt.Sprintf(`{"captcha_id": "%s", "code": "0000"}`, captchaID)
+	verifyReq, _ := http.NewRequest("POST", "/v1/code/alnum/verify", bytes.NewBufferString(body))
+	verifyReq.Header.Set("Content-Type", "application/json")
+	verifyResp := httptest.NewRecorder()
+
+	router.ServeHTTP(verifyResp, verifyReq)
+
+	if verifyResp.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, verifyResp.Code)
 	}
 }
 

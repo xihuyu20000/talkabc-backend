@@ -53,7 +53,46 @@ func initTestDatabase() {
 			SSLMode:  config.AppConfig.Database.SSLMode,
 		}
 		config.DB = infra.NewDB(dbCfg)
+
+		dropTestTables()
 		infra.AutoMigrate(config.DB)
+	}
+}
+
+func dropTestTables() {
+	tables := []string{
+		"password_histories",
+		"operation_logs",
+		"reset_tokens",
+		"user_dating_purpose_rels",
+		"dating_purposes",
+		"user_hobby_rels",
+		"hobby_tags",
+		"user_message_tops",
+		"user_friends",
+		"user_focuses",
+		"user_blocks",
+		"visit_records",
+		"user_notifies",
+		"moment_comments",
+		"moment_praises",
+		"user_moments",
+		"member_records",
+		"members",
+		"diamond_records",
+		"diamonds",
+		"gifts",
+		"friend_relations",
+		"chat_messages",
+		"agree_friends",
+		"ad_banners",
+		"system_msgs",
+		"like_records",
+		"users",
+	}
+
+	for _, table := range tables {
+		config.DB.Exec("DROP TABLE IF EXISTS " + table + " CASCADE")
 	}
 }
 

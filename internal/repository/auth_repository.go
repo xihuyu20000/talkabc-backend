@@ -328,20 +328,14 @@ func CreateResetToken(token, deviceID string, userID uint, expireMinutes int) er
 	return config.DB.Create(resetToken).Error
 }
 
-// VerifyResetToken 验证重置Token并标记为已使用
-// 【重置凭证】验证后立即销毁，不可重复使用
+// VerifyResetToken 验证重置Token是否有效（不标记为已使用）
+// 【重置凭证】仅验证有效性，不改变状态
 func VerifyResetToken(token string) (*model.ResetToken, error) {
 	tokenHash := HashToken(token)
 	
 	var resetToken model.ResetToken
 	err := config.DB.Where("token_hash = ? AND used = 0 AND expire_at > ?", tokenHash, time.Now()).First(&resetToken).Error
 	if err != nil {
-		return nil, err
-	}
-	
-	// 【重置凭证】单次有效：使用一次立即销毁（标记为已使用）
-	resetToken.Used = 1
-	if err := config.DB.Save(&resetToken).Error; err != nil {
 		return nil, err
 	}
 	

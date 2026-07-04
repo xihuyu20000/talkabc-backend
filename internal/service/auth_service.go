@@ -315,8 +315,9 @@ func Register(req RegisterRequest) (string, error) {
 
 	err = repository.CreateUser(user)
 	if err != nil {
-		repository.LogOperation(0, req.IP, req.UA, "register", false, "用户创建失败")
-		return "", fmt.Errorf("注册失败")
+		logger.Errorf("[Register] CreateUser failed - PhoneNum: %s, Error: %v", req.PhoneNum, err)
+		repository.LogOperation(0, req.IP, req.UA, "register", false, "用户创建失败: "+err.Error())
+		return "", fmt.Errorf("注册失败: %v", err)
 	}
 
 	// 【注册安全规则7】注册成功后清理验证码，防止二次复用
@@ -522,9 +523,9 @@ type CompleteResetPasswordRequest struct {
 
 // InitiateResetPassword 发起密码重置（生成重置Token）
 // 【重置凭证】生成随机Token，绑定userID+设备标识，短有效期（5分钟）
-func InitiateResetPassword(req ResetPasswordRequest) error {
+func InitiateResetPassword(req ResetPasswordRequest) (string, error) {
 	if req.PhoneNum == "" {
-		return fmt.Errorf("手机号不能为空")
+		return "", fmt.Errorf("手机号不能为空")
 	}
 
 	// 查询用户
@@ -532,53 +533,56 @@ func InitiateResetPassword(req ResetPasswordRequest) error {
 	if err != nil {
 		// 【重置流程行为风控】记录敏感操作日志（用户不存在）
 		repository.LogOperation(0, req.IP, req.UA, "initiate_reset", false, "用户不存在: "+req.PhoneNum)
-		return fmt.Errorf("用户不存在")
+		return "", fmt.Errorf("用户不存在")
 	}
 
 	// 【重置流程行为风控】检查同一账号24h内重置次数（最多3次）
 	rateLimitExceeded, err := repository.CheckResetPasswordRateLimit(user.ID)
 	if err != nil {
-		return fmt.Errorf("验证失败")
+		return "", fmt.Errorf("验证失败")
 	}
 	if rateLimitExceeded {
 		// 【重置流程行为风控】记录敏感操作日志（超限）
 		repository.LogOperation(user.ID, req.IP, req.UA, "initiate_reset", false, "24小时内重置次数超限")
-		return fmt.Errorf("重置次数过多，请24小时后再试")
+		return "", fmt.Errorf("重置次数过多，请24小时后再试")
 	}
 
 	// 【重置凭证】使用crypto/rand生成不可预测的随机Token
 	token, err := generateResetToken()
 	if err != nil {
-		return fmt.Errorf("生成重置链接失败")
+		return "", fmt.Errorf("生成重置链接失败")
 	}
 
 	// 【重置凭证】创建重置Token（存储哈希值，绑定userID+设备标识，5分钟有效期）
 	err = repository.CreateResetToken(token, req.DeviceID, user.ID, 5)
 	if err != nil {
-		return fmt.Errorf("生成重置链接失败")
+		logger.Errorf("[ResetPassword] CreateResetToken failed - UserID: %d, Token: %s, Error: %v", user.ID, token, err)
+		return "", fmt.Errorf("生成重置链接失败: %v", err)
 	}
 
 	// 【重置流程行为风控】记录敏感操作日志（发起重置成功）
 	repository.LogOperation(user.ID, req.IP, req.UA, "initiate_reset", true, "发起密码重置")
 
-	// TODO: 发送重置链接到用户手机/邮箱（实际项目中调用短信/邮件服务）
-	// 这里仅返回token供测试使用（生产环境不应返回原始token）
-	return nil
+	if sms.DefaultGateway != nil {
+		err = sms.DefaultGateway.SendVerificationCode(context.Background(), req.PhoneNum, token, "5")
+		if err != nil {
+			logger.Warnf("[ResetPassword] Failed to send reset token via SMS: %v", err)
+		}
+	}
+
+	return token, nil
 }
 
 // generateResetToken 生成重置密码Token
 // 【重置凭证】使用crypto/rand生成随机字节，不可预测
 func generateResetToken() (string, error) {
-	b := make([]byte, 32)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
-	}
-	
 	const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	result := make([]byte, 32)
 	for i := range result {
-		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			return "", err
+		}
 		result[i] = letters[num.Int64()]
 	}
 	

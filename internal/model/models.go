@@ -1,11 +1,31 @@
 package model
 
 import (
-	"time" // Go标准库时间包
+	"database/sql/driver"
+	"encoding/json"
+	"time"
 
-	"github.com/jinzhu/gorm" // GORM ORM库，用于数据库操作
-	"github.com/lib/pq"      // PostgreSQL驱动，支持数组类型
+	"github.com/jinzhu/gorm"
+	"github.com/lib/pq"
 )
+
+type JSONMap map[string]interface{}
+
+func (m JSONMap) Value() (driver.Value, error) {
+	return json.Marshal(m)
+}
+
+func (m *JSONMap) Scan(value interface{}) error {
+	if value == nil {
+		*m = make(JSONMap)
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return json.Unmarshal([]byte(value.(string)), m)
+	}
+	return json.Unmarshal(bytes, m)
+}
 
 // User 用户模型
 // 对应数据库中的 users 表，存储用户基本信息
@@ -35,7 +55,7 @@ type User struct {
 	RealName      string                                                         // 真实姓名
 	Official      int                 // 是否官方认证：0-否，1-是
 	RealVerify    int                 // 实名认证状态：0-未认证，1-已认证
-	Aim           map[string]interface{} `gorm:"type:json"`                      // 理想对象条件（JSON格式）
+	Aim           JSONMap             `gorm:"type:json"`                         // 理想对象条件（JSON格式）
 }
 
 // FriendRelation 好友关系模型
@@ -272,13 +292,12 @@ type ResetToken struct {
 // 【重置流程行为风控】记录敏感操作，不可删除
 type OperationLog struct {
 	gorm.Model
-	UserID     uint      `gorm:"not null;index"` // 用户ID
-	IP         string    `gorm:"size:50"`        // 操作IP
-	UA         string    `gorm:"size:255"`       // 设备UA
-	Operation  string    `gorm:"size:50"`        // 操作类型：initiate_reset（发起重置）、complete_reset（完成重置）
-	Success    int       `gorm:"default:0"`      // 是否成功：0-失败，1-成功
-	Detail     string    `gorm:"size:500"`       // 操作详情
-	DeletedAt  *time.Time `gorm:"default:null"`  // 软删除（保留日志不可删除）
+	UserID    uint   `gorm:"not null;index"` // 用户ID
+	IP        string `gorm:"size:50"`        // 操作IP
+	UA        string `gorm:"size:255"`       // 设备UA
+	Operation string `gorm:"size:50"`        // 操作类型：initiate_reset（发起重置）、complete_reset（完成重置）
+	Success   int    `gorm:"default:0"`      // 是否成功：0-失败，1-成功
+	Detail    string `gorm:"size:500"`       // 操作详情
 }
 
 // PasswordHistory 密码历史记录模型

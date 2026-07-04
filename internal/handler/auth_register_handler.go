@@ -150,13 +150,13 @@ func InitiateResetPassword(c *gin.Context) {
 
 	logger.Infof("[Handler] InitiateResetPassword - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
 
-	err := service.InitiateResetPassword(req)
+	token, err := service.InitiateResetPassword(req)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return
 	}
 
-	response.Success(c, gin.H{"message": "重置链接已发送，有效期5分钟"})
+	response.Success(c, gin.H{"message": "重置链接已发送，有效期5分钟", "token": token})
 }
 
 // ValidateResetToken 验证重置Token是否有效

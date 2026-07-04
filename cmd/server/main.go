@@ -67,7 +67,7 @@ func main() {
 
 	logger.Infof("Server starting on port %d...", port)
 
-	// 6. 启动服务器
+	// 5. 启动服务器
 	r.Run(":" + strconv.Itoa(port))
 }
 
