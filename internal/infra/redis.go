@@ -4,6 +4,7 @@ import (
 	"backend/pkg/logger"
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -39,7 +40,8 @@ func NewRedis(cfg RedisConfig) *redis.Client {
 
 	_, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
-		logger.Fatalf("Failed to connect to Redis: %v", err)
+		logger.Fatalf("Failed to connect to Redis: %v . System will exit now", err)
+		os.Exit(1)
 	}
 
 	logger.Infof("Redis connection successful")

@@ -8,9 +8,8 @@
 //   - 链路追踪：支持从 context 中提取 request_id/trace_id
 //
 // 使用流程：
-//  1. 在 main.go 中调用 logger.LoadConfig() 加载配置
-//  2. 调用 logger.InitLogger() 初始化日志实例
-//  3. 在任意地方直接调用 logger.Info/logger.Infof 等方法
+//  1. 在 main.go 中调用 logger.InitLogger() 初始化日志实例
+//  2. 在任意地方直接调用 logger.Info/logger.Infof 等方法输出日志
 //
 // 配置文件示例（config/logger.yaml）：
 //
@@ -29,8 +28,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -59,36 +58,6 @@ type Config struct {
 	Compress    bool   `json:"compress" yaml:"compress"`   // 是否压缩归档日志
 }
 
-// LoadConfig 从 YAML 文件加载日志配置
-// filePath: 配置文件路径（如 "./config/logger.yaml"）
-// 返回：配置对象指针，加载失败返回错误
-//
-// 使用示例：
-//   cfg, err := logger.LoadConfig("./config/logger.yaml")
-//   if err != nil {
-//       // 使用默认配置
-//       cfg = &logger.Config{Level: "info", Output: "console"}
-//   }
-//   logger.InitLogger(cfg)
-func LoadConfig(filePath string) (*Config, error) {
-	v := viper.New()
-	v.SetConfigFile(filePath)
-	v.SetConfigType("yaml")
-
-	if err := v.ReadInConfig(); err != nil {
-		return nil, err
-	}
-
-	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("[Logger] Config loaded: Level=%s, Format=%s, Output=%s, FilePath=%s, MaxSize=%dMB, MaxBackups=%d, MaxAge=%dd, Compress=%v\n",
-		cfg.Level, cfg.Format, cfg.Output, cfg.FilePath, cfg.MaxSize, cfg.MaxBackups, cfg.MaxAge, cfg.Compress)
-
-	return &cfg, nil
-}
 
 type LoggerConfig struct {
 	Level       string
@@ -99,6 +68,71 @@ type LoggerConfig struct {
 	MaxBackups  int
 	MaxAge      int
 	Compress    bool
+}
+
+func readConfigFromInterface(cfg interface{}) Config {
+	config := Config{
+		Level:       "info",
+		Format:      "console",
+		Output:      "console",
+		FilePath:    "./logs/app.log",
+		MaxSize:     100,
+		MaxBackups:  30,
+		MaxAge:      7,
+		Compress:    true,
+	}
+	
+	val := reflect.ValueOf(cfg)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	
+	if val.Kind() != reflect.Struct {
+		return config
+	}
+	
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		name := typ.Field(i).Name
+		
+		switch name {
+		case "Level":
+			if field.Kind() == reflect.String {
+				config.Level = field.String()
+			}
+		case "Format":
+			if field.Kind() == reflect.String {
+				config.Format = field.String()
+			}
+		case "Output":
+			if field.Kind() == reflect.String {
+				config.Output = field.String()
+			}
+		case "FilePath":
+			if field.Kind() == reflect.String {
+				config.FilePath = field.String()
+			}
+		case "MaxSize":
+			if field.Kind() == reflect.Int {
+				config.MaxSize = int(field.Int())
+			}
+		case "MaxBackups":
+			if field.Kind() == reflect.Int {
+				config.MaxBackups = int(field.Int())
+			}
+		case "MaxAge":
+			if field.Kind() == reflect.Int {
+				config.MaxAge = int(field.Int())
+			}
+		case "Compress":
+			if field.Kind() == reflect.Bool {
+				config.Compress = field.Bool()
+			}
+		}
+	}
+	
+	return config
 }
 
 // InitLogger 初始化全局日志实例
@@ -121,36 +155,13 @@ type LoggerConfig struct {
 //   - stacktrace: 错误级别以上自动附加堆栈信息
 func InitLogger(cfg interface{}) {
 	var config Config
-	switch c := cfg.(type) {
-	case *Config:
-		config = *c
-	case *LoggerConfig:
-		config = Config{
-			Level:       c.Level,
-			Format:      c.Format,
-			Output:      c.Output,
-			FilePath:    c.FilePath,
-			MaxSize:     c.MaxSize,
-			MaxBackups:  c.MaxBackups,
-			MaxAge:      c.MaxAge,
-			Compress:    c.Compress,
-		}
-	case Config:
-		config = c
-	case LoggerConfig:
-		config = Config{
-			Level:       c.Level,
-			Format:      c.Format,
-			Output:      c.Output,
-			FilePath:    c.FilePath,
-			MaxSize:     c.MaxSize,
-			MaxBackups:  c.MaxBackups,
-			MaxAge:      c.MaxAge,
-			Compress:    c.Compress,
-		}
-	default:
-		config = Config{Level: "info", Output: "console"}
+	
+	if cfg == nil {
+		fmt.Printf("InitLogger error: config is nil, system exit\n")
+		os.Exit(1)
 	}
+	
+	config = readConfigFromInterface(cfg)
 
 	var level zapcore.Level
 	switch config.Level {
@@ -201,7 +212,8 @@ func InitLogger(cfg interface{}) {
 	if config.Output == "file" || config.Output == "both" {
 		logDir := filepath.Dir(config.FilePath)
 		if err := os.MkdirAll(logDir, 0755); err != nil {
-			fmt.Printf("Failed to create log directory %s: %v\n", logDir, err)
+			fmt.Printf("InitLogger error: Failed to create log directory %s: %v, system exit\n", logDir, err)
+			os.Exit(1)
 		}
 		fileWriter := zapcore.AddSync(&lumberjack.Logger{
 			Filename:   config.FilePath,

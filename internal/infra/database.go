@@ -3,6 +3,7 @@ package infra
 import (
 	"backend/pkg/logger"
 	"fmt"
+	"os"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -34,7 +35,7 @@ func ensureDatabaseExists(cfg DatabaseConfig) {
 	defer defaultDB.Close()
 
 	type existsResult struct {
-	Exists bool
+		Exists bool
 	}
 	checkSQL := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname='%s') as exists", cfg.DBName)
 	var result existsResult
@@ -45,6 +46,7 @@ func ensureDatabaseExists(cfg DatabaseConfig) {
 		createSQL := fmt.Sprintf("CREATE DATABASE \"%s\"", cfg.DBName)
 		if err := defaultDB.Exec(createSQL).Error; err != nil {
 			logger.Fatalf("Failed to create database: %v", err)
+			os.Exit(1)
 		}
 		logger.Infof("Database '%s' created successfully", cfg.DBName)
 	}
@@ -77,8 +79,10 @@ func NewDB(cfg DatabaseConfig) *gorm.DB {
 	db.LogMode(true)
 	db.SetLogger(logger.NewGormLogger())
 
+	// 数据库ping失败时应立即退出系统，确保应用不处于不一致状态
 	if err := db.DB().Ping(); err != nil {
-		logger.Fatalf("Failed to ping database: %v", err)
+		logger.Fatalf("Failed to ping database: %v . System will exit now", err)
+		os.Exit(1)
 	}
 
 	logger.Infof("Database connected successfully")

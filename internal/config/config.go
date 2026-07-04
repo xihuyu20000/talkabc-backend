@@ -4,6 +4,7 @@ import (
 	"backend/pkg/logger"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/gorm"
@@ -131,6 +132,16 @@ var RDB *redis.Client
 func getDefaultConfig() *Config {
 	return &Config{
 		System: SystemConfig{Reset: 0},
+		Logger: LoggerConfig{
+			Level:       "info",
+			Format:      "console",
+			Output:      "console",
+			FilePath:    "./logs/app.log",
+			MaxSize:     100,
+			MaxBackups:  30,
+			MaxAge:      7,
+			Compress:    true,
+		},
 		Security: SecurityConfig{
 			SMSValidMinutes:         5,
 			SMSCooldownSeconds:      60,
@@ -204,17 +215,23 @@ func InitConfig() {
 
 	// 2. 尝试从配置文件加载，覆盖默认值
 	if err := loadConfig("./config.yaml", cfg); err != nil {
-		log.Printf("Failed to load config from ./config.yaml: %v", err)
+		log.Fatalf("Failed to load config from ./config.yaml: %v . System will exit now", err)
+		os.Exit(1)
 	}
 
 	// 3. 将加载的配置赋值给全局变量
 	AppConfig = *cfg
 
+	// 调试：输出加载的日志配置
+	fmt.Printf("Logger config loaded - Level: '%s'\n",
+		AppConfig.Logger.Level)
+
 	// 4. 初始化日志
 	logger.InitLogger(&AppConfig.Logger)
 
 	// 5. 输出配置信息
-	logger.Debugf("[Config] System - Reset: %d", AppConfig.System.Reset)
+	logger.Infof("[Config] System - Reset: %d", AppConfig.System.Reset)
+	logger.Debugf("[Config] Debug level test - Logger.Level: %s", AppConfig.Logger.Level)
 	str := fmt.Sprintf("%+v", AppConfig)
-	fmt.Printf("[Config] Full config: \n%s", str)
+	logger.Infof("[Config] Full config: \n%s", str)
 }

@@ -1,6 +1,7 @@
 package infra
 
 import (
+	"backend/pkg/logger"
 	"context"
 	"fmt"
 	"os"
@@ -24,17 +25,17 @@ func ResetDatabase(cfg DatabaseConfig) {
 
 	defaultDB, err := gorm.Open("postgres", defaultDSN)
 	if err != nil {
-		fmt.Printf("Failed to connect to default database for reset: %v\n", err)
+		logger.Errorf("Failed to connect to default database for reset: %v", err)
 		return
 	}
 	defer defaultDB.Close()
 
 	dropSQL := fmt.Sprintf("DROP DATABASE IF EXISTS \"%s\"", cfg.DBName)
 	if err := defaultDB.Exec(dropSQL).Error; err != nil {
-		fmt.Printf("Failed to drop database: %v\n", err)
+		logger.Errorf("Failed to drop database: %v", err)
 		return
 	}
-	fmt.Printf("Database '%s' dropped successfully\n", cfg.DBName)
+	logger.Infof("Database '%s' dropped successfully", cfg.DBName)
 }
 
 // ResetRedis 清空Redis数据
@@ -53,21 +54,13 @@ func ResetRedis(cfg RedisConfig) {
 	})
 
 	if err := rdb.FlushDB(context.Background()).Err(); err != nil {
-		fmt.Printf("Failed to flush Redis: %v\n", err)
+		logger.Errorf("Failed to flush Redis: %v", err)
 		return
 	}
-	fmt.Println("Redis data flushed successfully")
+	logger.Infof("Redis data flushed successfully")
 }
 
-// ResetLogs 删除日志目录
-// 删除 ./logs 目录及所有日志文件
-func ResetLogs() {
-	if err := os.RemoveAll("./logs"); err != nil {
-		fmt.Printf("Failed to remove logs directory: %v\n", err)
-		return
-	}
-	fmt.Println("Logs directory removed successfully")
-}
+
 
 // ResetUploads 删除上传文件目录
 // 删除 ./uploads 目录及所有子目录和文件
@@ -75,10 +68,10 @@ func ResetUploads() {
 	dirs := []string{"./uploads", "./uploads/avatars", "./uploads/moments", "./uploads/messages"}
 	for _, dir := range dirs {
 		if err := os.RemoveAll(dir); err != nil {
-			fmt.Printf("Failed to remove directory %s: %v\n", dir, err)
+			logger.Errorf("Failed to remove directory %s: %v", dir, err)
 		}
 	}
-	fmt.Println("Upload directories removed successfully")
+	logger.Infof("Upload directories removed successfully")
 }
 
 // ResetAll 执行所有重置操作
@@ -94,12 +87,11 @@ func ResetUploads() {
 //
 // 注意：此操作会删除所有数据，谨慎使用
 func ResetAll(dbCfg DatabaseConfig, redisCfg RedisConfig) {
-	fmt.Println("=== Starting data reset ===")
+	logger.Infof("=== Starting data reset ===")
 
-	ResetLogs()
 	ResetUploads()
 	ResetRedis(redisCfg)
 	ResetDatabase(dbCfg)
 
-	fmt.Println("=== Data reset completed ===")
+	logger.Infof("=== Data reset completed ===")
 }

@@ -1,9 +1,11 @@
 package sms
 
 import (
+	"backend/pkg/logger"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
@@ -29,7 +31,8 @@ type AliyunSMSGateway struct {
 
 func NewAliyunSMSGateway(config *AliyunSMSConfig) (*AliyunSMSGateway, error) {
 	if config.AccessKeyID == "" || config.AccessKeySecret == "" {
-		return nil, fmt.Errorf("aliyun sms credentials are empty")
+		logger.Fatalf("aliyun sms credentials are empty")
+		os.Exit(1)
 	}
 
 	cfg := &openapi.Config{
@@ -74,7 +77,7 @@ func (g *AliyunSMSGateway) SendVerificationCode(ctx context.Context, phoneNum, c
 		return g.handleError(err)
 	}
 
-	fmt.Printf("[LOG] SMS response: %v\n", resp)
+	logger.Infof("[LOG] SMS response: %v", resp)
 	return nil
 }
 
@@ -103,7 +106,7 @@ func (g *AliyunSMSGateway) SendText(ctx context.Context, phoneNum, templateID st
 		return g.handleError(err)
 	}
 
-	fmt.Printf("[LOG] SMS response: %v\n", resp)
+	logger.Infof("[LOG] SMS response: %v", resp)
 	return nil
 }
 

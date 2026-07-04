@@ -2,7 +2,7 @@ system:
   reset: 1              # 重置标志(0=不重置, 1=重置所有数据)
 
 logger:
-  level: error          # 日志级别: debug, info, warn, error, fatal
+  level: debug          # 日志级别: debug, info, warn, error, fatal
   format: console       # 日志格式: console, json
   output: both          # 输出方式: console, file, both
   file_path: ./logs/app.log  # 日志文件路径

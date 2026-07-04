@@ -30,32 +30,10 @@ import (
 )
 
 func main() {
-	// 1.加载配置文件
+	// 1. 加载配置文件
 	config.InitConfig()
 
-	// 2.加载日志配置
 	defer logger.Sync()
-
-
-
-
-	if config.AppConfig.System.Reset == 1 {
-		dbCfg := infra.DatabaseConfig{
-			Host:     config.AppConfig.Database.Host,
-			Port:     config.AppConfig.Database.Port,
-			User:     config.AppConfig.Database.User,
-			Password: config.AppConfig.Database.Password,
-			DBName:   config.AppConfig.Database.DBName,
-			SSLMode:  config.AppConfig.Database.SSLMode,
-		}
-		redisCfg := infra.RedisConfig{
-			Host:     config.AppConfig.Redis.Host,
-			Port:     config.AppConfig.Redis.Port,
-			Password: config.AppConfig.Redis.Password,
-			DB:       config.AppConfig.Redis.DB,
-		}
-		infra.ResetAll(dbCfg, redisCfg)
-	}
 
 	dbCfg := infra.DatabaseConfig{
 		Host:     config.AppConfig.Database.Host,
@@ -65,29 +43,38 @@ func main() {
 		DBName:   config.AppConfig.Database.DBName,
 		SSLMode:  config.AppConfig.Database.SSLMode,
 	}
-	config.DB = infra.NewDB(dbCfg)
-	infra.AutoMigrate(config.DB)
-
 	redisCfg := infra.RedisConfig{
 		Host:     config.AppConfig.Redis.Host,
 		Port:     config.AppConfig.Redis.Port,
 		Password: config.AppConfig.Redis.Password,
 		DB:       config.AppConfig.Redis.DB,
 	}
-	config.RDB = infra.NewRedis(redisCfg)
 
-	if err := sms.InitSMSGateway(&config.AppConfig.SMSProvider); err != nil {
-		logger.Warnf("Failed to initialize SMS gateway: %v", err)
+	// 2. 重置应用系统（包括数据库、文件夹）
+	if config.AppConfig.System.Reset == 1 {
+		infra.ResetAll(dbCfg, redisCfg)
+		createUploadDirs()
 	}
 
-	createUploadDirs()
+	// 3. 连接数据库
+	config.DB = infra.NewDB(dbCfg)
+	infra.AutoMigrate(config.DB)
+	config.RDB = infra.NewRedis(redisCfg)
 
+	// 4. 连接短信网关
+	if err := sms.InitSMSGateway(&config.AppConfig.SMSProvider); err != nil {
+		logger.Fatalf("Failed to initialize SMS gateway: %v", err)
+		os.Exit(1)
+	}
+
+	// 5. 初始化路由
 	r := router.InitRouter()
 
 	port := config.AppConfig.Server.Port
 
 	logger.Infof("Server starting on port %d...", port)
 
+	// 6. 启动服务器
 	r.Run(":" + strconv.Itoa(port))
 }
 
@@ -107,7 +94,8 @@ func createUploadDirs() {
 		// 0755是目录权限：所有者可读写执行，其他人可读执行
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			// 如果创建失败，打印错误日志但继续运行
-			logger.Errorf("Failed to create directory %s: %v", dir, err)
+			logger.Fatalf("InitLogger error: Failed to create directory %s: %v, system exit\n", dir, err)
+			os.Exit(1)
 		}
 	}
 }
