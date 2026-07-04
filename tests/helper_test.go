@@ -4,31 +4,68 @@ import (
 	"backend/internal/config"
 	"backend/internal/handler"
 	"backend/internal/infra"
-	"backend/pkg/logger"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 )
 
+var testRouter *TestRouter
+
+func TestMain(m *testing.M) {
+	InitTestEnvironment()
+	code := m.Run()
+	os.Exit(code)
+}
+
 func InitTest() {
+	InitTestEnvironment()
+}
+
+func InitTestEnvironment() {
 	gin.SetMode(gin.TestMode)
-	logger.InitLogger(&logger.Config{
-		Level:  "warn",
-		Format: "console",
-		Output: "console",
-	})
+
+	config.InitConfigSafe("../config.yaml")
+
+	initTestDatabase()
 	initTestRedis()
+
+	testRouter = NewTestRouter()
+	testRouter.SetupAllRoutes()
+}
+
+func initTestDatabase() {
+	if config.DB == nil {
+		dbCfg := infra.DatabaseConfig{
+			Host:     config.AppConfig.Database.Host,
+			Port:     config.AppConfig.Database.Port,
+			User:     config.AppConfig.Database.User,
+			Password: config.AppConfig.Database.Password,
+			DBName:   config.AppConfig.Database.DBName,
+			SSLMode:  config.AppConfig.Database.SSLMode,
+		}
+		config.DB = infra.NewDB(dbCfg)
+		infra.AutoMigrate(config.DB)
+	}
 }
 
 func initTestRedis() {
 	if config.RDB == nil {
-		config.RDB = infra.NewRedis(infra.RedisConfig{
-			Host:     "localhost",
-			Port:     6379,
-			Password: "",
-			DB:       0,
-		})
+		redisCfg := infra.RedisConfig{
+			Host:     config.AppConfig.Redis.Host,
+			Port:     config.AppConfig.Redis.Port,
+			Password: config.AppConfig.Redis.Password,
+			DB:       config.AppConfig.Redis.DB,
+		}
+		config.RDB = infra.NewRedis(redisCfg)
 	}
+}
+
+func GetTestRouter() *TestRouter {
+	if testRouter == nil {
+		InitTestEnvironment()
+	}
+	return testRouter
 }
 
 type TestRouter struct {
@@ -40,6 +77,16 @@ func NewTestRouter() *TestRouter {
 	return &TestRouter{Engine: router}
 }
 
+func (tr *TestRouter) SetupAllRoutes() {
+	tr.SetupAuthRoutes()
+	tr.SetupUserRoutes()
+	tr.SetupChatRoutes()
+	tr.SetupMomentRoutes()
+	tr.SetupPaymentRoutes()
+	tr.SetupInteractionRoutes()
+	tr.SetupUploadRoutes()
+}
+
 func (tr *TestRouter) SetupAuthRoutes() {
 	tr.Engine.GET("/v1/code/sms", handler.SendSMSCode)
 	tr.Engine.GET("/v1/code/alnum", handler.GenerateAlnumCode)
@@ -48,6 +95,8 @@ func (tr *TestRouter) SetupAuthRoutes() {
 	tr.Engine.POST("/v1/login/pwd", handler.LoginByPassword)
 	tr.Engine.POST("/v1/logout", handler.Logout)
 	tr.Engine.POST("/v1/reset-password/initiate", handler.InitiateResetPassword)
+	tr.Engine.POST("/v1/reset-password/validate", handler.ValidateResetToken)
+	tr.Engine.POST("/v1/reset-password/complete", handler.CompleteResetPassword)
 }
 
 func (tr *TestRouter) SetupUserRoutes() {

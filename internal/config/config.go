@@ -235,3 +235,16 @@ func InitConfig(filePath string) {
 	str := fmt.Sprintf("%+v", AppConfig)
 	logger.Infof("[Config] Full config: \n%s", str)
 }
+
+func InitConfigSafe(filePath string) {
+	cfg := getDefaultConfig()
+
+	if err := loadConfig(filePath, cfg); err != nil {
+		logger.Fatalf("Failed to load config from %s: %v, System will exit now", filePath, err)
+		os.Exit(1)
+	}
+
+	AppConfig = *cfg
+
+	logger.InitLogger(&AppConfig.Logger)
+}
