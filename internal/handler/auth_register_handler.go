@@ -239,3 +239,61 @@ func CompleteResetPassword(c *gin.Context) {
 
 	response.Success(c, gin.H{"message": "密码重置成功，请重新登录"})
 }
+
+// ChangePhone 更换手机号
+// @Summary 更换手机号
+// @Description 已登录用户更换绑定的手机号。安全规则：1. 必须已登录（JWT验证）；2. 验证新手机号格式；3. 新手机号必须未被注册；4. 验证新手机号的短信验证码；5. 频率限制（24小时内最多更换3次）；6. 更新手机号后清空所有登录态；7. 记录操作日志（不可删除）
+// @Tags 认证
+// @Accept application/x-www-form-urlencoded
+// @Produce application/json
+// @Param Authorization header string true "Bearer token"
+// @Param new_phone formData string true "新手机号"
+// @Param code formData string true "新手机号验证码"
+// @Param device_id formData string false "设备ID"
+// @Success 200 {object} map[string]interface{} "更换成功"
+// @Failure 400 {object} map[string]interface{} "参数错误或安全校验失败"
+// @Failure 401 {object} map[string]interface{} "未登录"
+// @Failure 500 {object} map[string]interface{} "更换失败"
+// @Router /auth/change-phone [post]
+func ChangePhone(c *gin.Context) {
+	newPhone := c.PostForm("new_phone")
+	code := c.PostForm("code")
+	// 【更换手机号安全规则】获取设备ID，用于频率限制和日志记录
+	deviceID := c.PostForm("device_id")
+
+	if newPhone == "" || code == "" {
+		response.BadRequest(c, "新手机号和验证码不能为空")
+		return
+	}
+
+	// 获取客户端真实IP和UA（【更换手机号安全规则7】记录操作日志）
+	clientIP := c.ClientIP()
+	ua := c.GetHeader("User-Agent")
+
+	// 【更换手机号安全规则1】从JWT token获取用户ID
+	uid, exists := c.Get("uid")
+	if !exists || uid == "" {
+		response.Unauthorized(c, "未登录")
+		return
+	}
+
+	// 【更换手机号】组装请求，包含UID、IP、设备ID、UA用于安全校验和日志记录
+	req := service.ChangePhoneRequest{
+		UID:        uid.(string),
+		NewPhone:   newPhone,
+		Code:       code,
+		IP:         clientIP,
+		DeviceID:   deviceID,
+		UA:         ua,
+	}
+
+	logger.Infof("[Handler] ChangePhone - UID: %s, NewPhone: %s, DeviceID: %s, IP: %s", req.UID, newPhone, req.DeviceID, req.IP)
+
+	err := service.ChangePhone(req)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{"message": "手机号更换成功，请使用新手机号重新登录"})
+}

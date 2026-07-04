@@ -326,7 +326,15 @@ func Register(req RegisterRequest) (string, error) {
 	// 【注册安全规则8】记录注册操作日志（不可删除）
 	repository.LogOperation(user.ID, req.IP, req.UA, "register", true, "注册成功")
 
-	return middleware.GenerateToken(user.Uid)
+	token, err := middleware.GenerateToken(user.Uid)
+	if err != nil {
+		return "", err
+	}
+
+	// 【安全规则】将token保存到Redis，支持主动失效（如更换手机号后）
+	repository.SaveUserToken(user.Uid, token)
+
+	return token, nil
 }
 
 // LoginByCode 验证码登录（带安全校验）
@@ -416,7 +424,15 @@ func LoginByCode(req LoginRequest) (string, error) {
 	// 【登录安全规则8】记录登录操作日志（不可删除）
 	repository.LogOperation(user.ID, req.IP, req.UA, "login_code", true, "验证码登录成功")
 
-	return middleware.GenerateToken(user.Uid)
+	token, err := middleware.GenerateToken(user.Uid)
+	if err != nil {
+		return "", err
+	}
+
+	// 【安全规则】将token保存到Redis，支持主动失效（如更换手机号后）
+	repository.SaveUserToken(user.Uid, token)
+
+	return token, nil
 }
 
 // LoginByPassword 密码登录（带安全校验）
@@ -500,7 +516,15 @@ func LoginByPassword(req LoginRequest) (string, error) {
 	// 【登录安全规则7】记录登录操作日志（不可删除）
 	repository.LogOperation(user.ID, req.IP, req.UA, "login_password", true, "密码登录成功")
 
-	return middleware.GenerateToken(user.Uid)
+	token, err := middleware.GenerateToken(user.Uid)
+	if err != nil {
+		return "", err
+	}
+
+	// 【安全规则】将token保存到Redis，支持主动失效（如更换手机号后）
+	repository.SaveUserToken(user.Uid, token)
+
+	return token, nil
 }
 
 // ResetPasswordRequest 发起密码重置请求参数
@@ -679,6 +703,94 @@ func CompleteResetPassword(req CompleteResetPasswordRequest) error {
 	repository.LogOperation(user.ID, req.IP, req.UA, "complete_reset", true, "密码重置成功")
 
 	return nil
+}
+
+// ChangePhoneRequest 更换手机号请求参数
+// 【更换手机号】包含验证所需的所有信息
+type ChangePhoneRequest struct {
+	UID        string // 用户ID（从token解析）
+	NewPhone   string // 新手机号
+	Code       string // 新手机号验证码
+	IP         string // 客户端IP
+	DeviceID   string // 设备ID
+	UA         string // 用户代理
+}
+
+// ChangePhone 更换手机号
+// 【更换手机号安全规则】
+// 1. 必须已登录（通过JWT token验证）
+// 2. 验证新手机号格式
+// 3. 新手机号必须未被注册
+// 4. 验证新手机号的短信验证码
+// 5. 验证频率限制（24小时内最多更换3次）
+// 6. 更新手机号后清空用户所有登录态
+// 7. 记录更换手机号操作日志（不可删除）
+func ChangePhone(req ChangePhoneRequest) error {
+	if req.UID == "" {
+		return fmt.Errorf("用户未登录")
+	}
+
+	if req.NewPhone == "" || req.Code == "" {
+		return fmt.Errorf("新手机号和验证码不能为空")
+	}
+
+	// 【更换手机号安全规则2】验证新手机号格式
+	if !isValidPhone(req.NewPhone) {
+		return fmt.Errorf("手机号格式不正确")
+	}
+
+	// 查询用户
+	user, err := repository.GetUserByUID(req.UID)
+	if err != nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	// 【更换手机号安全规则3】新手机号必须未被注册
+	exists, err := repository.CheckPhoneExists(req.NewPhone)
+	if err != nil {
+		return fmt.Errorf("验证失败")
+	}
+	if exists {
+		repository.LogOperation(user.ID, req.IP, req.UA, "change_phone", false, "新手机号已被注册")
+		return fmt.Errorf("该手机号已被注册")
+	}
+
+	// 【更换手机号安全规则4】验证新手机号的短信验证码
+	codeValid, err := repository.VerifyVerificationCode(req.NewPhone, req.Code, "sms", "change_phone")
+	if err != nil || !codeValid {
+		repository.LogOperation(user.ID, req.IP, req.UA, "change_phone", false, "验证码无效")
+		return fmt.Errorf("验证码无效")
+	}
+
+	// 【更换手机号安全规则5】验证频率限制（24小时内最多更换3次）
+	rateLimitExceeded, err := repository.CheckChangePhoneRateLimit(user.ID)
+	if err != nil {
+		return fmt.Errorf("验证失败")
+	}
+	if rateLimitExceeded {
+		repository.LogOperation(user.ID, req.IP, req.UA, "change_phone", false, "24小时内更换次数超限")
+		return fmt.Errorf("更换手机号过于频繁，请24小时后再试")
+	}
+
+	// 【更换手机号】更新手机号并清空登录态
+	if err := repository.UpdateUserPhone(user.ID, req.NewPhone); err != nil {
+		repository.LogOperation(user.ID, req.IP, req.UA, "change_phone", false, "更新手机号失败")
+		return fmt.Errorf("更换手机号失败")
+	}
+
+	// 【更换手机号安全规则6】清理新手机号验证码，防止二次复用
+	repository.ClearVerificationCode(req.NewPhone, "sms", "change_phone")
+
+	// 【更换手机号安全规则7】记录更换手机号操作日志（不可删除）
+	repository.LogOperation(user.ID, req.IP, req.UA, "change_phone", true, "更换手机号成功，旧手机号："+user.PhoneNum+", 新手机号："+req.NewPhone)
+
+	return nil
+}
+
+// isValidPhone 验证手机号格式
+func isValidPhone(phoneNum string) bool {
+	pattern := `^1[3-9]\d{9}$`
+	return regexp.MustCompile(pattern).MatchString(phoneNum)
 }
 
 // validatePasswordComplexity 验证密码复杂度（最低安全策略）

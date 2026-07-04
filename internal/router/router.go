@@ -65,6 +65,7 @@ func InitRouter() *gin.Engine {
 
 			// ==================== auth ====================
 			private.POST("/auth/logout", handler.Logout)
+			private.POST("/auth/change-phone", handler.ChangePhone)
 
 			// ==================== users ====================
 			private.GET("/users", handler.GetUserList)

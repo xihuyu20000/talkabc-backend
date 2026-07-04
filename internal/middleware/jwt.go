@@ -1,12 +1,14 @@
 package middleware
 
 import (
-	"backend/internal/config"       // 配置模块，获取JWT密钥等配置
-	"backend/internal/repository"   // 数据访问层，用于更新用户最后活跃时间
-	"backend/pkg/response"         // 统一响应模块
+	"backend/internal/config"     // 配置模块，获取JWT密钥等配置
+	"backend/internal/repository" // 数据访问层，用于更新用户最后活跃时间
+	"backend/pkg/response"        // 统一响应模块
+	"fmt"                         // 格式化字符串
+	"strings"                     // 字符串处理
+
 	"github.com/gin-gonic/gin"     // Gin框架
-	"github.com/golang-jwt/jwt/v5"  // JWT库，用于生成和验证令牌
-	"strings"                      // 字符串处理
+	"github.com/golang-jwt/jwt/v5" // JWT库，用于生成和验证令牌
 )
 
 type Claims struct {
@@ -19,7 +21,8 @@ type Claims struct {
 //   1. 从请求头获取Authorization令牌
 //   2. 验证令牌格式和有效性
 //   3. 解析令牌获取用户ID
-//   4. 将用户ID存入Gin上下文，供后续处理函数使用
+//   4. 检查令牌是否在Redis中有效（支持主动失效）
+//   5. 将用户ID存入Gin上下文，供后续处理函数使用
 //
 // 使用方式：
 //   在路由配置中使用：v1.POST("/logout", middleware.JWT(), handler.Logout)
@@ -59,6 +62,15 @@ func JWT() gin.HandlerFunc {
 		// 检查解析是否成功
 		if err != nil {
 			response.Unauthorized(c, "token无效")
+			c.Abort()
+			return
+		}
+
+		// 【安全规则】检查令牌是否在Redis中有效（支持主动失效，如更换手机号后）
+		tokenKey := fmt.Sprintf("user_token:%s", claims.UID)
+		validToken, err := config.RDB.Get(c.Request.Context(), tokenKey).Result()
+		if err != nil || validToken == "" {
+			response.Unauthorized(c, "登录已失效，请重新登录")
 			c.Abort()
 			return
 		}

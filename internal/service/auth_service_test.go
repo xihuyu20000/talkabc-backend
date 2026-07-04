@@ -195,3 +195,62 @@ func TestConvertUserToUserInfo(t *testing.T) {
 		t.Errorf("Expected nickname 'testuser', got %s", user.Nickname)
 	}
 }
+
+// ==================== 更换手机号测试 ====================
+
+// TestIsValidPhone 测试手机号格式验证
+// 验证手机号格式是否正确（11位数字，以1开头，第二位为3-9）
+func TestIsValidPhone(t *testing.T) {
+	tests := []struct {
+		name     string
+		phone    string
+		expected bool
+	}{
+		{"Valid phone 138", "13800138000", true},
+		{"Valid phone 159", "15900159000", true},
+		{"Valid phone 188", "18800188000", true},
+		{"Valid phone 199", "19900199000", true},
+		{"Invalid - too short", "1380013800", false},
+		{"Invalid - too long", "138001380000", false},
+		{"Invalid - starts with 0", "03800138000", false},
+		{"Invalid - second digit 0", "10800138000", false},
+		{"Invalid - second digit 1", "11800138000", false},
+		{"Invalid - second digit 2", "12800138000", false},
+		{"Invalid - letters", "138abc13800", false},
+		{"Invalid - empty", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidPhone(tt.phone)
+			if result != tt.expected {
+				t.Errorf("isValidPhone(%q) = %v, want %v", tt.phone, result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestChangePhoneRequest_Structure 测试更换手机号请求结构体
+// 验证 ChangePhoneRequest 包含所有必要字段
+func TestChangePhoneRequest_Structure(t *testing.T) {
+	req := ChangePhoneRequest{
+		UID:      "12345678901234567890",
+		NewPhone: "13900139000",
+		Code:     "123456",
+		IP:       "127.0.0.1",
+		DeviceID: "device123",
+		UA:       "TestAgent/1.0",
+	}
+
+	if req.UID != "12345678901234567890" {
+		t.Errorf("Expected UID '12345678901234567890', got %s", req.UID)
+	}
+
+	if req.NewPhone != "13900139000" {
+		t.Errorf("Expected NewPhone '13900139000', got %s", req.NewPhone)
+	}
+
+	if req.Code != "123456" {
+		t.Errorf("Expected Code '123456', got %s", req.Code)
+	}
+}

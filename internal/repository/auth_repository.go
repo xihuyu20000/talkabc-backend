@@ -59,6 +59,13 @@ func ClearUserLoginState(userID uint) error {
 	return nil
 }
 
+// SaveUserToken 保存用户token到Redis
+// 【安全规则】登录成功后将token保存到Redis，支持主动失效（如更换手机号、修改密码后）
+func SaveUserToken(uid, token string) error {
+	tokenKey := fmt.Sprintf("user_token:%s", uid)
+	return config.RDB.Set(context.Background(), tokenKey, token, 7*24*time.Hour).Err()
+}
+
 // CreateUser 创建用户
 func CreateUser(user *model.User) error {
 	return config.DB.Create(user).Error
@@ -67,6 +74,33 @@ func CreateUser(user *model.User) error {
 // UpdateUser 更新用户信息
 func UpdateUser(user *model.User) error {
 	return config.DB.Save(user).Error
+}
+
+// CheckPhoneExists 检查手机号是否已存在
+// 【更换手机号安全规则3】新手机号必须未被注册
+func CheckPhoneExists(phoneNum string) (bool, error) {
+	var count int
+	err := config.DB.Model(&model.User{}).Where("phone_num = ?", phoneNum).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// UpdateUserPhone 更新用户手机号
+// 【更换手机号】更新用户手机号，并清空用户登录态
+func UpdateUserPhone(userID uint, newPhoneNum string) error {
+	user, err := GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.PhoneNum = newPhoneNum
+	if err := config.DB.Save(user).Error; err != nil {
+		return err
+	}
+
+	return ClearUserLoginState(userID)
 }
 
 // ==================== 验证码基础操作 ====================
@@ -116,6 +150,43 @@ func VerifyAndDeleteVerificationCode(phoneNum, code, codeType, tag string) (bool
 	}
 
 	return result.(int64) == 1, nil
+}
+
+// VerifyVerificationCode 验证验证码（不删除，用于更换手机号等场景）
+// 【更换手机号安全规则4】仅验证验证码有效性，不删除，由后续流程清理
+func VerifyVerificationCode(phoneNum, code, codeType, tag string) (bool, error) {
+	key := getVerificationCodeKey(phoneNum, codeType, tag)
+
+	storedCode, err := config.RDB.Get(context.Background(), key).Result()
+	if err != nil {
+		return false, err
+	}
+
+	return storedCode == code, nil
+}
+
+// ClearVerificationCode 清理验证码
+// 【更换手机号安全规则6】验证通过后清理验证码，防止二次复用
+func ClearVerificationCode(phoneNum, codeType, tag string) error {
+	key := getVerificationCodeKey(phoneNum, codeType, tag)
+	return config.RDB.Del(context.Background(), key).Err()
+}
+
+// CheckChangePhoneRateLimit 检查更换手机号频率限制（24小时内最多3次）
+// 【更换手机号安全规则5】同一账号24小时最多允许更换3次手机号
+func CheckChangePhoneRateLimit(userID uint) (bool, error) {
+	key := fmt.Sprintf("change_phone_rate_limit:%d", userID)
+
+	current, err := config.RDB.Incr(context.Background(), key).Result()
+	if err != nil {
+		return false, err
+	}
+
+	if current == 1 {
+		config.RDB.Expire(context.Background(), key, 24*time.Hour)
+	}
+
+	return current > 3, nil
 }
 
 // ==================== 发送频率限制 ====================
