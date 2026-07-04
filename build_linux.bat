@@ -5,8 +5,14 @@ echo   TalkABC - Linux 64-bit Cross Build Script
 echo ============================================
 echo.
 echo Cleaning previous build...
-if exist talkabc del /f talkabc
-if exist talkabc.exe del /f talkabc.exe
+if exist talkabc (
+    echo Found existing talkabc file, deleting...
+    del /f /q talkabc
+)
+if exist talkabc.exe (
+    echo Found existing talkabc.exe file, deleting...
+    del /f /q talkabc.exe
+)
 echo.
 echo Building with GOOS=linux GOARCH=amd64...
 echo.
