@@ -192,7 +192,6 @@ func CheckProfileStatus(c *gin.Context) {
 // @Produce application/json
 // @Security BearerAuth
 // @Param body body map[string]string true "签名内容"
-// @Param body.sign_text string true "个性签名（最大200字符，禁止包含敏感词、超链接、HTML标签、脚本代码等）"
 // @Success 200 {object} map[string]interface{} "保存成功"
 // @Failure 400 {object} map[string]interface{} "参数错误或签名包含违规内容"
 // @Failure 500 {object} map[string]interface{} "保存失败"

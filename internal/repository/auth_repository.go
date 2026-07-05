@@ -495,6 +495,24 @@ func LogOperation(userID uint, ip, ua, operation string, success bool, detail st
 	return config.DB.Create(operationLog).Error
 }
 
+// GetOperationLogsByUserID 根据用户ID查询操作日志
+func GetOperationLogsByUserID(userID uint) ([]model.OperationLog, error) {
+	var logs []model.OperationLog
+	err := config.DB.Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&logs).Error
+	return logs, err
+}
+
+// GetOperationLogsByOperation 根据操作类型查询操作日志
+func GetOperationLogsByOperation(operation string) ([]model.OperationLog, error) {
+	var logs []model.OperationLog
+	err := config.DB.Where("operation = ?", operation).
+		Order("created_at DESC").
+		Find(&logs).Error
+	return logs, err
+}
+
 // SavePasswordHistory 保存密码历史记录
 // 【最低安全策略】记录用户历史密码，禁止和历史5次旧密码重复
 func SavePasswordHistory(userID uint, passwordHash string) error {

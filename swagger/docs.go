@@ -55,6 +55,80 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/change-phone": {
+            "post": {
+                "description": "已登录用户更换绑定的手机号\n安全规则：\n1. 必须已登录（JWT验证）\n2. 验证新手机号格式\n3. 新手机号必须未被注册\n4. 验证新手机号的短信验证码\n5. 频率限制（24小时内最多更换3次）\n6. 更新手机号后清空所有登录态\n7. 记录操作日志（不可删除）",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "更换手机号",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "新手机号",
+                        "name": "new_phone",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "新手机号验证码",
+                        "name": "code",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备ID",
+                        "name": "device_id",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更换成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或安全校验失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "更换失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/auth/code-alnum": {
             "get": {
                 "description": "使用base64Captcha生成数字图形验证码图片，返回验证码ID和base64图片数据。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 使用base64Captcha库生成不可预测的验证码；3. 验证码存储在Redis中，不记录到日志文件",
@@ -133,7 +207,7 @@ const docTemplate = `{
         },
         "/auth/code-sms": {
             "get": {
-                "description": "向指定手机号发送短信验证码。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 验证码为6位纯数字；3. 每个手机号60秒内只能发送一次（服务器端校验）；4. 同一手机号同一时间只有一个有效验证码（最新的为准）；5. 验证码最多使用1次（验证后立即删除）；6. 验证码不记录到日志文件；7. 发送前验证图形验证码（每日首次发送免图形验证码）；8. 1小时内发送次数限制10次；9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）",
+                "description": "向指定手机号发送短信验证码\n安全规则：\n1. 验证码有效期5分钟（Redis TTL控制）\n2. 验证码为6位纯数字\n3. 每个手机号60秒内只能发送一次（服务器端校验）\n4. 同一手机号同一时间只有一个有效验证码（最新的为准）\n5. 验证码最多使用1次（验证后立即删除）\n6. 验证码不记录到日志文件\n7. 发送前验证图形验证码（每日首次发送免图形验证码）\n8. 1小时内发送次数限制10次\n9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）",
                 "consumes": [
                     "application/json"
                 ],
@@ -243,7 +317,7 @@ const docTemplate = `{
         },
         "/auth/login/code": {
             "post": {
-                "description": "使用手机号和验证码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后清理验证码，防止二次复用；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）",
+                "description": "使用手机号和验证码登录\n\n**安全规则：**\n- 1. IP黑名单检查\n- 2. IP登录频率限制（1分钟10次）\n- 3. 手机号黑名单检查\n- 4. 设备黑名单检查\n- 5. 登录失败次数限制（5分钟内5次失败锁定15分钟）\n- 6. 用户账号状态检查（正常/封禁/注销）\n- 7. 登录成功后清理验证码，防止二次复用\n- 8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）",
                 "consumes": [
                     "application/json"
                 ],
@@ -278,7 +352,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "登录成功，返回token",
+                        "description": "登录成功，返回access_token和refresh_token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -303,7 +377,7 @@ const docTemplate = `{
         },
         "/auth/login/password": {
             "post": {
-                "description": "使用手机号和密码登录。安全规则：1. IP黑名单检查；2. IP登录频率限制（1分钟10次）；3. 手机号黑名单检查；4. 设备黑名单检查；5. 登录失败次数限制（5分钟内5次失败锁定15分钟）；6. 用户账号状态检查（正常/封禁/注销）；7. 登录成功后重置失败次数；8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；密码存储：使用bcrypt加密（cost=10，自动内置盐）",
+                "description": "使用手机号和密码登录\n\n**安全规则：**\n- 1. IP黑名单检查\n- 2. IP登录频率限制（1分钟10次）\n- 3. 手机号黑名单检查\n- 4. 设备黑名单检查\n- 5. 登录失败次数限制（5分钟内5次失败锁定15分钟）\n- 6. 用户账号状态检查（正常/封禁/注销）\n- 7. 登录成功后重置失败次数\n- 8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）\n\n**密码存储：** 使用bcrypt加密（cost=10，自动内置盐）",
                 "consumes": [
                     "application/json"
                 ],
@@ -338,7 +412,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "登录成功，返回token",
+                        "description": "登录成功，返回access_token和refresh_token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -390,9 +464,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/refresh-token": {
+            "post": {
+                "description": "使用刷新令牌获取新的访问令牌和刷新令牌\n\n**安全规则：**\n- 1. 验证刷新令牌格式（必须包含随机部分和JWT部分）\n- 2. 验证刷新令牌签名有效性\n- 3. 验证刷新令牌是否在Redis中存在且一致（防止滥用）\n- 4. 验证用户是否存在且账号状态正常\n- 5. 生成新的访问令牌和刷新令牌（刷新令牌轮转）\n- 6. 将新令牌保存到Redis，旧令牌失效\n- 7. 记录刷新操作日志（不可删除）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "刷新访问令牌",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "刷新令牌",
+                        "name": "refresh_token",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "刷新成功，返回新的access_token和refresh_token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "刷新令牌无效或已过期",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "刷新失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/auth/register": {
             "post": {
-                "description": "使用手机号、验证码和密码进行注册。安全规则：1. IP黑名单检查；2. IP注册频率限制（1分钟10次）；3. 手机号黑名单检查；4. 手机号唯一性检查；5. 设备黑名单检查；6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）；7. 注册成功后清理验证码；8. 记录注册操作日志（不可删除）",
+                "description": "使用手机号、验证码和密码进行注册\n安全规则：\n1. IP黑名单检查\n2. IP注册频率限制（1分钟10次）\n3. 手机号黑名单检查\n4. 手机号唯一性检查\n5. 设备黑名单检查\n6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）\n7. 注册成功后清理验证码\n8. 记录注册操作日志（不可删除）",
                 "consumes": [
                     "application/json"
                 ],
@@ -434,7 +555,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "注册成功，返回token",
+                        "description": "注册成功，返回access_token和refresh_token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -459,7 +580,7 @@ const docTemplate = `{
         },
         "/auth/reset-password/complete": {
             "post": {
-                "description": "使用重置Token设置新密码。安全规则：1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）；2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）；3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码；4. 记录敏感操作日志（不可删除）；5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用",
+                "description": "使用重置Token设置新密码\n安全规则：\n1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）\n2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）\n3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码\n4. 记录敏感操作日志（不可删除）\n5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用",
                 "consumes": [
                     "application/json"
                 ],
@@ -526,7 +647,7 @@ const docTemplate = `{
         },
         "/auth/reset-password/initiate": {
             "post": {
-                "description": "根据手机号发起密码重置，生成重置Token并发送。安全规则：1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h；2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；3. Token设计：单次有效（使用后立即销毁）、短有效期（5分钟）、不可预测（crypto/rand生成）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）",
+                "description": "根据手机号发起密码重置，生成重置Token并发送\n安全规则：\n1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h\n2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）\nToken设计：\n- 单次有效（使用后立即销毁）\n- 短有效期（5分钟）\n- 不可预测（crypto/rand生成）\n- 绑定userID+设备标识\n- 禁止明文存库（仅存储sha256哈希）",
                 "consumes": [
                     "application/json"
                 ],
@@ -579,7 +700,7 @@ const docTemplate = `{
         },
         "/auth/reset-password/validate": {
             "get": {
-                "description": "验证重置Token是否存在、未使用、未过期。Token设计：单次有效、短有效期（5分钟）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）",
+                "description": "验证重置Token是否存在、未使用、未过期\nToken设计：\n- 单次有效（使用后立即销毁）\n- 短有效期（5分钟）\n- 绑定userID+设备标识\n- 禁止明文存库（仅存储sha256哈希）",
                 "consumes": [
                     "application/json"
                 ],
@@ -1421,6 +1542,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/profile/complete": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "用户完成所有资料收集后调用此接口，标记资料收集状态为已完成，允许进入首页",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人资料"
+                ],
+                "summary": "完成资料收集",
+                "responses": {
+                    "200": {
+                        "description": "标记成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "操作失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/profile/me": {
             "post": {
                 "security": [
@@ -1428,7 +1592,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户完善个人资料信息",
+                "description": "用户完善个人资料信息\n收集内容包括：昵称、性别、出生年份、身高、体重、城市、学校、职业、教育程度、星座、爱好、交友目的等\n【安全规则】昵称需通过以下校验：\n1. 长度：2-20个字符\n2. 字符类型：仅允许中文、英文、数字、下划线、连字符\n3. 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇\n4. URL过滤：禁止包含超链接\n5. HTML过滤：禁止包含HTML标签\n6. XSS过滤：禁止包含XSS攻击代码",
                 "consumes": [
                     "application/json"
                 ],
@@ -1460,7 +1624,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "参数错误",
+                        "description": "参数错误或昵称包含违规内容",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1483,7 +1647,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户设置理想对象的筛选条件",
+                "description": "用户设置理想对象的筛选条件\n设置内容包括：年龄范围、性别、身高范围、体重范围、教育程度、星座、爱好等",
                 "consumes": [
                     "application/json"
                 ],
@@ -1523,6 +1687,106 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "保存失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/sign": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "用户设置个人主页的个性签名\n【安全规则】签名需通过以下校验：\n1. 长度：最大200字符\n2. 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇\n3. URL过滤：禁止包含 http/https/www 等超链接\n4. HTML过滤：禁止包含 HTML 标签\n5. JavaScript过滤：禁止包含脚本代码（如 \u003cscript\u003e、eval()、alert()）\n6. SQL注入过滤：禁止包含 SQL 注入代码（如 SELECT、INSERT、OR 1=1）\n7. XSS过滤：禁止包含 XSS 攻击代码（如 onclick=、onerror=）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人资料"
+                ],
+                "summary": "设置个性签名",
+                "parameters": [
+                    {
+                        "description": "签名内容",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "保存成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或签名包含违规内容",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "保存失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "检查用户是否已完成资料收集，用于首次登录时判断是否需要跳转到资料收集页面",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人资料"
+                ],
+                "summary": "检查资料收集状态",
+                "responses": {
+                    "200": {
+                        "description": "data.profile_completed\": true表示已完成，false表示需要收集",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2175,13 +2439,15 @@ const docTemplate = `{
                     "200": {
                         "description": "在线状态数据",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "查询失败",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -2222,39 +2488,24 @@ const docTemplate = `{
                     "400": {
                         "description": "缺少token或用户ID无效",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
                         "description": "token无效",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "连接升级失败",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
-                }
-            }
-        }
-    },
-    "definitions": {
-        "response.Response": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "description": "状态码：0-成功，其他-失败",
-                    "type": "integer"
-                },
-                "data": {
-                    "description": "响应数据"
-                },
-                "msg": {
-                    "description": "响应消息",
-                    "type": "string"
                 }
             }
         }
@@ -2272,7 +2523,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/api/v1",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "TalkABC API",
 	Description:      "TalkABC 聊天交友平台后端 API 文档",

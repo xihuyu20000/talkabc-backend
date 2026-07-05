@@ -31,9 +31,9 @@ var wsUpgrader = websocket.Upgrader{
 // @Param token query string true "JWT令牌"
 // @Param deviceId query string false "设备标识，不传则使用客户端IP"
 // @Success 101 "WebSocket连接升级成功"
-// @Failure 400 {object} response.Response "缺少token或用户ID无效"
-// @Failure 401 {object} response.Response "token无效"
-// @Failure 500 {object} response.Response "连接升级失败"
+// @Failure 400 {object} map[string]interface{} "缺少token或用户ID无效"
+// @Failure 401 {object} map[string]interface{} "token无效"
+// @Failure 500 {object} map[string]interface{} "连接升级失败"
 // @Router /ws [get]
 //
 // 业务流程：
@@ -93,8 +93,8 @@ func WebSocketHandler(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Success 200 {object} response.Response "在线状态数据"
-// @Failure 500 {object} response.Response "查询失败"
+// @Success 200 {object} map[string]interface{} "在线状态数据"
+// @Failure 500 {object} map[string]interface{} "查询失败"
 // @Router /v1/onlinestatus [get]
 //
 // 业务流程：
