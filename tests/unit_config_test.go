@@ -6,23 +6,23 @@ import (
 )
 
 func TestInitConfig_LoadsCorrectly(t *testing.T) {
-	config.InitConfig("../config.yaml")
+	config.InitConfig("../config/config.yaml")
 
 	t.Run("System config", func(t *testing.T) {
-		if config.AppConfig.System.Reset != 1 {
-			t.Errorf("System.Reset = %d, want 1", config.AppConfig.System.Reset)
+		if config.AppConfig.System.Reset != 0 {
+			t.Errorf("System.Reset = %d, want 0", config.AppConfig.System.Reset)
 		}
 	})
 
 	t.Run("Logger config", func(t *testing.T) {
-		if config.AppConfig.Logger.Level != "debug" {
-			t.Errorf("Logger.Level = %q, want %q", config.AppConfig.Logger.Level, "debug")
+		if config.AppConfig.Logger.Level != "info" {
+			t.Errorf("Logger.Level = %q, want %q", config.AppConfig.Logger.Level, "info")
 		}
 		if config.AppConfig.Logger.Format != "console" {
 			t.Errorf("Logger.Format = %q, want %q", config.AppConfig.Logger.Format, "console")
 		}
-		if config.AppConfig.Logger.Output != "both" {
-			t.Errorf("Logger.Output = %q, want %q", config.AppConfig.Logger.Output, "both")
+		if config.AppConfig.Logger.Output != "console" {
+			t.Errorf("Logger.Output = %q, want %q", config.AppConfig.Logger.Output, "console")
 		}
 		if config.AppConfig.Logger.FilePath != "./logs/app.log" {
 			t.Errorf("Logger.FilePath = %q, want %q", config.AppConfig.Logger.FilePath, "./logs/app.log")
@@ -72,12 +72,6 @@ func TestInitConfig_LoadsCorrectly(t *testing.T) {
 		if config.AppConfig.SMSProvider.Aliyun.RegionID != "cn-hangzhou" {
 			t.Errorf("SMSProvider.Aliyun.RegionID = %q, want %q", config.AppConfig.SMSProvider.Aliyun.RegionID, "cn-hangzhou")
 		}
-		if config.AppConfig.SMSProvider.Aliyun.AccessKeyId != "LTAI5t9SjFKPgCJYjXNj4317" {
-			t.Errorf("SMSProvider.Aliyun.AccessKeyId = %q, want %q", config.AppConfig.SMSProvider.Aliyun.AccessKeyId, "LTAI5t9SjFKPgCJYjXNj4317")
-		}
-		if config.AppConfig.SMSProvider.Aliyun.AccessKeySecret != "9doYxXxU5GMd1QqmNdKHAT7P3a0uXF" {
-			t.Errorf("SMSProvider.Aliyun.AccessKeySecret = %q, want %q", config.AppConfig.SMSProvider.Aliyun.AccessKeySecret, "9doYxXxU5GMd1QqmNdKHAT7P3a0uXF")
-		}
 	})
 
 	t.Run("Server config", func(t *testing.T) {
@@ -96,8 +90,8 @@ func TestInitConfig_LoadsCorrectly(t *testing.T) {
 		if config.AppConfig.Database.User != "postgres" {
 			t.Errorf("Database.User = %q, want %q", config.AppConfig.Database.User, "postgres")
 		}
-		if config.AppConfig.Database.Password != "admin" {
-			t.Errorf("Database.Password = %q, want %q", config.AppConfig.Database.Password, "admin")
+		if config.AppConfig.Database.Password != "" {
+			t.Errorf("Database.Password = %q, want %q", config.AppConfig.Database.Password, "")
 		}
 		if config.AppConfig.Database.DBName != "talkabc" {
 			t.Errorf("Database.DBName = %q, want %q", config.AppConfig.Database.DBName, "talkabc")
@@ -111,8 +105,8 @@ func TestInitConfig_LoadsCorrectly(t *testing.T) {
 		if config.AppConfig.JWT.Secret != "talkabc_jwt_secret_key" {
 			t.Errorf("JWT.Secret = %q, want %q", config.AppConfig.JWT.Secret, "talkabc_jwt_secret_key")
 		}
-		if config.AppConfig.JWT.ExpiresHour != 24 {
-			t.Errorf("JWT.ExpiresHour = %d, want 24", config.AppConfig.JWT.ExpiresHour)
+		if config.AppConfig.JWT.ExpiresHour != 2 {
+			t.Errorf("JWT.ExpiresHour = %d, want 2", config.AppConfig.JWT.ExpiresHour)
 		}
 	})
 
@@ -144,8 +138,14 @@ func TestInitConfig_LoadsCorrectly(t *testing.T) {
 	})
 
 	t.Run("CORS config", func(t *testing.T) {
-		if len(config.AppConfig.CORS.Origins) != 1 || config.AppConfig.CORS.Origins[0] != "*" {
-			t.Errorf("CORS.Origins = %v, want [\"*\"]", config.AppConfig.CORS.Origins)
+		if len(config.AppConfig.CORS.Origins) != 2 {
+			t.Errorf("CORS.Origins length = %d, want 2", len(config.AppConfig.CORS.Origins))
+		}
+		expectedOrigins := []string{"http://localhost:3000", "http://localhost:8080"}
+		for i, origin := range expectedOrigins {
+			if config.AppConfig.CORS.Origins[i] != origin {
+				t.Errorf("CORS.Origins[%d] = %q, want %q", i, config.AppConfig.CORS.Origins[i], origin)
+			}
 		}
 		if !config.AppConfig.CORS.Credentials {
 			t.Error("CORS.Credentials = false, want true")

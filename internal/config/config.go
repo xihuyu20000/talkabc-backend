@@ -227,7 +227,6 @@ func loadConfig(filePath string, cfg *Config) error {
 //   1. 环境变量 APP_CONFIG 指定的配置文件路径
 //   2. 环境变量 APP_ENV 指定的环境配置文件（config/config.{APP_ENV}.yaml）
 //   3. 默认配置文件（config/config.yaml）
-//   4. 旧版配置文件（./config.yaml，兼容旧版本）
 func InitConfigDefault() {
 	// 1. 优先使用 APP_CONFIG 环境变量指定的配置文件
 	if customConfig := os.Getenv("APP_CONFIG"); customConfig != "" {
@@ -252,13 +251,6 @@ func InitConfigDefault() {
 	if _, err := os.Stat("./config/config.yaml"); err == nil {
 		logger.Infof("[Config] Using default config file: ./config/config.yaml")
 		InitConfig("./config/config.yaml")
-		return
-	}
-
-	// 4. 兼容旧版本：使用根目录下的 config.yaml
-	if _, err := os.Stat("./config.yaml"); err == nil {
-		logger.Warnf("[Config] Using legacy config file: ./config.yaml (please move to config/config.yaml)")
-		InitConfig("./config.yaml")
 		return
 	}
 

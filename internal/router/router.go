@@ -1,7 +1,7 @@
 package router
 
 import (
-	_ "backend/docs"
+	_ "backend/swagger"
 	"backend/internal/config"     // 配置模块
 	"backend/internal/handler"    // 处理器函数
 	"backend/internal/middleware" // 中间件（JWT认证等）
