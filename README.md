@@ -29,8 +29,10 @@ backend/
 │   └── server/
 │       └── main.go              # 程序入口文件
 ├── config/                       # 配置文件目录
-│   └── logger.yaml              # 日志独立配置文件
-├── config.yaml                  # 主配置文件
+│   ├── config.yaml              # 默认配置文件（公共部分）
+│   ├── config.dev.yaml          # 开发环境配置（不上传Git）
+│   ├── config.test.yaml         # 测试环境配置（不上传Git）
+│   └── config.prod.yaml         # 生产环境配置（不上传Git，含环境变量）
 ├── go.mod                      # Go模块依赖管理文件
 ├── go.sum                      # 依赖校验文件
 ├── internal/                    # 内部包（只能被本项目引用）
@@ -182,9 +184,68 @@ WS Handler验证JWT token
 
 ## 配置说明
 
-### 主配置文件 (config.yaml)
+### 多环境配置
 
-编辑 `config.yaml`:
+项目支持多环境配置，配置文件位于 `config/` 目录下：
+
+| 文件 | 说明 | 是否上传Git |
+|------|------|-------------|
+| `config/config.yaml` | 默认配置（公共部分） | 是 |
+| `config/config.dev.yaml` | 开发环境配置 | 否 |
+| `config/config.test.yaml` | 测试环境配置 | 否 |
+| `config/config.prod.yaml` | 生产环境配置（含环境变量引用） | 否 |
+
+### 配置文件加载优先级
+
+1. **APP_CONFIG 环境变量**：指定完整配置文件路径
+2. **APP_ENV 环境变量**：根据环境选择配置文件（`config/config.{APP_ENV}.yaml`）
+3. **默认配置文件**：`config/config.yaml`
+4. **兼容旧版本**：`./config.yaml`
+
+### 环境变量引用
+
+生产环境配置支持 `${ENV_VAR}` 格式引用环境变量：
+
+```yaml
+database:
+  host: "${DB_HOST}"
+  password: "${DB_PASSWORD}"
+```
+
+### 各环境配置差异
+
+| 配置项 | 开发环境 | 测试环境 | 生产环境 |
+|--------|----------|----------|----------|
+| 日志级别 | debug | info | warn |
+| 日志格式 | console | json | json |
+| 短信冷却 | 10秒 | 60秒 | 60秒 |
+| CORS | `*` | 指定域名 | 指定域名 |
+| JWT密钥 | dev_secret | test_secret | 环境变量 |
+| 数据库 | talkabc | talkabc_test | 环境变量 |
+
+### 快速开始
+
+```bash
+# 开发环境
+export APP_ENV=dev
+go run ./cmd/server
+
+# 测试环境
+export APP_ENV=test
+go run ./cmd/server
+
+# 生产环境
+export APP_ENV=prod
+export DB_HOST=prod-db.example.com
+export DB_PASSWORD=your_secret
+go run ./cmd/server
+
+# 指定自定义配置文件
+export APP_CONFIG=/path/to/custom/config.yaml
+go run ./cmd/server
+```
+
+### 配置文件示例
 
 ```yaml
 # 系统配置
@@ -352,6 +413,54 @@ go build -o talkabc.exe ./cmd/server
 7. 初始化短信网关
 8. 创建上传文件目录
 9. 监听 8080 端口
+
+---
+
+## 构建脚本
+
+项目提供了多个环境的构建脚本：
+
+| 脚本 | 说明 | 输出文件 |
+|------|------|----------|
+| `build_dev.bat` | 开发环境构建 | `talkabc-dev` |
+| `build_test.bat` | 测试环境构建 | `talkabc-test` |
+| `build_prod.bat` | 生产环境构建（含版本信息） | `talkabc` |
+
+### 构建命令
+
+```bash
+# 开发环境
+build_dev.bat
+
+# 测试环境
+build_test.bat
+
+# 生产环境
+build_prod.bat
+
+# 手动构建（开发环境）
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-w -s" -o talkabc-dev ./cmd/server
+
+# 手动构建（生产环境，含版本信息）
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+go build -ldflags "-w -s \
+  -X main.Version=1.0.0 \
+  -X main.BuildTime=$(date +%Y%m%d-%H%M%S) \
+  -X main.GitCommit=$(git rev-parse --short HEAD)" \
+  -o talkabc ./cmd/server
+```
+
+### 版本信息
+
+生产环境构建会注入以下版本信息：
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `Version` | 版本号 | `1.0.0` |
+| `BuildTime` | 构建时间 | `20260705-103000` |
+| `GitCommit` | Git提交哈希 | `a1b2c3d` |
+
+服务启动时会输出以上信息。
 
 ---
 

@@ -4,6 +4,7 @@ import (
 	"backend/pkg/logger"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/gorm"
@@ -188,25 +189,81 @@ func getDefaultConfig() *Config {
 		},
 	}
 }
+// envPattern 匹配 ${ENV_VAR} 格式的环境变量引用
+var envPattern = regexp.MustCompile(`\$\{(\w+)\}`)
+
+// replaceEnvVars 替换配置内容中的环境变量引用
+// 支持 ${ENV_VAR} 格式，将其替换为对应的环境变量值
+func replaceEnvVars(content string) string {
+	return envPattern.ReplaceAllStringFunc(content, func(match string) string {
+		// 提取环境变量名，去掉 ${ 和 }
+		envName := match[2 : len(match)-1]
+		if envValue := os.Getenv(envName); envValue != "" {
+			return envValue
+		}
+		// 如果环境变量不存在，保留原始值
+		return match
+	})
+}
+
+// loadConfig 加载配置文件，支持环境变量替换
 func loadConfig(filePath string, cfg *Config) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	if err := yaml.Unmarshal(content, cfg); err != nil {
+	// 替换配置内容中的环境变量引用
+	contentStr := replaceEnvVars(string(content))
+
+	if err := yaml.Unmarshal([]byte(contentStr), cfg); err != nil {
 		return err
 	}
 
 	return nil
 }
-// InitConfig 初始化全局配置
-// 加载流程：
-//   1. 先创建带有默认值的配置对象
-//   2. 尝试从配置文件加载，配置文件中的值覆盖默认值
-//   3. 配置文件优先级：./config.yaml
+// InitConfigDefault 初始化全局配置
+// 配置文件加载优先级：
+//   1. 环境变量 APP_CONFIG 指定的配置文件路径
+//   2. 环境变量 APP_ENV 指定的环境配置文件（config/config.{APP_ENV}.yaml）
+//   3. 默认配置文件（config/config.yaml）
+//   4. 旧版配置文件（./config.yaml，兼容旧版本）
 func InitConfigDefault() {
-	InitConfig("./config.yaml")
+	// 1. 优先使用 APP_CONFIG 环境变量指定的配置文件
+	if customConfig := os.Getenv("APP_CONFIG"); customConfig != "" {
+		logger.Infof("[Config] Using custom config file: %s", customConfig)
+		InitConfig(customConfig)
+		return
+	}
+
+	// 2. 根据 APP_ENV 环境变量选择配置文件
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv != "" {
+		configPath := fmt.Sprintf("./config/config.%s.yaml", appEnv)
+		if _, err := os.Stat(configPath); err == nil {
+			logger.Infof("[Config] Using %s environment config: %s", appEnv, configPath)
+			InitConfig(configPath)
+			return
+		}
+		logger.Warnf("[Config] Environment config file not found: %s, falling back to default", configPath)
+	}
+
+	// 3. 使用默认配置文件
+	if _, err := os.Stat("./config/config.yaml"); err == nil {
+		logger.Infof("[Config] Using default config file: ./config/config.yaml")
+		InitConfig("./config/config.yaml")
+		return
+	}
+
+	// 4. 兼容旧版本：使用根目录下的 config.yaml
+	if _, err := os.Stat("./config.yaml"); err == nil {
+		logger.Warnf("[Config] Using legacy config file: ./config.yaml (please move to config/config.yaml)")
+		InitConfig("./config.yaml")
+		return
+	}
+
+	logger.Fatalf("[Config] No config file found. Please set APP_CONFIG or APP_ENV environment variable")
+	os.Exit(1)
 }
 func InitConfig(filePath string) {
 

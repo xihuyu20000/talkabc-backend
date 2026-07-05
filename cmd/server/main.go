@@ -28,6 +28,14 @@ import (
 	"strconv"
 )
 
+// 编译时注入的版本信息
+// 通过 go build -ldflags "-X main.Version=x.y.z" 注入
+var (
+	Version   string = "1.0.0"
+	BuildTime string = ""
+	GitCommit string = ""
+)
+
 func main() {
 	// 1. 加载配置文件
 	config.InitConfigDefault()
@@ -65,9 +73,17 @@ func main() {
 
 	port := config.AppConfig.Server.Port
 
-	logger.Infof("Server starting on port %d...", port)
+	// 5. 输出版本信息
+	logger.Infof("========================================")
+	logger.Infof("TalkABC API Server")
+	logger.Infof("========================================")
+	logger.Infof("Version:       %s", Version)
+	logger.Infof("Build Time:    %s", BuildTime)
+	logger.Infof("Git Commit:    %s", GitCommit)
+	logger.Infof("Port:          %d", port)
+	logger.Infof("========================================")
 
-	// 5. 启动服务器
+	// 6. 启动服务器
 	r.Run(":" + strconv.Itoa(port))
 }
 

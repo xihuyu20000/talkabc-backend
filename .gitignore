@@ -26,9 +26,29 @@ go.work.sum
 
 # env file
 .env
+.env.*
 
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Logs
 */**/*.log
+logs/
+
+# Uploads
+uploads/
+
+# Config files - exclude sensitive environment configs
+# Keep config/config.yaml (default config) but exclude environment-specific configs
+config/config.dev.yaml
+config/config.test.yaml
+config/config.prod.yaml
+
+# Build artifacts
 talkabc
+talkabc-dev
+talkabc-test
+
+# Old config file (legacy)
+config.yaml

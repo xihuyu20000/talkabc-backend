@@ -27,7 +27,9 @@ func InitTest() {
 func InitTestEnvironment() {
 	gin.SetMode(gin.TestMode)
 
-	config.InitConfigSafe("../config.yaml")
+	// 设置测试环境变量，加载测试配置文件
+	os.Setenv("APP_ENV", "test")
+	config.InitConfigSafe("../config/config.test.yaml")
 
 	initTestDatabase()
 	initTestRedis()
