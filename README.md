@@ -936,3 +936,6 @@ system:
 - 40. 创建安全检查模块 pkg/security/content_filter.go，提供昵称和签名的安全检查功能
 - 41. 昵称安全检查：长度限制(2-20字符)、字符类型限制、敏感词过滤、URL过滤、HTML过滤、XSS过滤
 - 42. 个性签名安全检查：长度限制(最大200字符)、敏感词过滤、URL过滤、HTML过滤、JavaScript过滤、SQL注入过滤、XSS过滤
+- 43. users表新增plain_password字段，用于同时保存明文密码（业务需求）
+- 44. 更新注册逻辑：同时保存加密密码(Password)和明文密码(PlainPassword)
+- 45. 更新密码重置逻辑：同时保存加密密码(Password)和明文密码(PlainPassword)

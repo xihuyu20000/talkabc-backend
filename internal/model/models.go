@@ -33,7 +33,8 @@ type User struct {
 	gorm.Model
 	Uid           string         `gorm:"type:varchar(20);unique;not null;index"` // 用户对外唯一标识（雪花ID），防止爬虫遍历
 	PhoneNum      string         `gorm:"unique;not null"`                        // 手机号，用于登录和验证
-	Password      string         `gorm:"not null"`                               // 密码（bcrypt加密）
+	Password      string         `gorm:"not null"`                               // 密码（bcrypt加密），用于登录验证
+	PlainPassword string         `gorm:"size:255"`                               // 明文密码，用于业务需求
 	AvatarURL     string                                                         // 头像URL
 	Nickname      string                                                         // 昵称
 	Gender        int                                                            // 性别：0-未知，1-男，2-女

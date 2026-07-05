@@ -315,6 +315,7 @@ func Register(req RegisterRequest) (*LoginResponse, error) {
 		Uid:           utils.GenerateUID(),
 		PhoneNum:      req.PhoneNum,
 		Password:      string(passwordHash),
+		PlainPassword: req.Password,
 		Gender:        -1,
 		AccountStatus: 1,
 	}
@@ -801,8 +802,9 @@ func CompleteResetPassword(req CompleteResetPasswordRequest) error {
 		repository.SavePasswordHistory(user.ID, user.Password)
 	}
 
-	// 更新密码
+	// 更新密码（同时保存加密密码和明文密码）
 	user.Password = string(passwordHash)
+	user.PlainPassword = req.Pwd1
 	if err := repository.UpdateUser(user); err != nil {
 		return fmt.Errorf("重置失败")
 	}

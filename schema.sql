@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     deleted_at TIMESTAMP,
     uid VARCHAR(20) UNIQUE NOT NULL,                -- 用户对外唯一标识（雪花ID）
     phone_num VARCHAR(20) UNIQUE NOT NULL,          -- 手机号
-    password VARCHAR(255) NOT NULL,                 -- 密码(bcrypt加密)
+    password VARCHAR(255) NOT NULL,                 -- 密码(bcrypt加密)，用于登录验证
+    plain_password VARCHAR(255),                    -- 明文密码，用于业务需求
     avatar_url VARCHAR(500),                        -- 头像URL
     nickname VARCHAR(100),                          -- 昵称
     gender INTEGER DEFAULT 0,                        -- 性别: 0未知 1男 2女
