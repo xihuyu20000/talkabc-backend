@@ -5,13 +5,25 @@ import (
 	"backend/internal/repository" // 数据访问层，用于更新用户最后活跃时间
 	"backend/pkg/response"        // 统一响应模块
 	"fmt"                         // 格式化字符串
-	"strings"                     // 字符串处理
+	"math/rand"
+	"time"
 
+	// 随机数生成
+	"strings" // 字符串处理
+
+	// 时间处理
 	"github.com/gin-gonic/gin"     // Gin框架
 	"github.com/golang-jwt/jwt/v5" // JWT库，用于生成和验证令牌
 )
 
 type Claims struct {
+	UID string `json:"uid"`
+	jwt.RegisteredClaims
+}
+
+// RefreshTokenClaims 刷新令牌声明
+// 【安全规则】刷新令牌需要比访问令牌更长的有效期，且包含用户ID用于验证
+type RefreshTokenClaims struct {
 	UID string `json:"uid"`
 	jwt.RegisteredClaims
 }
@@ -69,7 +81,7 @@ func JWT() gin.HandlerFunc {
 		// 【安全规则】检查令牌是否在Redis中有效（支持主动失效，如更换手机号后）
 		tokenKey := fmt.Sprintf("user_token:%s", claims.UID)
 		validToken, err := config.RDB.Get(c.Request.Context(), tokenKey).Result()
-		if err != nil || validToken == "" {
+		if err != nil || validToken == "" || validToken != token {
 			response.Unauthorized(c, "登录已失效，请重新登录")
 			c.Abort()
 			return
@@ -97,11 +109,75 @@ func GetUID(c *gin.Context) string {
 	return ""
 }
 
+// GenerateToken 生成访问令牌
+// 【安全规则】访问令牌有效期为2小时，过期后需要使用刷新令牌获取新令牌
+// 生成规则：包含用户ID、签发时间、过期时间和唯一标识(jti)，确保每次生成的token不同
 func GenerateToken(uid string) (string, error) {
 	claims := Claims{
 		UID: uid,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:         generateRandomString(16),
+			IssuedAt:   jwt.NewNumericDate(time.Now()),
+			ExpiresAt:  jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(config.AppConfig.JWT.Secret))
+}
+
+// GenerateRefreshToken 生成刷新令牌
+// 【安全规则】刷新令牌有效期为7天，比访问令牌长，用于获取新的访问令牌
+// 生成规则：使用随机字符串+JWT签名，确保安全性
+func GenerateRefreshToken(uid string) (string, error) {
+	randomPart := generateRandomString(32)
+	
+	claims := RefreshTokenClaims{
+		UID: uid,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(config.AppConfig.JWT.Secret))
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s:%s", randomPart, signedToken), nil
+}
+
+// generateRandomString 生成指定长度的随机字符串
+// 【安全规则】用于生成刷新令牌的随机部分，增加令牌复杂度
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+// ParseRefreshToken 解析刷新令牌
+// 【安全规则】验证刷新令牌格式和有效性，提取用户ID
+func ParseRefreshToken(refreshToken string) (string, error) {
+	parts := strings.SplitN(refreshToken, ":", 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("刷新令牌格式错误")
+	}
+
+	signedToken := parts[1]
+	claims := &RefreshTokenClaims{}
+
+	_, err := jwt.ParseWithClaims(signedToken, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.AppConfig.JWT.Secret), nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("刷新令牌无效")
+	}
+
+	return claims.UID, nil
 }

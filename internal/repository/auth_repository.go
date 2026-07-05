@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -47,6 +48,7 @@ func GetUserByPhone(phoneNum string) (*model.User, error) {
 
 // ClearUserLoginState 清空用户全部登录态
 // 【密码存储加密】重置成功后清空该用户全部登录态（Redis token、JWT、设备登录记录全部销毁）
+// 【刷新令牌安全规则】同时清除刷新令牌，防止被滥用
 func ClearUserLoginState(userID uint) error {
 	user, err := GetUserByID(userID)
 	if err != nil {
@@ -54,7 +56,9 @@ func ClearUserLoginState(userID uint) error {
 	}
 	
 	tokenKey := fmt.Sprintf("user_token:%s", user.Uid)
+	refreshTokenKey := fmt.Sprintf("user_refresh_token:%s", user.Uid)
 	config.RDB.Del(context.Background(), tokenKey)
+	config.RDB.Del(context.Background(), refreshTokenKey)
 	
 	return nil
 }
@@ -64,6 +68,35 @@ func ClearUserLoginState(userID uint) error {
 func SaveUserToken(uid, token string) error {
 	tokenKey := fmt.Sprintf("user_token:%s", uid)
 	return config.RDB.Set(context.Background(), tokenKey, token, 7*24*time.Hour).Err()
+}
+
+// SaveRefreshToken 保存刷新令牌到Redis
+// 【安全规则】刷新令牌存储在Redis中，key为用户ID，value为刷新令牌，支持主动失效
+// 一个用户只允许一个有效的刷新令牌（单设备登录）
+func SaveRefreshToken(uid, refreshToken string) error {
+	tokenKey := fmt.Sprintf("user_refresh_token:%s", uid)
+	return config.RDB.Set(context.Background(), tokenKey, refreshToken, 7*24*time.Hour).Err()
+}
+
+// ValidateRefreshToken 验证刷新令牌是否有效
+// 【安全规则】检查Redis中存储的刷新令牌是否与请求中的一致
+func ValidateRefreshToken(uid, refreshToken string) (bool, error) {
+	tokenKey := fmt.Sprintf("user_refresh_token:%s", uid)
+	storedToken, err := config.RDB.Get(context.Background(), tokenKey).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return false, nil
+		}
+		return false, err
+	}
+	return storedToken == refreshToken, nil
+}
+
+// InvalidateRefreshToken 使刷新令牌失效
+// 【安全规则】退出登录时清除刷新令牌，防止被滥用
+func InvalidateRefreshToken(uid string) error {
+	tokenKey := fmt.Sprintf("user_refresh_token:%s", uid)
+	return config.RDB.Del(context.Background(), tokenKey).Err()
 }
 
 // CreateUser 创建用户

@@ -373,7 +373,9 @@ go build -o talkabc.exe ./cmd/server
 | POST | `/api/v1/auth/register` | 用户注册 | 否 |
 | POST | `/api/v1/auth/login/code` | 验证码登录 | 否 |
 | POST | `/api/v1/auth/login/password` | 密码登录 | 否 |
+| POST | `/api/v1/auth/refresh-token` | 刷新访问令牌 | 否 |
 | POST | `/api/v1/auth/logout` | 用户退出 | 是 |
+| POST | `/api/v1/auth/change-phone` | 更换手机号 | 是 |
 | POST | `/api/v1/auth/reset-password/initiate` | 发起密码重置 | 否 |
 | GET | `/api/v1/auth/reset-password/validate` | 验证重置Token | 否 |
 | POST | `/api/v1/auth/reset-password/complete` | 完成密码重置 | 否 |
@@ -623,11 +625,37 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ```
 1. 用户登录（POST /api/v1/auth/login/code 或 /api/v1/auth/login/password）
-2. 服务器验证后返回JWT令牌
-3. 客户端在后续请求的Header中携带令牌
+2. 服务器验证后返回 access_token 和 refresh_token
+3. 客户端在后续请求的Header中携带 access_token
 4. 服务器通过JWT中间件验证令牌
 5. 验证通过后，将用户Uid存入上下文，继续处理请求
+6. access_token过期后，使用refresh_token获取新令牌（POST /api/v1/auth/refresh-token）
 ```
+
+### 双令牌机制
+
+系统采用双令牌机制提升安全性：
+
+| 令牌类型 | 有效期 | 用途 | 存储位置 |
+|----------|--------|------|----------|
+| access_token | 2小时 | 日常API访问认证 | 请求头Authorization |
+| refresh_token | 7天 | 获取新的access_token | 客户端本地存储 |
+
+**刷新令牌流程：**
+```
+1. 客户端检测access_token过期（401错误）
+2. 使用refresh_token调用POST /api/v1/auth/refresh-token
+3. 服务器验证refresh_token有效性（格式、签名、Redis存储校验）
+4. 生成新的access_token和refresh_token（令牌轮转）
+5. 旧令牌自动失效
+6. 返回新令牌给客户端
+```
+
+**安全规则：**
+- refresh_token存储在Redis中，退出登录时立即失效
+- 每次刷新生成新的refresh_token（令牌轮转）
+- JWT中间件验证请求中的token与Redis中存储的token一致，防止旧token滥用
+- 操作日志记录所有刷新令牌操作，不可删除
 
 ### 用户Uid说明
 
@@ -878,3 +906,9 @@ system:
 - 27. 所有Handler方法添加请求参数日志记录
 - 28. Handler层拆分为独立文件（auth_login、auth_register、profile、sys）
 - 29. 新增系统API接口（获取/修改日志级别）
+- 30. 实现双令牌机制（access_token + refresh_token），支持令牌刷新和轮转
+- 31. 新增刷新令牌接口 POST /api/v1/auth/refresh-token
+- 32. 新增更换手机号接口 POST /api/v1/auth/change-phone（需JWT认证）
+- 33. JWT中间件增强：验证Redis中存储的token与请求token一致，防止旧token滥用
+- 34. 退出登录时清除access_token和refresh_token，确保完全退出
+- 35. 操作日志增加refresh_token、change_phone操作类型记录

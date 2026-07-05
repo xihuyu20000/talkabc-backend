@@ -22,7 +22,16 @@ import (
 
 // Register 用户注册
 // @Summary 用户注册
-// @Description 使用手机号、验证码和密码进行注册。安全规则：1. IP黑名单检查；2. IP注册频率限制（1分钟10次）；3. 手机号黑名单检查；4. 手机号唯一性检查；5. 设备黑名单检查；6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）；7. 注册成功后清理验证码；8. 记录注册操作日志（不可删除）
+// @Description 使用手机号、验证码和密码进行注册
+// @Description 安全规则：
+// @Description 1. IP黑名单检查
+// @Description 2. IP注册频率限制（1分钟10次）
+// @Description 3. 手机号黑名单检查
+// @Description 4. 手机号唯一性检查
+// @Description 5. 设备黑名单检查
+// @Description 6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）
+// @Description 7. 注册成功后清理验证码
+// @Description 8. 记录注册操作日志（不可删除）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -30,7 +39,7 @@ import (
 // @Param code formData string true "验证码"
 // @Param password formData string true "密码（≥8位，至少包含两种字符类型）"
 // @Param device_id formData string false "设备ID"
-// @Success 200 {object} map[string]interface{} "注册成功，返回token"
+// @Success 200 {object} map[string]interface{} "注册成功，返回access_token和refresh_token"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
 // @Failure 500 {object} map[string]interface{} "注册失败"
 // @Router /auth/register [post]
@@ -62,13 +71,13 @@ func Register(c *gin.Context) {
 
 	logger.Infof("[Handler] Register - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
 
-	token, err := service.Register(req)
+	result, err := service.Register(req)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return
 	}
 
-	response.Success(c, gin.H{"token": token})
+	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken})
 }
 
 /**
@@ -116,7 +125,16 @@ bcrypt cost 设置 10～12，平衡安全与性能
 
 // InitiateResetPassword 发起密码重置（生成重置Token）
 // @Summary 发起密码重置
-// @Description 根据手机号发起密码重置，生成重置Token并发送。安全规则：1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h；2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）；3. Token设计：单次有效（使用后立即销毁）、短有效期（5分钟）、不可预测（crypto/rand生成）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）
+// @Description 根据手机号发起密码重置，生成重置Token并发送
+// @Description 安全规则：
+// @Description 1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h
+// @Description 2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）
+// @Description Token设计：
+// @Description - 单次有效（使用后立即销毁）
+// @Description - 短有效期（5分钟）
+// @Description - 不可预测（crypto/rand生成）
+// @Description - 绑定userID+设备标识
+// @Description - 禁止明文存库（仅存储sha256哈希）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -161,7 +179,12 @@ func InitiateResetPassword(c *gin.Context) {
 
 // ValidateResetToken 验证重置Token是否有效
 // @Summary 验证重置Token
-// @Description 验证重置Token是否存在、未使用、未过期。Token设计：单次有效、短有效期（5分钟）、绑定userID+设备标识、禁止明文存库（仅存储sha256哈希）
+// @Description 验证重置Token是否存在、未使用、未过期
+// @Description Token设计：
+// @Description - 单次有效（使用后立即销毁）
+// @Description - 短有效期（5分钟）
+// @Description - 绑定userID+设备标识
+// @Description - 禁止明文存库（仅存储sha256哈希）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -191,7 +214,13 @@ func ValidateResetToken(c *gin.Context) {
 
 // CompleteResetPassword 完成密码重置
 // @Summary 完成密码重置
-// @Description 使用重置Token设置新密码。安全规则：1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）；2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）；3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码；4. 记录敏感操作日志（不可删除）；5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用
+// @Description 使用重置Token设置新密码
+// @Description 安全规则：
+// @Description 1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）
+// @Description 2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）
+// @Description 3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码
+// @Description 4. 记录敏感操作日志（不可删除）
+// @Description 5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -242,7 +271,15 @@ func CompleteResetPassword(c *gin.Context) {
 
 // ChangePhone 更换手机号
 // @Summary 更换手机号
-// @Description 已登录用户更换绑定的手机号。安全规则：1. 必须已登录（JWT验证）；2. 验证新手机号格式；3. 新手机号必须未被注册；4. 验证新手机号的短信验证码；5. 频率限制（24小时内最多更换3次）；6. 更新手机号后清空所有登录态；7. 记录操作日志（不可删除）
+// @Description 已登录用户更换绑定的手机号
+// @Description 安全规则：
+// @Description 1. 必须已登录（JWT验证）
+// @Description 2. 验证新手机号格式
+// @Description 3. 新手机号必须未被注册
+// @Description 4. 验证新手机号的短信验证码
+// @Description 5. 频率限制（24小时内最多更换3次）
+// @Description 6. 更新手机号后清空所有登录态
+// @Description 7. 记录操作日志（不可删除）
 // @Tags 认证
 // @Accept application/x-www-form-urlencoded
 // @Produce application/json

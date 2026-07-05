@@ -152,7 +152,7 @@ func TestRegister_FullFlow(t *testing.T) {
 		}
 
 		// 验证JWT token存在且非空
-		token, ok := dataMap["token"].(string)
+		token, ok := dataMap["access_token"].(string)
 		if !ok || token == "" {
 			t.Error("Token should not be empty")
 		}

@@ -430,7 +430,7 @@ CREATE TABLE IF NOT EXISTS operation_logs (
     user_id INTEGER NOT NULL,                      -- 用户ID（0表示未登录或未知用户）
     ip VARCHAR(50),                                -- 操作IP
     ua VARCHAR(255),                               -- 设备UA
-    operation VARCHAR(50) NOT NULL,                -- 操作类型：register（注册）、login_code（验证码登录）、login_password（密码登录）、initiate_reset（发起重置）、complete_reset（完成重置）
+    operation VARCHAR(50) NOT NULL,                -- 操作类型：register（注册）、login_code（验证码登录）、login_password（密码登录）、initiate_reset（发起重置）、complete_reset（完成重置）、refresh_token（刷新令牌）、change_phone（更换手机号）
     success INTEGER DEFAULT 0,                     -- 是否成功：0-失败，1-成功
     detail VARCHAR(500)                            -- 操作详情
 );

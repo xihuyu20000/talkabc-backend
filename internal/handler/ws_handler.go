@@ -48,7 +48,7 @@ var wsUpgrader = websocket.Upgrader{
 func WebSocketHandler(c *gin.Context) {
 	token := c.Query("token")
 	if token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 1, "msg": "缺少token"})
+		response.BadRequest(c, "缺少token")
 		return
 	}
 
@@ -62,13 +62,13 @@ func WebSocketHandler(c *gin.Context) {
 		return []byte(config.AppConfig.JWT.Secret), nil
 	})
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"code": 1, "msg": "token无效"})
+		response.Unauthorized(c, "token无效")
 		return
 	}
 
 	uid, ok := (*claims)["uid"].(string)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 1, "msg": "用户ID无效"})
+		response.BadRequest(c, "用户ID无效")
 		return
 	}
 
@@ -76,7 +76,7 @@ func WebSocketHandler(c *gin.Context) {
 
 	conn, err := wsUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 1, "msg": "连接升级失败"})
+		response.InternalError(c, "连接升级失败")
 		return
 	}
 

@@ -36,6 +36,12 @@ type LoginRequest struct {
 	UA       string // 用户代理
 }
 
+// LoginResponse 登录响应
+type LoginResponse struct {
+	AccessToken  string // 访问令牌
+	RefreshToken string // 刷新令牌
+}
+
 // GenerateSMSCode 生成并发送短信验证码（带完整的频率限制和安全校验）
 // 参数说明：
 //   - req: 发送验证码请求，包含手机号、图形验证码ID、图形验证码、业务标签
@@ -243,66 +249,66 @@ type RegisterRequest struct {
 //   6. 【注册安全规则6】密码复杂度校验（最低安全策略）
 //   7. 【注册安全规则7】注册成功后清理验证码，防止二次复用
 //   8. 【注册安全规则8】记录注册操作日志（不可删除）
-func Register(req RegisterRequest) (string, error) {
+func Register(req RegisterRequest) (*LoginResponse, error) {
 	if req.PhoneNum == "" || req.Code == "" || req.Password == "" {
-		return "", fmt.Errorf("手机号、验证码和密码不能为空")
+		return nil, fmt.Errorf("手机号、验证码和密码不能为空")
 	}
 
 	// 【注册安全规则1】检查IP是否在黑名单中
 	if req.IP != "" && repository.CheckIPBlacklist(req.IP) {
 		repository.LogOperation(0, req.IP, req.UA, "register", false, "IP在黑名单中")
-		return "", fmt.Errorf("当前IP已被限制注册")
+		return nil, fmt.Errorf("当前IP已被限制注册")
 	}
 
 	// 【注册安全规则2】检查IP注册请求频率（1分钟10次）
 	if req.IP != "" {
 		rateLimitExceeded, err := repository.CheckRegisterIPRateLimit(req.IP)
 		if err != nil {
-			return "", fmt.Errorf("验证失败")
+			return nil, fmt.Errorf("验证失败")
 		}
 		if rateLimitExceeded {
 			repository.LogOperation(0, req.IP, req.UA, "register", false, "注册频率超限")
-			return "", fmt.Errorf("注册过于频繁，请稍后再试")
+			return nil, fmt.Errorf("注册过于频繁，请稍后再试")
 		}
 	}
 
 	// 【注册安全规则3】检查手机号是否在黑名单中
 	if repository.CheckPhoneBlacklist(req.PhoneNum) {
 		repository.LogOperation(0, req.IP, req.UA, "register", false, "手机号在黑名单中")
-		return "", fmt.Errorf("当前手机号已被限制注册")
+		return nil, fmt.Errorf("当前手机号已被限制注册")
 	}
 
 	// 【注册安全规则5】检查设备是否在黑名单中
 	if repository.CheckDeviceBlacklist(req.DeviceID) {
 		repository.LogOperation(0, req.IP, req.UA, "register", false, "设备在黑名单中")
-		return "", fmt.Errorf("当前设备已被限制注册")
+		return nil, fmt.Errorf("当前设备已被限制注册")
 	}
 
 	// 【功能10】使用register业务标签验证短信验证码
 	err := VerifySMSCode(req.PhoneNum, req.Code, "register")
 	if err != nil {
 		repository.LogOperation(0, req.IP, req.UA, "register", false, "验证码验证失败")
-		return "", err
+		return nil, err
 	}
 
 	// 【注册安全规则4】校验手机号是否已被占用（用户已存在）
 	existingUser, _ := repository.GetUserByPhone(req.PhoneNum)
 	if existingUser.ID != 0 {
 		repository.LogOperation(0, req.IP, req.UA, "register", false, "手机号已注册")
-		return "", fmt.Errorf("该手机号已注册")
+		return nil, fmt.Errorf("该手机号已注册")
 	}
 
 	// 【注册安全规则6】密码复杂度校验（最低安全策略）
 	emptyUser := &model.User{PhoneNum: req.PhoneNum}
 	if err := validatePasswordComplexity(req.Password, emptyUser); err != nil {
 		repository.LogOperation(0, req.IP, req.UA, "register", false, "密码复杂度校验失败")
-		return "", err
+		return nil, err
 	}
 
 	// 【密码存储加密】使用bcrypt加密（cost=10，自动内置盐）
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("注册失败")
+		return nil, fmt.Errorf("注册失败")
 	}
 
 	user := &model.User{
@@ -317,7 +323,7 @@ func Register(req RegisterRequest) (string, error) {
 	if err != nil {
 		logger.Errorf("[Register] CreateUser failed - PhoneNum: %s, Error: %v", req.PhoneNum, err)
 		repository.LogOperation(0, req.IP, req.UA, "register", false, "用户创建失败: "+err.Error())
-		return "", fmt.Errorf("注册失败: %v", err)
+		return nil, fmt.Errorf("注册失败: %v", err)
 	}
 
 	// 【注册安全规则7】注册成功后清理验证码，防止二次复用
@@ -326,15 +332,25 @@ func Register(req RegisterRequest) (string, error) {
 	// 【注册安全规则8】记录注册操作日志（不可删除）
 	repository.LogOperation(user.ID, req.IP, req.UA, "register", true, "注册成功")
 
-	token, err := middleware.GenerateToken(user.Uid)
+	// 【安全规则】生成访问令牌和刷新令牌
+	accessToken, err := middleware.GenerateToken(user.Uid)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// 【安全规则】将token保存到Redis，支持主动失效（如更换手机号后）
-	repository.SaveUserToken(user.Uid, token)
+	refreshToken, err := middleware.GenerateRefreshToken(user.Uid)
+	if err != nil {
+		return nil, err
+	}
 
-	return token, nil
+	// 【安全规则】将令牌保存到Redis，支持主动失效（如更换手机号后）
+	repository.SaveUserToken(user.Uid, accessToken)
+	repository.SaveRefreshToken(user.Uid, refreshToken)
+
+	return &LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 // LoginByCode 验证码登录（带安全校验）
@@ -347,72 +363,72 @@ func Register(req RegisterRequest) (string, error) {
 //   6. 【登录安全规则6】检查用户账号状态（正常/封禁/注销）
 //   7. 【登录安全规则7】登录成功后清理验证码，防止二次复用
 //   8. 【登录安全规则8】记录登录操作日志（不可删除）
-func LoginByCode(req LoginRequest) (string, error) {
+func LoginByCode(req LoginRequest) (*LoginResponse, error) {
 	if req.PhoneNum == "" || req.Code == "" {
-		return "", fmt.Errorf("手机号和验证码不能为空")
+		return nil, fmt.Errorf("手机号和验证码不能为空")
 	}
 
 	// 【登录安全规则1】检查IP是否在黑名单中
 	if req.IP != "" && repository.CheckIPBlacklist(req.IP) {
 		repository.LogOperation(0, req.IP, req.UA, "login_code", false, "IP在黑名单中")
-		return "", fmt.Errorf("当前IP已被限制登录")
+		return nil, fmt.Errorf("当前IP已被限制登录")
 	}
 
 	// 【登录安全规则2】检查IP登录请求频率（1分钟10次）
 	if req.IP != "" {
 		rateLimitExceeded, err := repository.CheckLoginIPRateLimit(req.IP)
 		if err != nil {
-			return "", fmt.Errorf("验证失败")
+			return nil, fmt.Errorf("验证失败")
 		}
 		if rateLimitExceeded {
 			repository.LogOperation(0, req.IP, req.UA, "login_code", false, "登录频率超限")
-			return "", fmt.Errorf("登录过于频繁，请稍后再试")
+			return nil, fmt.Errorf("登录过于频繁，请稍后再试")
 		}
 	}
 
 	// 【登录安全规则3】检查手机号是否在黑名单中
 	if repository.CheckPhoneBlacklist(req.PhoneNum) {
 		repository.LogOperation(0, req.IP, req.UA, "login_code", false, "手机号在黑名单中")
-		return "", fmt.Errorf("当前手机号已被限制登录")
+		return nil, fmt.Errorf("当前手机号已被限制登录")
 	}
 
 	// 【登录安全规则4】检查设备是否在黑名单中
 	if repository.CheckDeviceBlacklist(req.DeviceID) {
 		repository.LogOperation(0, req.IP, req.UA, "login_code", false, "设备在黑名单中")
-		return "", fmt.Errorf("当前设备已被限制登录")
+		return nil, fmt.Errorf("当前设备已被限制登录")
 	}
 
 	// 【登录安全规则5】检查登录失败次数（5分钟内5次失败锁定15分钟）
 	failedLocked, err := repository.CheckLoginFailedAttempt(req.PhoneNum)
 	if err != nil {
-		return "", fmt.Errorf("验证失败")
+		return nil, fmt.Errorf("验证失败")
 	}
 	if failedLocked {
 		repository.LogOperation(0, req.IP, req.UA, "login_code", false, "登录失败次数超限")
-		return "", fmt.Errorf("登录失败次数过多，请15分钟后再试")
+		return nil, fmt.Errorf("登录失败次数过多，请15分钟后再试")
 	}
 
 	// 【功能10】使用login业务标签验证短信验证码
 	err = VerifySMSCode(req.PhoneNum, req.Code, "login")
 	if err != nil {
 		repository.LogOperation(0, req.IP, req.UA, "login_code", false, "验证码验证失败")
-		return "", err
+		return nil, err
 	}
 
 	user, err := repository.GetUserByPhone(req.PhoneNum)
 	if err != nil {
 		repository.LogOperation(0, req.IP, req.UA, "login_code", false, "用户不存在")
-		return "", fmt.Errorf("用户不存在")
+		return nil, fmt.Errorf("用户不存在")
 	}
 
 	// 【登录安全规则6】检查用户账号状态（正常/封禁/注销）
 	if user.AccountStatus == 0 {
 		repository.LogOperation(user.ID, req.IP, req.UA, "login_code", false, "账号被封禁")
-		return "", fmt.Errorf("账号已被封禁")
+		return nil, fmt.Errorf("账号已被封禁")
 	}
 	if user.AccountStatus == 2 {
 		repository.LogOperation(user.ID, req.IP, req.UA, "login_code", false, "账号已注销")
-		return "", fmt.Errorf("账号已注销")
+		return nil, fmt.Errorf("账号已注销")
 	}
 
 	// 【登录安全规则7】登录成功后清理验证码，防止二次复用
@@ -424,15 +440,25 @@ func LoginByCode(req LoginRequest) (string, error) {
 	// 【登录安全规则8】记录登录操作日志（不可删除）
 	repository.LogOperation(user.ID, req.IP, req.UA, "login_code", true, "验证码登录成功")
 
-	token, err := middleware.GenerateToken(user.Uid)
+	// 【安全规则】生成访问令牌和刷新令牌
+	accessToken, err := middleware.GenerateToken(user.Uid)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// 【安全规则】将token保存到Redis，支持主动失效（如更换手机号后）
-	repository.SaveUserToken(user.Uid, token)
+	refreshToken, err := middleware.GenerateRefreshToken(user.Uid)
+	if err != nil {
+		return nil, err
+	}
 
-	return token, nil
+	// 【安全规则】将令牌保存到Redis，支持主动失效（如更换手机号后）
+	repository.SaveUserToken(user.Uid, accessToken)
+	repository.SaveRefreshToken(user.Uid, refreshToken)
+
+	return &LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 // LoginByPassword 密码登录（带安全校验）
@@ -444,70 +470,70 @@ func LoginByCode(req LoginRequest) (string, error) {
 //   5. 【登录安全规则5】检查登录失败次数（5分钟内5次失败锁定15分钟）
 //   6. 【登录安全规则6】检查用户账号状态（正常/封禁/注销）
 //   7. 【登录安全规则7】记录登录操作日志（不可删除）
-func LoginByPassword(req LoginRequest) (string, error) {
+func LoginByPassword(req LoginRequest) (*LoginResponse, error) {
 	if req.PhoneNum == "" || req.Password == "" {
-		return "", fmt.Errorf("手机号和密码不能为空")
+		return nil, fmt.Errorf("手机号和密码不能为空")
 	}
 
 	// 【登录安全规则1】检查IP是否在黑名单中
 	if req.IP != "" && repository.CheckIPBlacklist(req.IP) {
 		repository.LogOperation(0, req.IP, req.UA, "login_password", false, "IP在黑名单中")
-		return "", fmt.Errorf("当前IP已被限制登录")
+		return nil, fmt.Errorf("当前IP已被限制登录")
 	}
 
 	// 【登录安全规则2】检查IP登录请求频率（1分钟10次）
 	if req.IP != "" {
 		rateLimitExceeded, err := repository.CheckLoginIPRateLimit(req.IP)
 		if err != nil {
-			return "", fmt.Errorf("验证失败")
+			return nil, fmt.Errorf("验证失败")
 		}
 		if rateLimitExceeded {
 			repository.LogOperation(0, req.IP, req.UA, "login_password", false, "登录频率超限")
-			return "", fmt.Errorf("登录过于频繁，请稍后再试")
+			return nil, fmt.Errorf("登录过于频繁，请稍后再试")
 		}
 	}
 
 	// 【登录安全规则3】检查手机号是否在黑名单中
 	if repository.CheckPhoneBlacklist(req.PhoneNum) {
 		repository.LogOperation(0, req.IP, req.UA, "login_password", false, "手机号在黑名单中")
-		return "", fmt.Errorf("当前手机号已被限制登录")
+		return nil, fmt.Errorf("当前手机号已被限制登录")
 	}
 
 	// 【登录安全规则4】检查设备是否在黑名单中
 	if repository.CheckDeviceBlacklist(req.DeviceID) {
 		repository.LogOperation(0, req.IP, req.UA, "login_password", false, "设备在黑名单中")
-		return "", fmt.Errorf("当前设备已被限制登录")
+		return nil, fmt.Errorf("当前设备已被限制登录")
 	}
 
 	// 【登录安全规则5】检查登录失败次数（5分钟内5次失败锁定15分钟）
 	failedLocked, err := repository.CheckLoginFailedAttempt(req.PhoneNum)
 	if err != nil {
-		return "", fmt.Errorf("验证失败")
+		return nil, fmt.Errorf("验证失败")
 	}
 	if failedLocked {
 		repository.LogOperation(0, req.IP, req.UA, "login_password", false, "登录失败次数超限")
-		return "", fmt.Errorf("登录失败次数过多，请15分钟后再试")
+		return nil, fmt.Errorf("登录失败次数过多，请15分钟后再试")
 	}
 
 	user, err := repository.GetUserByPhone(req.PhoneNum)
 	if err != nil {
 		repository.LogOperation(0, req.IP, req.UA, "login_password", false, "用户不存在")
-		return "", fmt.Errorf("用户不存在")
+		return nil, fmt.Errorf("用户不存在")
 	}
 
 	// 【登录安全规则6】检查用户账号状态（正常/封禁/注销）
 	if user.AccountStatus == 0 {
 		repository.LogOperation(user.ID, req.IP, req.UA, "login_password", false, "账号被封禁")
-		return "", fmt.Errorf("账号已被封禁")
+		return nil, fmt.Errorf("账号已被封禁")
 	}
 	if user.AccountStatus == 2 {
 		repository.LogOperation(user.ID, req.IP, req.UA, "login_password", false, "账号已注销")
-		return "", fmt.Errorf("账号已注销")
+		return nil, fmt.Errorf("账号已注销")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		repository.LogOperation(user.ID, req.IP, req.UA, "login_password", false, "密码错误")
-		return "", fmt.Errorf("密码错误")
+		return nil, fmt.Errorf("密码错误")
 	}
 
 	// 【登录安全规则7】登录成功后重置失败次数
@@ -516,15 +542,103 @@ func LoginByPassword(req LoginRequest) (string, error) {
 	// 【登录安全规则7】记录登录操作日志（不可删除）
 	repository.LogOperation(user.ID, req.IP, req.UA, "login_password", true, "密码登录成功")
 
-	token, err := middleware.GenerateToken(user.Uid)
+	// 【安全规则】生成访问令牌和刷新令牌
+	accessToken, err := middleware.GenerateToken(user.Uid)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// 【安全规则】将token保存到Redis，支持主动失效（如更换手机号后）
-	repository.SaveUserToken(user.Uid, token)
+	refreshToken, err := middleware.GenerateRefreshToken(user.Uid)
+	if err != nil {
+		return nil, err
+	}
 
-	return token, nil
+	// 【安全规则】将令牌保存到Redis，支持主动失效（如更换手机号后）
+	repository.SaveUserToken(user.Uid, accessToken)
+	repository.SaveRefreshToken(user.Uid, refreshToken)
+
+	return &LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+// RefreshTokenRequest 刷新令牌请求参数
+type RefreshTokenRequest struct {
+	RefreshToken string // 刷新令牌
+	IP           string // 客户端IP
+	UA           string // 用户代理
+}
+
+// RefreshTokenResponse 刷新令牌响应
+type RefreshTokenResponse struct {
+	AccessToken  string // 新的访问令牌
+	RefreshToken string // 新的刷新令牌
+}
+
+// RefreshToken 刷新访问令牌
+// 【安全规则】
+//   1. 【刷新令牌安全规则1】验证刷新令牌格式（必须包含随机部分和JWT部分）
+//   2. 【刷新令牌安全规则2】验证刷新令牌签名有效性
+//   3. 【刷新令牌安全规则3】验证刷新令牌是否在Redis中存在且一致（防止滥用）
+//   4. 【刷新令牌安全规则4】验证用户是否存在且账号状态正常
+//   5. 【刷新令牌安全规则5】生成新的访问令牌和刷新令牌（刷新令牌轮转）
+//   6. 【刷新令牌安全规则6】将新令牌保存到Redis，旧令牌失效
+//   7. 【刷新令牌安全规则7】记录刷新操作日志（不可删除）
+func RefreshToken(req RefreshTokenRequest) (*RefreshTokenResponse, error) {
+	if req.RefreshToken == "" {
+		return nil, fmt.Errorf("刷新令牌不能为空")
+	}
+
+	// 【刷新令牌安全规则1】解析刷新令牌，验证格式和签名
+	uid, err := middleware.ParseRefreshToken(req.RefreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("刷新令牌无效")
+	}
+
+	// 【刷新令牌安全规则2】查询用户，验证用户是否存在
+	user, err := repository.GetUserByUID(uid)
+	if err != nil {
+		return nil, fmt.Errorf("用户不存在")
+	}
+
+	// 【刷新令牌安全规则3】验证账号状态
+	if user.AccountStatus != 1 {
+		return nil, fmt.Errorf("账号已被封禁或注销")
+	}
+
+	// 【刷新令牌安全规则4】验证刷新令牌是否在Redis中有效（防止令牌被伪造）
+	valid, err := repository.ValidateRefreshToken(uid, req.RefreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("验证失败")
+	}
+	if !valid {
+		repository.LogOperation(user.ID, req.IP, req.UA, "refresh_token", false, "刷新令牌无效或已过期")
+		return nil, fmt.Errorf("刷新令牌无效或已过期")
+	}
+
+	// 【刷新令牌安全规则5】生成新的访问令牌和刷新令牌（令牌轮转）
+	newAccessToken, err := middleware.GenerateToken(uid)
+	if err != nil {
+		return nil, fmt.Errorf("生成令牌失败")
+	}
+
+	newRefreshToken, err := middleware.GenerateRefreshToken(uid)
+	if err != nil {
+		return nil, fmt.Errorf("生成刷新令牌失败")
+	}
+
+	// 【刷新令牌安全规则6】保存新令牌到Redis，旧令牌自动失效
+	repository.SaveUserToken(uid, newAccessToken)
+	repository.SaveRefreshToken(uid, newRefreshToken)
+
+	// 【刷新令牌安全规则7】记录刷新操作日志（不可删除）
+	repository.LogOperation(user.ID, req.IP, req.UA, "refresh_token", true, "刷新令牌成功")
+
+	return &RefreshTokenResponse{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
 }
 
 // ResetPasswordRequest 发起密码重置请求参数

@@ -1,4 +1,4 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/config"
@@ -28,7 +28,17 @@ import (
 
 // SendSMSCode 发送短信验证码
 // @Summary 发送短信验证码
-// @Description 向指定手机号发送短信验证码。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 验证码为6位纯数字；3. 每个手机号60秒内只能发送一次（服务器端校验）；4. 同一手机号同一时间只有一个有效验证码（最新的为准）；5. 验证码最多使用1次（验证后立即删除）；6. 验证码不记录到日志文件；7. 发送前验证图形验证码（每日首次发送免图形验证码）；8. 1小时内发送次数限制10次；9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）
+// @Description 向指定手机号发送短信验证码
+// @Description 安全规则：
+// @Description 1. 验证码有效期5分钟（Redis TTL控制）
+// @Description 2. 验证码为6位纯数字
+// @Description 3. 每个手机号60秒内只能发送一次（服务器端校验）
+// @Description 4. 同一手机号同一时间只有一个有效验证码（最新的为准）
+// @Description 5. 验证码最多使用1次（验证后立即删除）
+// @Description 6. 验证码不记录到日志文件
+// @Description 7. 发送前验证图形验证码（每日首次发送免图形验证码）
+// @Description 8. 1小时内发送次数限制10次
+// @Description 9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json

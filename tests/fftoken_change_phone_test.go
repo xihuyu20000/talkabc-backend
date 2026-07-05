@@ -109,7 +109,7 @@ func TestChangePhone_FullFlow(t *testing.T) {
 		if !ok {
 			t.Fatalf("Expected data field in login response")
 		}
-		token, ok := tokenData["token"].(string)
+		token, ok := tokenData["access_token"].(string)
 		if !ok || token == "" {
 			t.Fatalf("Expected token in login response")
 		}
@@ -295,7 +295,7 @@ func TestChangePhone_InvalidPhone(t *testing.T) {
 
 	var result map[string]interface{}
 	json.Unmarshal(loginResp.Body.Bytes(), &result)
-	token := result["data"].(map[string]interface{})["token"].(string)
+	token := result["data"].(map[string]interface{})["access_token"].(string)
 
 	// 测试无效手机号格式
 	invalidPhones := []string{"123", "1234567890", "123456789012", "abc12345678", "10900109000"}
@@ -406,7 +406,7 @@ func TestChangePhone_PhoneAlreadyExists(t *testing.T) {
 
 	var result map[string]interface{}
 	json.Unmarshal(loginResp.Body.Bytes(), &result)
-	token := result["data"].(map[string]interface{})["token"].(string)
+	token := result["data"].(map[string]interface{})["access_token"].(string)
 
 	// 用户A尝试更换到已注册的手机号
 	req, _ = http.NewRequest("GET", "/v1/code/sms?phonenum="+existingPhone+"&tag=change_phone", nil)
@@ -504,7 +504,7 @@ func TestChangePhone_InvalidCode(t *testing.T) {
 
 	var result map[string]interface{}
 	json.Unmarshal(loginResp.Body.Bytes(), &result)
-	token := result["data"].(map[string]interface{})["token"].(string)
+	token := result["data"].(map[string]interface{})["access_token"].(string)
 
 	// 发送新手机号验证码
 	req, _ = http.NewRequest("GET", "/v1/code/sms?phonenum="+newPhone+"&tag=change_phone", nil)

@@ -157,7 +157,7 @@ func TestLoginByCode_FullFlow(t *testing.T) {
 			return
 		}
 
-		token, ok := dataMap["token"].(string)
+		token, ok := dataMap["access_token"].(string)
 		if !ok || token == "" {
 			t.Error("Token should not be empty")
 		}
@@ -285,7 +285,7 @@ func TestLoginByPassword_FullFlow(t *testing.T) {
 			return
 		}
 
-		token, ok := dataMap["token"].(string)
+		token, ok := dataMap["access_token"].(string)
 		if !ok || token == "" {
 			t.Error("Token should not be empty")
 		}

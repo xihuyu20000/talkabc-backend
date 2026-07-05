@@ -140,6 +140,7 @@ func (tr *TestRouter) SetupAuthRoutes() {
 	tr.Engine.POST("/v1/register", handler.Register)
 	tr.Engine.POST("/v1/login/code", handler.LoginByCode)
 	tr.Engine.POST("/v1/login/pwd", handler.LoginByPassword)
+	tr.Engine.POST("/v1/refresh-token", handler.RefreshToken)
 	tr.Engine.POST("/v1/logout", handler.Logout)
 	tr.Engine.POST("/v1/change-phone", handler.ChangePhone)
 	tr.Engine.POST("/v1/reset-password/initiate", handler.InitiateResetPassword)

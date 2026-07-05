@@ -51,6 +51,7 @@ func InitRouter() *gin.Engine {
 			public.POST("/auth/register", handler.Register)
 			public.POST("/auth/login/code", handler.LoginByCode)
 			public.POST("/auth/login/password", handler.LoginByPassword)
+			public.POST("/auth/refresh-token", handler.RefreshToken)
 			// ==================== 重置密码（重置凭证） ====================
 			public.POST("/auth/reset-password/initiate", handler.InitiateResetPassword)
 			public.GET("/auth/reset-password/validate", handler.ValidateResetToken)
