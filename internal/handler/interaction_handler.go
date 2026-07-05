@@ -1,4 +1,4 @@
-﻿package handler
+package handler
 
 import (
 	"backend/internal/middleware"
@@ -12,7 +12,7 @@ import (
 
 // GetPraiseMeList 获取赞我的列表
 // @Summary 获取赞我的列表
-// @Description 获取赞我动态的用户列表
+// @Description 获取点赞我动态的用户列表
 // @Tags 互动通知
 // @Accept application/json
 // @Produce application/json
@@ -60,7 +60,7 @@ func GetCommentMeList(c *gin.Context) {
 
 // GetAddMeList 获取添加我的列表
 // @Summary 获取添加我的列表
-// @Description 获取添加我为好友的用户列表
+// @Description 获取发送好友请求给我的用户列表
 // @Tags 互动通知
 // @Accept application/json
 // @Produce application/json
@@ -84,7 +84,7 @@ func GetAddMeList(c *gin.Context) {
 
 // GetVisitMeList 获取访问我的列表
 // @Summary 获取访问我的列表
-// @Description 获取访问我主页的用户列表
+// @Description 获取访问我个人主页的用户列表
 // @Tags 互动通知
 // @Accept application/json
 // @Produce application/json
@@ -108,7 +108,7 @@ func GetVisitMeList(c *gin.Context) {
 
 // GetLikeMeList 获取喜欢我的列表
 // @Summary 获取喜欢我的列表
-// @Description 获取喜欢我的用户列表
+// @Description 获取表示喜欢我的用户列表
 // @Tags 互动通知
 // @Accept application/json
 // @Produce application/json
@@ -132,7 +132,7 @@ func GetLikeMeList(c *gin.Context) {
 
 // AgreeFriendRequest 同意好友请求
 // @Summary 同意好友请求
-// @Description 同意或拒绝好友请求
+// @Description 处理好友请求，flag=1同意添加好友，flag=0拒绝好友请求
 // @Tags 互动通知
 // @Accept application/json
 // @Produce application/json

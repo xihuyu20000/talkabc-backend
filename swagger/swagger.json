@@ -18,7 +18,7 @@
     "paths": {
         "/ads/banners": {
             "get": {
-                "description": "获取最新的广告横幅列表",
+                "description": "获取最新展示的广告横幅列表，用于首页广告展示",
                 "consumes": [
                     "application/json"
                 ],
@@ -49,7 +49,7 @@
         },
         "/auth/change-phone": {
             "post": {
-                "description": "已登录用户更换绑定的手机号\n安全规则：\n1. 必须已登录（JWT验证）\n2. 验证新手机号格式\n3. 新手机号必须未被注册\n4. 验证新手机号的短信验证码\n5. 频率限制（24小时内最多更换3次）\n6. 更新手机号后清空所有登录态\n7. 记录操作日志（不可删除）",
+                "description": "已登录用户更换绑定的手机号，更换成功后需使用新手机号重新登录\n\n**安全防护机制：**\n- 身份验证：必须已登录状态（JWT验证）\n- 格式校验：验证新手机号格式正确性\n- 唯一性校验：确保新手机号未被注册\n- 验证码验证：验证新手机号的短信验证码\n- 频率限制：24小时内最多更换3次手机号\n- 登录态清理：更换成功后清空所有登录态\n- 操作审计：记录操作日志，日志不可删除",
                 "consumes": [
                     "application/x-www-form-urlencoded"
                 ],
@@ -123,7 +123,7 @@
         },
         "/auth/code-alnum": {
             "get": {
-                "description": "使用base64Captcha生成数字图形验证码图片，返回验证码ID和base64图片数据。安全规则：1. 验证码有效期5分钟（Redis TTL控制）；2. 使用base64Captcha库生成不可预测的验证码；3. 验证码存储在Redis中，不记录到日志文件",
+                "description": "使用base64Captcha生成数字图形验证码图片，返回验证码ID和base64编码的图片数据\n\n**安全机制：**\n- 有效期控制：验证码有效期5分钟（通过Redis TTL自动过期）\n- 不可预测：使用base64Captcha库生成安全的图形验证码，防止自动化识别\n- 安全存储：验证码存储在Redis中，不记录到日志文件",
                 "consumes": [
                     "application/json"
                 ],
@@ -154,7 +154,7 @@
         },
         "/auth/code-alnum/verify": {
             "post": {
-                "description": "验证客户端传入的图形验证码是否正确。安全规则：1. 验证通过后立即删除验证码，防止重复使用；2. 验证码过期或不存在时返回错误",
+                "description": "验证客户端传入的图形验证码是否正确\n\n**安全机制：**\n- 一次性使用：验证通过后立即删除验证码，防止重复使用\n- 过期处理：验证码过期或不存在时返回错误",
                 "consumes": [
                     "application/json"
                 ],
@@ -199,7 +199,7 @@
         },
         "/auth/code-sms": {
             "get": {
-                "description": "向指定手机号发送短信验证码\n安全规则：\n1. 验证码有效期5分钟（Redis TTL控制）\n2. 验证码为6位纯数字\n3. 每个手机号60秒内只能发送一次（服务器端校验）\n4. 同一手机号同一时间只有一个有效验证码（最新的为准）\n5. 验证码最多使用1次（验证后立即删除）\n6. 验证码不记录到日志文件\n7. 发送前验证图形验证码（每日首次发送免图形验证码）\n8. 1小时内发送次数限制10次\n9. 不同业务类型的验证码独立隔离（通过tag区分，如register、login）",
+                "description": "向指定手机号发送6位短信验证码，用于身份验证\n\n**验证码安全机制：**\n- 有效期控制：验证码有效期5分钟（通过Redis TTL自动过期）\n- 格式规范：6位纯数字验证码\n- 发送间隔：每个手机号60秒内只能发送一次（服务器端严格校验）\n- 唯一性：同一手机号同一时间只有一个有效验证码（最新的为准）\n- 一次性使用：验证码验证后立即删除，不可重复使用\n- 日志脱敏：验证码内容不记录到日志文件，保护用户隐私\n- 图形验证码保护：发送前验证图形验证码（每日首次发送可免图形验证码）\n- 频率限制：1小时内同一手机号最多发送10次\n- 业务隔离：不同业务类型的验证码独立隔离（通过tag区分，如register、login）",
                 "consumes": [
                     "application/json"
                 ],
@@ -264,7 +264,7 @@
         },
         "/auth/code-sms/verify": {
             "post": {
-                "description": "验证客户端传入的短信验证码是否正确。安全规则：1. 使用Lua脚本保证验证和删除的原子性；2. 验证码一次性使用（无论验证是否成功，验证码都会被删除）；3. 不同业务类型的验证码独立验证（通过tag区分）",
+                "description": "验证客户端传入的短信验证码是否正确\n\n**安全机制：**\n- 原子操作：使用Lua脚本保证验证和删除的原子性，防止并发攻击\n- 一次性使用：无论验证是否成功，验证码都会被删除\n- 业务隔离：不同业务类型的验证码独立验证（通过tag区分）",
                 "consumes": [
                     "application/json"
                 ],
@@ -309,7 +309,7 @@
         },
         "/auth/login/code": {
             "post": {
-                "description": "使用手机号和验证码登录\n\n**安全规则：**\n- 1. IP黑名单检查\n- 2. IP登录频率限制（1分钟10次）\n- 3. 手机号黑名单检查\n- 4. 设备黑名单检查\n- 5. 登录失败次数限制（5分钟内5次失败锁定15分钟）\n- 6. 用户账号状态检查（正常/封禁/注销）\n- 7. 登录成功后清理验证码，防止二次复用\n- 8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）",
+                "description": "使用手机号和短信验证码完成用户登录，登录成功后返回访问令牌和刷新令牌\n\n**安全防护机制：**\n- IP黑名单检测：拒绝来自恶意IP的请求\n- 频率限制：同一IP每分钟最多10次登录尝试\n- 账号风控：检查手机号、设备是否在黑名单中\n- 失败锁定：5分钟内连续5次失败，账号锁定15分钟\n- 状态校验：验证用户账号状态（正常/封禁/注销）\n- 验证码防复用：登录成功后立即清理验证码\n- 操作审计：记录完整的登录日志（用户ID、IP、UA、操作类型），日志不可删除",
                 "consumes": [
                     "application/json"
                 ],
@@ -369,7 +369,7 @@
         },
         "/auth/login/oauth": {
             "post": {
-                "description": "使用第三方平台（Apple、Google、微信、支付宝、Email）进行登录\n\n**支持的登录方式：**\n- apple: Apple登录，需提供id_token\n- google: Google登录，需提供id_token\n- wechat: 微信登录，需提供code\n- alipay: 支付宝登录，需提供code\n- email: 邮箱登录，需提供email\n\n**安全规则：**\n- 1. 验证第三方平台返回的凭证有效性\n- 2. 如果是新用户，自动创建账号\n- 3. 如果已绑定，直接登录\n- 4. 检查用户账号状态（正常/封禁/注销）\n- 5. 记录登录操作日志（不可删除）",
+                "description": "使用第三方平台凭证完成用户登录，支持Apple、Google、微信、支付宝、Email五种登录方式\n\n**支持的登录方式及所需参数：**\n- Apple登录：需提供 id_token 参数\n- Google登录：需提供 id_token 参数\n- 微信登录：需提供 code 参数\n- 支付宝登录：需提供 code 参数\n- 邮箱登录：需提供 email 参数\n\n**安全防护机制：**\n- 凭证验证：验证第三方平台返回的凭证有效性\n- 新用户自动注册：首次登录时自动创建用户账号\n- 账号绑定检测：已绑定的第三方账号直接登录\n- 状态校验：验证用户账号状态（正常/封禁/注销）\n- 操作审计：记录完整的登录日志，日志不可删除",
                 "consumes": [
                     "application/json"
                 ],
@@ -440,7 +440,7 @@
         },
         "/auth/login/password": {
             "post": {
-                "description": "使用手机号和密码登录\n\n**安全规则：**\n- 1. IP黑名单检查\n- 2. IP登录频率限制（1分钟10次）\n- 3. 手机号黑名单检查\n- 4. 设备黑名单检查\n- 5. 登录失败次数限制（5分钟内5次失败锁定15分钟）\n- 6. 用户账号状态检查（正常/封禁/注销）\n- 7. 登录成功后重置失败次数\n- 8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）\n\n**密码存储：** 使用bcrypt加密（cost=10，自动内置盐）",
+                "description": "使用手机号和密码完成用户登录，登录成功后返回访问令牌和刷新令牌\n\n**安全防护机制：**\n- IP黑名单检测：拒绝来自恶意IP的请求\n- 频率限制：同一IP每分钟最多10次登录尝试\n- 账号风控：检查手机号、设备是否在黑名单中\n- 失败锁定：5分钟内连续5次失败，账号锁定15分钟\n- 状态校验：验证用户账号状态（正常/封禁/注销）\n- 失败计数重置：登录成功后清零失败次数\n- 操作审计：记录完整的登录日志（用户ID、IP、UA、操作类型），日志不可删除\n\n**密码安全：** 使用bcrypt算法加密存储（cost=10，自动内置随机盐）",
                 "consumes": [
                     "application/json"
                 ],
@@ -505,7 +505,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户退出登录，强制下线所有设备",
+                "description": "用户安全退出登录，强制下线所有设备并清除登录状态",
                 "consumes": [
                     "application/json"
                 ],
@@ -534,7 +534,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "将第三方平台账号绑定到当前登录用户",
+                "description": "将第三方平台账号绑定到当前登录用户，绑定后可使用该第三方平台直接登录",
                 "consumes": [
                     "application/json"
                 ],
@@ -611,7 +611,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取当前登录用户已绑定的第三方平台账号列表",
+                "description": "获取当前登录用户已绑定的所有第三方平台账号列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -654,7 +654,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "解绑当前登录用户的第三方平台账号",
+                "description": "解绑当前登录用户的第三方平台账号，解绑后将无法使用该第三方平台登录",
                 "consumes": [
                     "application/json"
                 ],
@@ -708,7 +708,7 @@
         },
         "/auth/refresh-token": {
             "post": {
-                "description": "使用刷新令牌获取新的访问令牌和刷新令牌\n\n**安全规则：**\n- 1. 验证刷新令牌格式（必须包含随机部分和JWT部分）\n- 2. 验证刷新令牌签名有效性\n- 3. 验证刷新令牌是否在Redis中存在且一致（防止滥用）\n- 4. 验证用户是否存在且账号状态正常\n- 5. 生成新的访问令牌和刷新令牌（刷新令牌轮转）\n- 6. 将新令牌保存到Redis，旧令牌失效\n- 7. 记录刷新操作日志（不可删除）",
+                "description": "使用刷新令牌获取新的访问令牌和刷新令牌，实现令牌轮转机制\n\n**安全防护机制：**\n- 令牌格式校验：验证刷新令牌必须包含随机部分和JWT部分\n- 签名验证：确保令牌的完整性和合法性\n- 存储校验：验证令牌在Redis中的有效性，防止令牌滥用\n- 用户状态检查：确认用户账号状态正常\n- 令牌轮转：生成全新的访问令牌和刷新令牌\n- 旧令牌失效：将新令牌保存到Redis，旧令牌立即失效\n- 操作审计：记录令牌刷新日志，日志不可删除",
                 "consumes": [
                     "application/json"
                 ],
@@ -755,7 +755,7 @@
         },
         "/auth/register": {
             "post": {
-                "description": "使用手机号、验证码和密码进行注册\n安全规则：\n1. IP黑名单检查\n2. IP注册频率限制（1分钟10次）\n3. 手机号黑名单检查\n4. 手机号唯一性检查\n5. 设备黑名单检查\n6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）\n7. 注册成功后清理验证码\n8. 记录注册操作日志（不可删除）",
+                "description": "使用手机号、验证码和密码完成用户注册，注册成功后自动登录并返回访问令牌和刷新令牌\n\n**安全防护机制：**\n- IP黑名单检测：拒绝来自恶意IP的请求\n- 注册频率限制：同一IP每分钟最多10次注册尝试\n- 手机号风控：检查手机号是否在黑名单中\n- 唯一性校验：确保手机号未被注册\n- 设备风控：检查设备是否在黑名单中\n- 验证码防复用：注册成功后立即清理验证码\n- 操作审计：记录完整的注册日志，日志不可删除\n\n**密码安全策略：**\n- 长度要求：至少8个字符\n- 复杂度要求：至少包含两种字符类型（大写字母、小写字母、数字、特殊符号）\n- 弱密码拦截：禁止使用常见弱密码\n- 关联检测：禁止包含手机号、昵称或邮箱前缀",
                 "consumes": [
                     "application/json"
                 ],
@@ -822,7 +822,7 @@
         },
         "/auth/reset-password/complete": {
             "post": {
-                "description": "使用重置Token设置新密码\n安全规则：\n1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）\n2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）\n3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码\n4. 记录敏感操作日志（不可删除）\n5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用",
+                "description": "使用重置Token完成密码重置操作，设置新密码\n\n**密码安全策略：**\n- 长度要求：至少8个字符\n- 复杂度要求：至少包含两种字符类型（大写字母、小写字母、数字、特殊符号）\n- 弱密码拦截：禁止使用常见弱密码\n- 关联检测：禁止包含手机号、昵称或邮箱前缀\n- 历史检查：禁止与最近5次密码重复\n- 安全存储：使用bcrypt算法加密（cost=10，自动内置随机盐）\n\n**安全防护机制：**\n- 登录态清理：重置成功后清空该用户全部登录态（Redis token等）\n- Token清理：清空所有未使用的重置Token\n- 信息安全：绝不返回原始密码或加密密码\n- 操作审计：记录敏感操作日志，日志不可删除\n- 设备验证：验证Token绑定的设备标识，防止跨账号盗用",
                 "consumes": [
                     "application/json"
                 ],
@@ -889,7 +889,7 @@
         },
         "/auth/reset-password/initiate": {
             "post": {
-                "description": "根据手机号发起密码重置，生成重置Token并发送\n安全规则：\n1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h\n2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）\nToken设计：\n- 单次有效（使用后立即销毁）\n- 短有效期（5分钟）\n- 不可预测（crypto/rand生成）\n- 绑定userID+设备标识\n- 禁止明文存库（仅存储sha256哈希）",
+                "description": "根据手机号发起密码重置流程，生成安全的重置Token并发送给用户\n\n**安全防护机制：**\n- 频率限制：同一账号24小时内最多允许3次密码重置，超限后锁定重置通道24小时\n- 操作审计：记录敏感操作日志（用户ID、IP、UA、操作类型），日志不可删除\n\n**Token安全设计：**\n- 单次有效：使用一次后立即销毁，不可重复使用\n- 短有效期：仅5分钟，过期自动失效\n- 不可预测：使用crypto/rand生成随机Token，防止猜测攻击\n- 绑定验证：Token绑定userID和设备标识，防止跨账号盗用\n- 安全存储：数据库仅存储Token的sha256哈希值，不存储明文",
                 "consumes": [
                     "application/json"
                 ],
@@ -942,7 +942,7 @@
         },
         "/auth/reset-password/validate": {
             "get": {
-                "description": "验证重置Token是否存在、未使用、未过期\nToken设计：\n- 单次有效（使用后立即销毁）\n- 短有效期（5分钟）\n- 绑定userID+设备标识\n- 禁止明文存库（仅存储sha256哈希）",
+                "description": "验证密码重置Token是否有效（存在、未使用、未过期），用于前端预先校验重置链接\n\n**Token安全设计：**\n- 单次有效：使用一次后立即销毁，不可重复使用\n- 短有效期：仅5分钟，过期自动失效\n- 绑定验证：Token绑定userID和设备标识，防止跨账号盗用\n- 安全存储：数据库仅存储Token的sha256哈希值，不存储明文",
                 "consumes": [
                     "application/json"
                 ],
@@ -987,7 +987,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "添加指定用户为好友",
+                "description": "添加指定用户为好友或取消关注，flag=1添加好友，flag=0取消关注",
                 "consumes": [
                     "application/json"
                 ],
@@ -1046,7 +1046,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "向指定用户发送礼物",
+                "description": "向指定用户发送礼物，消耗钻石购买礼物",
                 "consumes": [
                     "application/json"
                 ],
@@ -1105,7 +1105,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取当前用户与其他用户的最新消息列表",
+                "description": "获取当前用户与其他用户的最新聊天消息列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1141,7 +1141,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取当前用户的系统消息列表",
+                "description": "获取当前用户收到的系统通知消息列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1177,7 +1177,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取与指定用户的聊天消息历史",
+                "description": "获取与指定用户的完整聊天消息历史记录",
                 "consumes": [
                     "application/json"
                 ],
@@ -1222,7 +1222,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "清除与指定用户的聊天记录",
+                "description": "清除与指定用户的所有聊天消息记录",
                 "consumes": [
                     "application/json"
                 ],
@@ -1267,7 +1267,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "设置或取消与指定用户的消息置顶",
+                "description": "设置或取消与指定用户的聊天消息置顶，flag=1置顶，flag=0取消置顶",
                 "consumes": [
                     "application/json"
                 ],
@@ -1321,7 +1321,7 @@
         },
         "/moments": {
             "get": {
-                "description": "获取最新发布的动态列表",
+                "description": "获取平台最新发布的动态内容列表，按发布时间倒序排列",
                 "consumes": [
                     "application/json"
                 ],
@@ -1355,7 +1355,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户发布新动态，支持文本、图片和地理位置",
+                "description": "用户发布新的动态内容，支持文本描述、图片上传和地理位置信息",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1419,7 +1419,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取当前用户发布的最新动态列表",
+                "description": "获取当前用户自己发布的最新动态内容列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1455,7 +1455,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定用户发布的动态列表",
+                "description": "获取指定用户发布的动态内容列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1500,7 +1500,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定动态的评论列表",
+                "description": "获取指定动态的评论内容列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1552,7 +1552,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取添加我为好友的用户列表",
+                "description": "获取发送好友请求给我的用户列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1624,7 +1624,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "同意或拒绝好友请求",
+                "description": "处理好友请求，flag=1同意添加好友，flag=0拒绝好友请求",
                 "consumes": [
                     "application/json"
                 ],
@@ -1683,7 +1683,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取喜欢我的用户列表",
+                "description": "获取表示喜欢我的用户列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1719,7 +1719,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取赞我动态的用户列表",
+                "description": "获取点赞我动态的用户列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1755,7 +1755,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取访问我主页的用户列表",
+                "description": "获取访问我个人主页的用户列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -1784,6 +1784,218 @@
                 }
             }
         },
+        "/pay/diamond/buy/{did}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "用户使用支付方式购买钻石套餐，钻石将直接充值到用户账户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "支付"
+                ],
+                "summary": "购买钻石",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "钻石套餐ID",
+                        "name": "did",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "购买成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或余额不足",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "购买失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/pay/diamond/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前用户的钻石购买记录列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "支付"
+                ],
+                "summary": "获取钻石购买历史",
+                "responses": {
+                    "200": {
+                        "description": "获取成功，返回购买记录列表",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/pay/diamond/stock": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前用户账户中的钻石余额",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "支付"
+                ],
+                "summary": "获取钻石库存",
+                "responses": {
+                    "200": {
+                        "description": "获取成功，返回钻石数量",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/pay/member/buy/{vid}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "用户使用支付方式购买会员套餐，会员权益将立即生效",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "支付"
+                ],
+                "summary": "购买会员",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "会员套餐ID",
+                        "name": "vid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "购买成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或余额不足",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "购买失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/pay/member/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前用户的会员购买记录列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "支付"
+                ],
+                "summary": "获取会员购买历史",
+                "responses": {
+                    "200": {
+                        "description": "获取成功，返回购买记录列表",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/profile/complete": {
             "post": {
                 "security": [
@@ -1791,7 +2003,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户完成所有资料收集后调用此接口，标记资料收集状态为已完成，允许进入首页",
+                "description": "用户完成所有个人资料收集后调用此接口，标记资料收集状态为已完成，允许进入应用首页",
                 "consumes": [
                     "application/json"
                 ],
@@ -1834,7 +2046,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户完善个人资料信息\n收集内容包括：昵称、性别、出生年份、身高、体重、城市、学校、职业、教育程度、星座、爱好、交友目的等\n【安全规则】昵称需通过以下校验：\n1. 长度：2-20个字符\n2. 字符类型：仅允许中文、英文、数字、下划线、连字符\n3. 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇\n4. URL过滤：禁止包含超链接\n5. HTML过滤：禁止包含HTML标签\n6. XSS过滤：禁止包含XSS攻击代码",
+                "description": "用户完善个人资料信息，包括昵称、性别、出生年份、身高、体重、城市、学校、职业、教育程度、星座、爱好、交友目的等\n\n**昵称安全校验规则：**\n- 长度限制：2-20个字符\n- 字符类型：仅允许中文、英文、数字、下划线、连字符\n- 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇\n- URL过滤：禁止包含超链接\n- HTML过滤：禁止包含HTML标签\n- XSS过滤：禁止包含XSS攻击代码",
                 "consumes": [
                     "application/json"
                 ],
@@ -1889,7 +2101,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户设置理想对象的筛选条件\n设置内容包括：年龄范围、性别、身高范围、体重范围、教育程度、星座、爱好等",
+                "description": "用户设置理想对象的筛选条件，包括年龄范围、性别、身高范围、体重范围、教育程度、星座、爱好等",
                 "consumes": [
                     "application/json"
                 ],
@@ -1944,7 +2156,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户设置个人主页的个性签名\n【安全规则】签名需通过以下校验：\n1. 长度：最大200字符\n2. 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇\n3. URL过滤：禁止包含 http/https/www 等超链接\n4. HTML过滤：禁止包含 HTML 标签\n5. JavaScript过滤：禁止包含脚本代码（如 \u003cscript\u003e、eval()、alert()）\n6. SQL注入过滤：禁止包含 SQL 注入代码（如 SELECT、INSERT、OR 1=1）\n7. XSS过滤：禁止包含 XSS 攻击代码（如 onclick=、onerror=）",
+                "description": "用户设置个人主页的个性签名\n\n**签名安全校验规则：**\n- 长度限制：最大200字符\n- 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇\n- URL过滤：禁止包含 http/https/www 等超链接\n- HTML过滤：禁止包含HTML标签\n- JavaScript过滤：禁止包含脚本代码（如 \u003cscript\u003e、eval()、alert()）\n- SQL注入过滤：禁止包含SQL注入代码（如 SELECT、INSERT、OR 1=1）\n- XSS过滤：禁止包含XSS攻击代码（如 onclick=、onerror=）",
                 "consumes": [
                     "application/json"
                 ],
@@ -2001,7 +2213,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "检查用户是否已完成资料收集，用于首次登录时判断是否需要跳转到资料收集页面",
+                "description": "检查用户是否已完成个人资料收集，用于首次登录时判断是否需要跳转到资料收集页面",
                 "consumes": [
                     "application/json"
                 ],
@@ -2037,6 +2249,94 @@
                 }
             }
         },
+        "/system/log-level": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前系统的日志级别",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统管理"
+                ],
+                "summary": "获取日志级别",
+                "responses": {
+                    "200": {
+                        "description": "获取成功，返回当前日志级别",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "动态调整系统的日志级别，支持 debug、info、warn、error、dpanic、panic、fatal 七种级别",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统管理"
+                ],
+                "summary": "设置日志级别",
+                "parameters": [
+                    {
+                        "description": "日志级别参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.SetLogLevelRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "设置成功，返回新的日志级别",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或无效的日志级别",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "设置失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/uploads/audio": {
             "post": {
                 "security": [
@@ -2044,7 +2344,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "上传音频文件",
+                "description": "上传音频文件，支持语音消息等场景使用",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2096,7 +2396,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "上传通用文件",
+                "description": "上传通用文件，支持各种类型的文件上传",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2148,7 +2448,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "上传图片文件",
+                "description": "上传图片文件，支持消息、动态等场景使用",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2200,7 +2500,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "上传视频文件",
+                "description": "上传视频文件，支持动态视频、消息视频等场景使用",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2252,7 +2552,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "根据筛选条件获取用户列表",
+                "description": "根据筛选条件获取用户列表，支持按年龄、性别、身高、职业、星座、教育程度、爱好、交友目的等多种条件筛选",
                 "consumes": [
                     "application/json"
                 ],
@@ -2368,7 +2668,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "用户上传个人头像",
+                "description": "用户上传个人头像图片，上传成功后自动更新用户头像信息",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2420,7 +2720,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定用户的详细信息",
+                "description": "获取指定用户的详细资料信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -2465,7 +2765,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定用户的粉丝列表",
+                "description": "获取指定用户的粉丝用户列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -2510,7 +2810,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "获取指定用户的关注列表",
+                "description": "获取指定用户的关注用户列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -2555,7 +2855,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "向指定用户发送打招呼消息",
+                "description": "向指定用户发送打招呼消息，开启互动交流",
                 "consumes": [
                     "application/json"
                 ],
@@ -2607,7 +2907,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "设置是否接收指定用户的消息通知",
+                "description": "设置是否接收指定用户的消息通知，flag=1开启通知，flag=0关闭通知",
                 "consumes": [
                     "application/json"
                 ],
@@ -2748,6 +3048,28 @@
                             "additionalProperties": true
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.SetLogLevelRequest": {
+            "type": "object",
+            "required": [
+                "level"
+            ],
+            "properties": {
+                "level": {
+                    "type": "string",
+                    "enum": [
+                        "debug",
+                        "info",
+                        "warn",
+                        "error",
+                        "dpanic",
+                        "panic",
+                        "fatal"
+                    ]
                 }
             }
         }

@@ -9,18 +9,18 @@ import (
 	"strconv"
 )
 
-// BuyDiamond 购买钻石接口
-// 请求方式：POST
-// 请求路径：/v1/pay/buy/diamond/:did
-// 请求参数：did - 钻石套餐ID（路径参数）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：操作结果
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 从路径参数获取钻石套餐ID并转换为数字
-//   3. 调用 service.BuyDiamond 执行钻石购买逻辑
-//   4. 返回操作结果
+// BuyDiamond 购买钻石
+// @Summary 购买钻石
+// @Description 用户使用支付方式购买钻石套餐，钻石将直接充值到用户账户
+// @Tags 支付
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Param did path string true "钻石套餐ID"
+// @Success 200 {object} map[string]interface{} "购买成功"
+// @Failure 400 {object} map[string]interface{} "参数错误或余额不足"
+// @Failure 500 {object} map[string]interface{} "购买失败"
+// @Router /pay/diamond/buy/{did} [post]
 func BuyDiamond(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	didStr := c.Param("did")
@@ -42,16 +42,16 @@ func BuyDiamond(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// GetDiamondStock 获取钻石库存接口
-// 请求方式：GET
-// 请求路径：/v1/pay/diamond/stock
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：用户当前钻石数量
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetDiamondStock 查询钻石余额
-//   3. 返回钻石数量数据
+// GetDiamondStock 获取钻石库存
+// @Summary 获取钻石库存
+// @Description 获取当前用户账户中的钻石余额
+// @Tags 支付
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功，返回钻石数量"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /pay/diamond/stock [get]
 func GetDiamondStock(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -66,16 +66,16 @@ func GetDiamondStock(c *gin.Context) {
 	response.Success(c, diamond)
 }
 
-// GetDiamondHistory 获取钻石购买历史接口
-// 请求方式：GET
-// 请求路径：/v1/pay/diamond/history
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：钻石购买记录列表
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetDiamondHistory 查询购买记录
-//   3. 返回记录列表数据
+// GetDiamondHistory 获取钻石购买历史
+// @Summary 获取钻石购买历史
+// @Description 获取当前用户的钻石购买记录列表
+// @Tags 支付
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功，返回购买记录列表"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /pay/diamond/history [get]
 func GetDiamondHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
 
@@ -90,18 +90,18 @@ func GetDiamondHistory(c *gin.Context) {
 	response.Success(c, records)
 }
 
-// BuyMember 购买会员接口
-// 请求方式：POST
-// 请求路径：/v1/pay/buy/member/:vid
-// 请求参数：vid - 会员套餐ID（路径参数）
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：操作结果
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 从路径参数获取会员套餐ID并转换为数字
-//   3. 调用 service.BuyMember 执行会员购买逻辑
-//   4. 返回操作结果
+// BuyMember 购买会员
+// @Summary 购买会员
+// @Description 用户使用支付方式购买会员套餐，会员权益将立即生效
+// @Tags 支付
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Param vid path string true "会员套餐ID"
+// @Success 200 {object} map[string]interface{} "购买成功"
+// @Failure 400 {object} map[string]interface{} "参数错误或余额不足"
+// @Failure 500 {object} map[string]interface{} "购买失败"
+// @Router /pay/member/buy/{vid} [post]
 func BuyMember(c *gin.Context) {
 	uid := middleware.GetUID(c)
 	vidStr := c.Param("vid")
@@ -123,16 +123,16 @@ func BuyMember(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// GetMemberHistory 获取会员购买历史接口
-// 请求方式：GET
-// 请求路径：/v1/pay/member/history
-// 身份验证：通过 JWT token 获取当前用户ID
-// 返回值：会员购买记录列表
-//
-// 业务流程：
-//   1. 从 JWT token 获取当前用户ID
-//   2. 调用 service.GetMemberHistory 查询购买记录
-//   3. 返回记录列表数据
+// GetMemberHistory 获取会员购买历史
+// @Summary 获取会员购买历史
+// @Description 获取当前用户的会员购买记录列表
+// @Tags 支付
+// @Accept application/json
+// @Produce application/json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "获取成功，返回购买记录列表"
+// @Failure 500 {object} map[string]interface{} "获取失败"
+// @Router /pay/member/history [get]
 func GetMemberHistory(c *gin.Context) {
 	uid := middleware.GetUID(c)
 

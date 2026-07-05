@@ -12,6 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func cleanupOAuthData() {
+	if config.DB != nil {
+		config.DB.Exec("DELETE FROM o_auth_users")
+		config.DB.Exec("DELETE FROM users WHERE phone_num LIKE '9%'")
+	}
+	if config.RDB != nil {
+		config.RDB.FlushDB(config.RDB.Context())
+	}
+}
+
 func TestOAuthLogin_Apple(t *testing.T) {
 	if config.DB == nil {
 		t.Skip("Database not initialized, skipping test")
@@ -20,11 +30,8 @@ func TestOAuthLogin_Apple(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/login/oauth", handler.OAuthLogin)
 
-	config.RDB.FlushDB(config.RDB.Context())
-
 	t.Run("AppleLogin_NewUser", func(t *testing.T) {
-		config.DB.Exec("DELETE FROM o_auth_users WHERE provider = 'apple'")
-		config.DB.Exec("DELETE FROM users WHERE phone_num LIKE '9%'")
+		cleanupOAuthData()
 
 		formData := strings.NewReader("provider=apple&id_token=mock_apple_id_token_001")
 		req, _ := http.NewRequest("POST", "/v1/login/oauth", formData)
@@ -120,9 +127,9 @@ func TestOAuthLogin_Google(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/login/oauth", handler.OAuthLogin)
 
-	config.RDB.FlushDB(config.RDB.Context())
-
 	t.Run("GoogleLogin_NewUser", func(t *testing.T) {
+		cleanupOAuthData()
+
 		formData := strings.NewReader("provider=google&id_token=mock_google_id_token_001")
 		req, _ := http.NewRequest("POST", "/v1/login/oauth", formData)
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -165,9 +172,9 @@ func TestOAuthLogin_Wechat(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/login/oauth", handler.OAuthLogin)
 
-	config.RDB.FlushDB(config.RDB.Context())
-
 	t.Run("WechatLogin_NewUser", func(t *testing.T) {
+		cleanupOAuthData()
+
 		formData := strings.NewReader("provider=wechat&code=mock_wechat_code_001")
 		req, _ := http.NewRequest("POST", "/v1/login/oauth", formData)
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -210,9 +217,9 @@ func TestOAuthLogin_Alipay(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/login/oauth", handler.OAuthLogin)
 
-	config.RDB.FlushDB(config.RDB.Context())
-
 	t.Run("AlipayLogin_NewUser", func(t *testing.T) {
+		cleanupOAuthData()
+
 		formData := strings.NewReader("provider=alipay&code=mock_alipay_code_001")
 		req, _ := http.NewRequest("POST", "/v1/login/oauth", formData)
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -255,9 +262,9 @@ func TestOAuthLogin_Email(t *testing.T) {
 	router := gin.New()
 	router.POST("/v1/login/oauth", handler.OAuthLogin)
 
-	config.RDB.FlushDB(config.RDB.Context())
-
 	t.Run("EmailLogin_NewUser", func(t *testing.T) {
+		cleanupOAuthData()
+
 		formData := strings.NewReader("provider=email&email=test@example.com")
 		req, _ := http.NewRequest("POST", "/v1/login/oauth", formData)
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

@@ -80,6 +80,7 @@ func main() {
 	logger.Infof("Version:       %s", Version)
 	logger.Infof("Build Time:    %s", BuildTime)
 	logger.Infof("Git Commit:    %s", GitCommit)
+	logger.Infof("Environment:   %s", config.AppConfig.Env)
 	logger.Infof("Port:          %d", port)
 	logger.Infof("========================================")
 

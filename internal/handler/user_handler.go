@@ -12,7 +12,7 @@ import (
 
 // GetUserList 获取用户列表
 // @Summary 获取用户列表
-// @Description 根据筛选条件获取用户列表
+// @Description 根据筛选条件获取用户列表，支持按年龄、性别、身高、职业、星座、教育程度、爱好、交友目的等多种条件筛选
 // @Tags 用户
 // @Accept application/json
 // @Produce application/json
@@ -89,7 +89,7 @@ func GetUserList(c *gin.Context) {
 
 // GetUserInfo 获取用户信息
 // @Summary 获取用户信息
-// @Description 获取指定用户的详细信息
+// @Description 获取指定用户的详细资料信息
 // @Tags 用户
 // @Accept application/json
 // @Produce application/json
@@ -114,7 +114,7 @@ func GetUserInfo(c *gin.Context) {
 
 // GetFocusList 获取关注列表
 // @Summary 获取关注列表
-// @Description 获取指定用户的关注列表
+// @Description 获取指定用户的关注用户列表
 // @Tags 用户
 // @Accept application/json
 // @Produce application/json
@@ -139,7 +139,7 @@ func GetFocusList(c *gin.Context) {
 
 // GetFansList 获取粉丝列表
 // @Summary 获取粉丝列表
-// @Description 获取指定用户的粉丝列表
+// @Description 获取指定用户的粉丝用户列表
 // @Tags 用户
 // @Accept application/json
 // @Produce application/json
@@ -164,7 +164,7 @@ func GetFansList(c *gin.Context) {
 
 // SetUserNotify 设置用户通知
 // @Summary 设置用户通知
-// @Description 设置是否接收指定用户的消息通知
+// @Description 设置是否接收指定用户的消息通知，flag=1开启通知，flag=0关闭通知
 // @Tags 用户
 // @Accept application/json
 // @Produce application/json
@@ -199,7 +199,7 @@ func SetUserNotify(c *gin.Context) {
 
 // GreetUser 打招呼
 // @Summary 打招呼
-// @Description 向指定用户发送打招呼消息
+// @Description 向指定用户发送打招呼消息，开启互动交流
 // @Tags 用户
 // @Accept application/json
 // @Produce application/json

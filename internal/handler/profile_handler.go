@@ -29,15 +29,15 @@ import (
 */
 // CollectMyInfo 完善个人信息
 // @Summary 完善个人信息
-// @Description 用户完善个人资料信息
-// @Description 收集内容包括：昵称、性别、出生年份、身高、体重、城市、学校、职业、教育程度、星座、爱好、交友目的等
-// @Description 【安全规则】昵称需通过以下校验：
-// @Description   1. 长度：2-20个字符
-// @Description   2. 字符类型：仅允许中文、英文、数字、下划线、连字符
-// @Description   3. 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇
-// @Description   4. URL过滤：禁止包含超链接
-// @Description   5. HTML过滤：禁止包含HTML标签
-// @Description   6. XSS过滤：禁止包含XSS攻击代码
+// @Description 用户完善个人资料信息，包括昵称、性别、出生年份、身高、体重、城市、学校、职业、教育程度、星座、爱好、交友目的等
+// @Description
+// @Description **昵称安全校验规则：**
+// @Description - 长度限制：2-20个字符
+// @Description - 字符类型：仅允许中文、英文、数字、下划线、连字符
+// @Description - 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇
+// @Description - URL过滤：禁止包含超链接
+// @Description - HTML过滤：禁止包含HTML标签
+// @Description - XSS过滤：禁止包含XSS攻击代码
 // @Tags 个人资料
 // @Accept application/json
 // @Produce application/json
@@ -101,8 +101,7 @@ func CollectMyInfo(c *gin.Context) {
 
 // CollectAimInfo 设置理想对象条件
 // @Summary 设置理想对象条件
-// @Description 用户设置理想对象的筛选条件
-// @Description 设置内容包括：年龄范围、性别、身高范围、体重范围、教育程度、星座、爱好等
+// @Description 用户设置理想对象的筛选条件，包括年龄范围、性别、身高范围、体重范围、教育程度、星座、爱好等
 // @Tags 个人资料
 // @Accept application/json
 // @Produce application/json
@@ -152,7 +151,7 @@ func CollectAimInfo(c *gin.Context) {
 
 // CheckProfileStatus 检查资料收集状态
 // @Summary 检查资料收集状态
-// @Description 检查用户是否已完成资料收集，用于首次登录时判断是否需要跳转到资料收集页面
+// @Description 检查用户是否已完成个人资料收集，用于首次登录时判断是否需要跳转到资料收集页面
 // @Tags 个人资料
 // @Accept application/json
 // @Produce application/json
@@ -179,14 +178,15 @@ func CheckProfileStatus(c *gin.Context) {
 // SetSignText 设置个性签名
 // @Summary 设置个性签名
 // @Description 用户设置个人主页的个性签名
-// @Description 【安全规则】签名需通过以下校验：
-// @Description   1. 长度：最大200字符
-// @Description   2. 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇
-// @Description   3. URL过滤：禁止包含 http/https/www 等超链接
-// @Description   4. HTML过滤：禁止包含 HTML 标签
-// @Description   5. JavaScript过滤：禁止包含脚本代码（如 <script>、eval()、alert()）
-// @Description   6. SQL注入过滤：禁止包含 SQL 注入代码（如 SELECT、INSERT、OR 1=1）
-// @Description   7. XSS过滤：禁止包含 XSS 攻击代码（如 onclick=、onerror=）
+// @Description 
+// @Description **签名安全校验规则：**
+// @Description - 长度限制：最大200字符
+// @Description - 敏感词过滤：禁止包含暴力、色情、政治敏感、诈骗等违规词汇
+// @Description - URL过滤：禁止包含 http/https/www 等超链接
+// @Description - HTML过滤：禁止包含HTML标签
+// @Description - JavaScript过滤：禁止包含脚本代码（如 <script>、eval()、alert()）
+// @Description - SQL注入过滤：禁止包含SQL注入代码（如 SELECT、INSERT、OR 1=1）
+// @Description - XSS过滤：禁止包含XSS攻击代码（如 onclick=、onerror=）
 // @Tags 个人资料
 // @Accept application/json
 // @Produce application/json
@@ -221,7 +221,7 @@ func SetSignText(c *gin.Context) {
 
 // CompleteProfile 完成资料收集
 // @Summary 完成资料收集
-// @Description 用户完成所有资料收集后调用此接口，标记资料收集状态为已完成，允许进入首页
+// @Description 用户完成所有个人资料收集后调用此接口，标记资料收集状态为已完成，允许进入应用首页
 // @Tags 个人资料
 // @Accept application/json
 // @Produce application/json

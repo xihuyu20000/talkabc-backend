@@ -11,21 +11,21 @@ import (
 
 // OAuthLogin 第三方登录
 // @Summary 第三方登录
-// @Description 使用第三方平台（Apple、Google、微信、支付宝、Email）进行登录
+// @Description 使用第三方平台凭证完成用户登录，支持Apple、Google、微信、支付宝、Email五种登录方式
 // @Description
-// @Description **支持的登录方式：**
-// @Description - apple: Apple登录，需提供id_token
-// @Description - google: Google登录，需提供id_token
-// @Description - wechat: 微信登录，需提供code
-// @Description - alipay: 支付宝登录，需提供code
-// @Description - email: 邮箱登录，需提供email
+// @Description **支持的登录方式及所需参数：**
+// @Description - Apple登录：需提供 id_token 参数
+// @Description - Google登录：需提供 id_token 参数
+// @Description - 微信登录：需提供 code 参数
+// @Description - 支付宝登录：需提供 code 参数
+// @Description - 邮箱登录：需提供 email 参数
 // @Description
-// @Description **安全规则：**
-// @Description - 1. 验证第三方平台返回的凭证有效性
-// @Description - 2. 如果是新用户，自动创建账号
-// @Description - 3. 如果已绑定，直接登录
-// @Description - 4. 检查用户账号状态（正常/封禁/注销）
-// @Description - 5. 记录登录操作日志（不可删除）
+// @Description **安全防护机制：**
+// @Description - 凭证验证：验证第三方平台返回的凭证有效性
+// @Description - 新用户自动注册：首次登录时自动创建用户账号
+// @Description - 账号绑定检测：已绑定的第三方账号直接登录
+// @Description - 状态校验：验证用户账号状态（正常/封禁/注销）
+// @Description - 操作审计：记录完整的登录日志，日志不可删除
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -80,7 +80,7 @@ func OAuthLogin(c *gin.Context) {
 
 // OAuthBind 绑定第三方账号
 // @Summary 绑定第三方账号
-// @Description 将第三方平台账号绑定到当前登录用户
+// @Description 将第三方平台账号绑定到当前登录用户，绑定后可使用该第三方平台直接登录
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -137,7 +137,7 @@ func OAuthBind(c *gin.Context) {
 
 // OAuthUnbind 解绑第三方账号
 // @Summary 解绑第三方账号
-// @Description 解绑当前登录用户的第三方平台账号
+// @Description 解绑当前登录用户的第三方平台账号，解绑后将无法使用该第三方平台登录
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -184,7 +184,7 @@ func OAuthUnbind(c *gin.Context) {
 
 // GetOAuthBindings 获取已绑定的第三方账号列表
 // @Summary 获取已绑定的第三方账号列表
-// @Description 获取当前登录用户已绑定的第三方平台账号列表
+// @Description 获取当前登录用户已绑定的所有第三方平台账号列表
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json

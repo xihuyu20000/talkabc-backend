@@ -5,13 +5,14 @@ import (
 	"backend/internal/service"
 	"backend/pkg/logger"
 	"backend/pkg/response"
-	"github.com/gin-gonic/gin"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 // GetLatestMoment 获取最新动态列表
 // @Summary 获取最新动态列表
-// @Description 获取最新发布的动态列表
+// @Description 获取平台最新发布的动态内容列表，按发布时间倒序排列
 // @Tags 动态
 // @Accept application/json
 // @Produce application/json
@@ -32,7 +33,7 @@ func GetLatestMoment(c *gin.Context) {
 
 // GetMyLatestMoment 获取我的最新动态
 // @Summary 获取我的最新动态
-// @Description 获取当前用户发布的最新动态列表
+// @Description 获取当前用户自己发布的最新动态内容列表
 // @Tags 动态
 // @Accept application/json
 // @Produce application/json
@@ -56,7 +57,7 @@ func GetMyLatestMoment(c *gin.Context) {
 
 // GetUserMoment 获取指定用户动态
 // @Summary 获取指定用户动态
-// @Description 获取指定用户发布的动态列表
+// @Description 获取指定用户发布的动态内容列表
 // @Tags 动态
 // @Accept application/json
 // @Produce application/json
@@ -81,7 +82,7 @@ func GetUserMoment(c *gin.Context) {
 
 // GetMomentComments 获取动态评论列表
 // @Summary 获取动态评论列表
-// @Description 获取指定动态的评论列表
+// @Description 获取指定动态的评论内容列表
 // @Tags 动态
 // @Accept application/json
 // @Produce application/json
@@ -113,7 +114,7 @@ func GetMomentComments(c *gin.Context) {
 
 // PublishMoment 发布动态
 // @Summary 发布动态
-// @Description 用户发布新动态，支持文本、图片和地理位置
+// @Description 用户发布新的动态内容，支持文本描述、图片上传和地理位置信息
 // @Tags 动态
 // @Accept multipart/form-data
 // @Produce application/json

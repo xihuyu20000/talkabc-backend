@@ -25,17 +25,16 @@ import (
 
 // LoginByCode 验证码登录
 // @Summary 验证码登录
-// @Description 使用手机号和验证码登录
+// @Description 使用手机号和短信验证码完成用户登录，登录成功后返回访问令牌和刷新令牌
 // @Description
-// @Description **安全规则：**
-// @Description - 1. IP黑名单检查
-// @Description - 2. IP登录频率限制（1分钟10次）
-// @Description - 3. 手机号黑名单检查
-// @Description - 4. 设备黑名单检查
-// @Description - 5. 登录失败次数限制（5分钟内5次失败锁定15分钟）
-// @Description - 6. 用户账号状态检查（正常/封禁/注销）
-// @Description - 7. 登录成功后清理验证码，防止二次复用
-// @Description - 8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）
+// @Description **安全防护机制：**
+// @Description - IP黑名单检测：拒绝来自恶意IP的请求
+// @Description - 频率限制：同一IP每分钟最多10次登录尝试
+// @Description - 账号风控：检查手机号、设备是否在黑名单中
+// @Description - 失败锁定：5分钟内连续5次失败，账号锁定15分钟
+// @Description - 状态校验：验证用户账号状态（正常/封禁/注销）
+// @Description - 验证码防复用：登录成功后立即清理验证码
+// @Description - 操作审计：记录完整的登录日志（用户ID、IP、UA、操作类型），日志不可删除
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -83,19 +82,18 @@ func LoginByCode(c *gin.Context) {
 
 // LoginByPassword 密码登录
 // @Summary 密码登录
-// @Description 使用手机号和密码登录
+// @Description 使用手机号和密码完成用户登录，登录成功后返回访问令牌和刷新令牌
 // @Description 
-// @Description **安全规则：**
-// @Description - 1. IP黑名单检查
-// @Description - 2. IP登录频率限制（1分钟10次）
-// @Description - 3. 手机号黑名单检查
-// @Description - 4. 设备黑名单检查
-// @Description - 5. 登录失败次数限制（5分钟内5次失败锁定15分钟）
-// @Description - 6. 用户账号状态检查（正常/封禁/注销）
-// @Description - 7. 登录成功后重置失败次数
-// @Description - 8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）
+// @Description **安全防护机制：**
+// @Description - IP黑名单检测：拒绝来自恶意IP的请求
+// @Description - 频率限制：同一IP每分钟最多10次登录尝试
+// @Description - 账号风控：检查手机号、设备是否在黑名单中
+// @Description - 失败锁定：5分钟内连续5次失败，账号锁定15分钟
+// @Description - 状态校验：验证用户账号状态（正常/封禁/注销）
+// @Description - 失败计数重置：登录成功后清零失败次数
+// @Description - 操作审计：记录完整的登录日志（用户ID、IP、UA、操作类型），日志不可删除
 // @Description 
-// @Description **密码存储：** 使用bcrypt加密（cost=10，自动内置盐）
+// @Description **密码安全：** 使用bcrypt算法加密存储（cost=10，自动内置随机盐）
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -143,16 +141,16 @@ func LoginByPassword(c *gin.Context) {
 
 // RefreshToken 刷新访问令牌
 // @Summary 刷新访问令牌
-// @Description 使用刷新令牌获取新的访问令牌和刷新令牌
+// @Description 使用刷新令牌获取新的访问令牌和刷新令牌，实现令牌轮转机制
 // @Description 
-// @Description **安全规则：**
-// @Description - 1. 验证刷新令牌格式（必须包含随机部分和JWT部分）
-// @Description - 2. 验证刷新令牌签名有效性
-// @Description - 3. 验证刷新令牌是否在Redis中存在且一致（防止滥用）
-// @Description - 4. 验证用户是否存在且账号状态正常
-// @Description - 5. 生成新的访问令牌和刷新令牌（刷新令牌轮转）
-// @Description - 6. 将新令牌保存到Redis，旧令牌失效
-// @Description - 7. 记录刷新操作日志（不可删除）
+// @Description **安全防护机制：**
+// @Description - 令牌格式校验：验证刷新令牌必须包含随机部分和JWT部分
+// @Description - 签名验证：确保令牌的完整性和合法性
+// @Description - 存储校验：验证令牌在Redis中的有效性，防止令牌滥用
+// @Description - 用户状态检查：确认用户账号状态正常
+// @Description - 令牌轮转：生成全新的访问令牌和刷新令牌
+// @Description - 旧令牌失效：将新令牌保存到Redis，旧令牌立即失效
+// @Description - 操作审计：记录令牌刷新日志，日志不可删除
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -192,7 +190,7 @@ func RefreshToken(c *gin.Context) {
 
 // Logout 退出登录
 // @Summary 退出登录
-// @Description 用户退出登录，强制下线所有设备
+// @Description 用户安全退出登录，强制下线所有设备并清除登录状态
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json

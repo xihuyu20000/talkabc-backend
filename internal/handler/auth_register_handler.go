@@ -22,16 +22,22 @@ import (
 
 // Register 用户注册
 // @Summary 用户注册
-// @Description 使用手机号、验证码和密码进行注册
-// @Description 安全规则：
-// @Description 1. IP黑名单检查
-// @Description 2. IP注册频率限制（1分钟10次）
-// @Description 3. 手机号黑名单检查
-// @Description 4. 手机号唯一性检查
-// @Description 5. 设备黑名单检查
-// @Description 6. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀）
-// @Description 7. 注册成功后清理验证码
-// @Description 8. 记录注册操作日志（不可删除）
+// @Description 使用手机号、验证码和密码完成用户注册，注册成功后自动登录并返回访问令牌和刷新令牌
+// @Description
+// @Description **安全防护机制：**
+// @Description - IP黑名单检测：拒绝来自恶意IP的请求
+// @Description - 注册频率限制：同一IP每分钟最多10次注册尝试
+// @Description - 手机号风控：检查手机号是否在黑名单中
+// @Description - 唯一性校验：确保手机号未被注册
+// @Description - 设备风控：检查设备是否在黑名单中
+// @Description - 验证码防复用：注册成功后立即清理验证码
+// @Description - 操作审计：记录完整的注册日志，日志不可删除
+// @Description
+// @Description **密码安全策略：**
+// @Description - 长度要求：至少8个字符
+// @Description - 复杂度要求：至少包含两种字符类型（大写字母、小写字母、数字、特殊符号）
+// @Description - 弱密码拦截：禁止使用常见弱密码
+// @Description - 关联检测：禁止包含手机号、昵称或邮箱前缀
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -125,16 +131,18 @@ bcrypt cost 设置 10～12，平衡安全与性能
 
 // InitiateResetPassword 发起密码重置（生成重置Token）
 // @Summary 发起密码重置
-// @Description 根据手机号发起密码重置，生成重置Token并发送
-// @Description 安全规则：
-// @Description 1. 同一账号24h内最多允许3次密码重置，超限锁定重置通道24h
-// @Description 2. 记录敏感操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）
-// @Description Token设计：
-// @Description - 单次有效（使用后立即销毁）
-// @Description - 短有效期（5分钟）
-// @Description - 不可预测（crypto/rand生成）
-// @Description - 绑定userID+设备标识
-// @Description - 禁止明文存库（仅存储sha256哈希）
+// @Description 根据手机号发起密码重置流程，生成安全的重置Token并发送给用户
+// @Description 
+// @Description **安全防护机制：**
+// @Description - 频率限制：同一账号24小时内最多允许3次密码重置，超限后锁定重置通道24小时
+// @Description - 操作审计：记录敏感操作日志（用户ID、IP、UA、操作类型），日志不可删除
+// @Description 
+// @Description **Token安全设计：**
+// @Description - 单次有效：使用一次后立即销毁，不可重复使用
+// @Description - 短有效期：仅5分钟，过期自动失效
+// @Description - 不可预测：使用crypto/rand生成随机Token，防止猜测攻击
+// @Description - 绑定验证：Token绑定userID和设备标识，防止跨账号盗用
+// @Description - 安全存储：数据库仅存储Token的sha256哈希值，不存储明文
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -179,12 +187,13 @@ func InitiateResetPassword(c *gin.Context) {
 
 // ValidateResetToken 验证重置Token是否有效
 // @Summary 验证重置Token
-// @Description 验证重置Token是否存在、未使用、未过期
-// @Description Token设计：
-// @Description - 单次有效（使用后立即销毁）
-// @Description - 短有效期（5分钟）
-// @Description - 绑定userID+设备标识
-// @Description - 禁止明文存库（仅存储sha256哈希）
+// @Description 验证密码重置Token是否有效（存在、未使用、未过期），用于前端预先校验重置链接
+// @Description 
+// @Description **Token安全设计：**
+// @Description - 单次有效：使用一次后立即销毁，不可重复使用
+// @Description - 短有效期：仅5分钟，过期自动失效
+// @Description - 绑定验证：Token绑定userID和设备标识，防止跨账号盗用
+// @Description - 安全存储：数据库仅存储Token的sha256哈希值，不存储明文
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -214,13 +223,22 @@ func ValidateResetToken(c *gin.Context) {
 
 // CompleteResetPassword 完成密码重置
 // @Summary 完成密码重置
-// @Description 使用重置Token设置新密码
-// @Description 安全规则：
-// @Description 1. 密码复杂度校验（≥8位，至少包含两种字符类型：大写字母、小写字母、数字、特殊符号；禁止弱密码；禁止包含手机号/昵称/邮箱前缀；禁止与历史5次密码重复）
-// @Description 2. 密码存储：使用bcrypt加密（cost=10，自动内置盐）
-// @Description 3. 重置成功后：清空该用户全部登录态（Redis token等）、清空所有未使用重置Token、绝不返回原始密码或加密密码
-// @Description 4. 记录敏感操作日志（不可删除）
-// @Description 5. 设备验证：验证Token绑定的设备标识，防止跨账号盗用
+// @Description 使用重置Token完成密码重置操作，设置新密码
+// @Description 
+// @Description **密码安全策略：**
+// @Description - 长度要求：至少8个字符
+// @Description - 复杂度要求：至少包含两种字符类型（大写字母、小写字母、数字、特殊符号）
+// @Description - 弱密码拦截：禁止使用常见弱密码
+// @Description - 关联检测：禁止包含手机号、昵称或邮箱前缀
+// @Description - 历史检查：禁止与最近5次密码重复
+// @Description - 安全存储：使用bcrypt算法加密（cost=10，自动内置随机盐）
+// @Description 
+// @Description **安全防护机制：**
+// @Description - 登录态清理：重置成功后清空该用户全部登录态（Redis token等）
+// @Description - Token清理：清空所有未使用的重置Token
+// @Description - 信息安全：绝不返回原始密码或加密密码
+// @Description - 操作审计：记录敏感操作日志，日志不可删除
+// @Description - 设备验证：验证Token绑定的设备标识，防止跨账号盗用
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
@@ -271,15 +289,16 @@ func CompleteResetPassword(c *gin.Context) {
 
 // ChangePhone 更换手机号
 // @Summary 更换手机号
-// @Description 已登录用户更换绑定的手机号
-// @Description 安全规则：
-// @Description 1. 必须已登录（JWT验证）
-// @Description 2. 验证新手机号格式
-// @Description 3. 新手机号必须未被注册
-// @Description 4. 验证新手机号的短信验证码
-// @Description 5. 频率限制（24小时内最多更换3次）
-// @Description 6. 更新手机号后清空所有登录态
-// @Description 7. 记录操作日志（不可删除）
+// @Description 已登录用户更换绑定的手机号，更换成功后需使用新手机号重新登录
+// @Description 
+// @Description **安全防护机制：**
+// @Description - 身份验证：必须已登录状态（JWT验证）
+// @Description - 格式校验：验证新手机号格式正确性
+// @Description - 唯一性校验：确保新手机号未被注册
+// @Description - 验证码验证：验证新手机号的短信验证码
+// @Description - 频率限制：24小时内最多更换3次手机号
+// @Description - 登录态清理：更换成功后清空所有登录态
+// @Description - 操作审计：记录操作日志，日志不可删除
 // @Tags 认证
 // @Accept application/x-www-form-urlencoded
 // @Produce application/json

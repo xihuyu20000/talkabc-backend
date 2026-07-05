@@ -5,12 +5,13 @@ import (
 	"backend/internal/repository"
 	"backend/pkg/logger"
 	"backend/pkg/response"
+
 	"github.com/gin-gonic/gin"
 )
 
 // UploadAvatar 上传头像
 // @Summary 上传头像
-// @Description 用户上传个人头像
+// @Description 用户上传个人头像图片，上传成功后自动更新用户头像信息
 // @Tags 文件上传
 // @Accept multipart/form-data
 // @Produce application/json
@@ -57,7 +58,7 @@ func UploadAvatar(c *gin.Context) {
 
 // UploadImage 上传图片
 // @Summary 上传图片
-// @Description 上传图片文件
+// @Description 上传图片文件，支持消息、动态等场景使用
 // @Tags 文件上传
 // @Accept multipart/form-data
 // @Produce application/json
@@ -88,7 +89,7 @@ func UploadImage(c *gin.Context) {
 
 // UploadAudio 上传音频
 // @Summary 上传音频
-// @Description 上传音频文件
+// @Description 上传音频文件，支持语音消息等场景使用
 // @Tags 文件上传
 // @Accept multipart/form-data
 // @Produce application/json
@@ -119,7 +120,7 @@ func UploadAudio(c *gin.Context) {
 
 // UploadVideo 上传视频
 // @Summary 上传视频
-// @Description 上传视频文件
+// @Description 上传视频文件，支持动态视频、消息视频等场景使用
 // @Tags 文件上传
 // @Accept multipart/form-data
 // @Produce application/json
@@ -150,7 +151,7 @@ func UploadVideo(c *gin.Context) {
 
 // UploadFile 上传文件
 // @Summary 上传文件
-// @Description 上传通用文件
+// @Description 上传通用文件，支持各种类型的文件上传
 // @Tags 文件上传
 // @Accept multipart/form-data
 // @Produce application/json

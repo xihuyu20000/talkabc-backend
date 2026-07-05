@@ -2,9 +2,11 @@ package config
 
 import (
 	"backend/pkg/logger"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/gorm"
@@ -24,6 +26,7 @@ type Config struct {
 	Upload       UploadConfig       `yaml:"upload" json:"upload"`
 	Redis        RedisConfig        `yaml:"redis" json:"redis"`
 	CORS         CORSConfig         `yaml:"cors" json:"cors"`
+	Env          string             `yaml:"env" json:"env"`
 }
 
 type SystemConfig struct {
@@ -228,20 +231,26 @@ func loadConfig(filePath string, cfg *Config) error {
 //   2. 环境变量 APP_ENV 指定的环境配置文件（config/config.{APP_ENV}.yaml）
 //   3. 默认配置文件（config/config.yaml）
 func InitConfigDefault() {
+	var env string
+	var configPath string
+
 	// 1. 优先使用 APP_CONFIG 环境变量指定的配置文件
 	if customConfig := os.Getenv("APP_CONFIG"); customConfig != "" {
+		configPath = customConfig
+		env = detectEnvFromPath(customConfig)
 		logger.Infof("[Config] Using custom config file: %s", customConfig)
-		InitConfig(customConfig)
+		InitConfigWithEnv(configPath, env)
 		return
 	}
 
 	// 2. 根据 APP_ENV 环境变量选择配置文件
 	appEnv := os.Getenv("APP_ENV")
 	if appEnv != "" {
-		configPath := fmt.Sprintf("./config/config.%s.yaml", appEnv)
+		env = appEnv
+		configPath = fmt.Sprintf("./config/config.%s.yaml", appEnv)
 		if _, err := os.Stat(configPath); err == nil {
 			logger.Infof("[Config] Using %s environment config: %s", appEnv, configPath)
-			InitConfig(configPath)
+			InitConfigWithEnv(configPath, env)
 			return
 		}
 		logger.Warnf("[Config] Environment config file not found: %s, falling back to default", configPath)
@@ -249,14 +258,32 @@ func InitConfigDefault() {
 
 	// 3. 使用默认配置文件
 	if _, err := os.Stat("./config/config.yaml"); err == nil {
+		env = "dev"
+		configPath = "./config/config.yaml"
 		logger.Infof("[Config] Using default config file: ./config/config.yaml")
-		InitConfig("./config/config.yaml")
+		InitConfigWithEnv(configPath, env)
 		return
 	}
 
 	logger.Fatalf("[Config] No config file found. Please set APP_CONFIG or APP_ENV environment variable")
 	os.Exit(1)
 }
+
+func detectEnvFromPath(path string) string {
+	if strings.Contains(path, "test") {
+		return "test"
+	}
+	if strings.Contains(path, "prod") {
+		return "prod"
+	}
+	return "dev"
+}
+func InitConfigWithEnv(filePath string, env string) {
+	InitConfig(filePath)
+	AppConfig.Env = env
+	logger.Infof("[Config] Environment: %s", env)
+}
+
 func InitConfig(filePath string) {
 
 	// 1. 先创建带有默认值的配置对象
@@ -281,8 +308,12 @@ func InitConfig(filePath string) {
 	// 5. 输出配置信息
 	logger.Infof("[Config] System - Reset: %d", AppConfig.System.Reset)
 	logger.Debugf("[Config] Debug level test - Logger.Level: %s", AppConfig.Logger.Level)
-	str := fmt.Sprintf("%+v", AppConfig)
-	logger.Infof("[Config] Full config: \n%s", str)
+	jsonBytes, err := json.MarshalIndent(AppConfig, "", "  ")
+	if err != nil {
+		logger.Errorf("[Config] Failed to marshal config to JSON: %s", err)
+	} else {
+		logger.Infof("[Config] Full config:\n%s", string(jsonBytes))
+	}
 }
 
 func InitConfigSafe(filePath string) {

@@ -14,7 +14,7 @@ import (
 
 // GetSystemMsgList 获取系统消息列表
 // @Summary 获取系统消息列表
-// @Description 获取当前用户的系统消息列表
+// @Description 获取当前用户收到的系统通知消息列表
 // @Tags 消息
 // @Accept application/json
 // @Produce application/json
@@ -38,7 +38,7 @@ func GetSystemMsgList(c *gin.Context) {
 
 // GetLatestUserMsg 获取最新用户消息
 // @Summary 获取最新用户消息
-// @Description 获取当前用户与其他用户的最新消息列表
+// @Description 获取当前用户与其他用户的最新聊天消息列表
 // @Tags 消息
 // @Accept application/json
 // @Produce application/json
@@ -62,7 +62,7 @@ func GetLatestUserMsg(c *gin.Context) {
 
 // GetUserMsgHistory 获取用户消息历史
 // @Summary 获取用户消息历史
-// @Description 获取与指定用户的聊天消息历史
+// @Description 获取与指定用户的完整聊天消息历史记录
 // @Tags 消息
 // @Accept application/json
 // @Produce application/json
@@ -88,7 +88,7 @@ func GetUserMsgHistory(c *gin.Context) {
 
 // SetMessageTop 设置消息置顶
 // @Summary 设置消息置顶
-// @Description 设置或取消与指定用户的消息置顶
+// @Description 设置或取消与指定用户的聊天消息置顶，flag=1置顶，flag=0取消置顶
 // @Tags 消息
 // @Accept application/json
 // @Produce application/json
@@ -123,7 +123,7 @@ func SetMessageTop(c *gin.Context) {
 
 // ClearChatHistory 清除聊天记录
 // @Summary 清除聊天记录
-// @Description 清除与指定用户的聊天记录
+// @Description 清除与指定用户的所有聊天消息记录
 // @Tags 消息
 // @Accept application/json
 // @Produce application/json
@@ -151,7 +151,7 @@ func ClearChatHistory(c *gin.Context) {
 
 // AddFriend 添加好友
 // @Summary 添加好友
-// @Description 添加指定用户为好友
+// @Description 添加指定用户为好友或取消关注，flag=1添加好友，flag=0取消关注
 // @Tags 社交
 // @Accept application/json
 // @Produce application/json
@@ -186,7 +186,7 @@ func AddFriend(c *gin.Context) {
 
 // SendGift 发送礼物
 // @Summary 发送礼物
-// @Description 向指定用户发送礼物
+// @Description 向指定用户发送礼物，消耗钻石购买礼物
 // @Tags 社交
 // @Accept application/json
 // @Produce application/json
@@ -223,7 +223,7 @@ func SendGift(c *gin.Context) {
 
 // GetLatestAdBanner 获取最新广告横幅
 // @Summary 获取最新广告横幅
-// @Description 获取最新的广告横幅列表
+// @Description 获取最新展示的广告横幅列表，用于首页广告展示
 // @Tags 广告
 // @Accept application/json
 // @Produce application/json
