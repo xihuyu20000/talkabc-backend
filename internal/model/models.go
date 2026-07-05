@@ -54,8 +54,9 @@ type User struct {
 	Email         string                                                         // 邮箱
 	RealName      string                                                         // 真实姓名
 	Official      int                 // 是否官方认证：0-否，1-是
-	RealVerify    int                 // 实名认证状态：0-未认证，1-已认证
-	Aim           JSONMap             `gorm:"type:json"`                         // 理想对象条件（JSON格式）
+	RealVerify       int                 // 实名认证状态：0-未认证，1-已认证
+	Aim              JSONMap             `gorm:"type:json"`                         // 理想对象条件（JSON格式）
+	ProfileCompleted int                 `gorm:"default:0"`                        // 资料收集完成状态：0-未完成，1-已完成
 }
 
 // FriendRelation 好友关系模型

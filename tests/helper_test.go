@@ -157,6 +157,9 @@ func (tr *TestRouter) SetupUserRoutes() {
 	tr.Engine.POST("/v1/aimuser/greet/:uid", handler.GreetUser)
 	tr.Engine.POST("/v1/collect/myinfo", handler.CollectMyInfo)
 	tr.Engine.POST("/v1/collect/aiminfo", handler.CollectAimInfo)
+	tr.Engine.GET("/v1/profile/status", handler.CheckProfileStatus)
+	tr.Engine.POST("/v1/profile/sign", handler.SetSignText)
+	tr.Engine.POST("/v1/profile/complete", handler.CompleteProfile)
 }
 
 func (tr *TestRouter) SetupChatRoutes() {
@@ -368,7 +371,7 @@ func TestConfigValidation(t *testing.T) {
 			"port":     5432,
 			"user":     "postgres",
 			"password": "admin",
-			"dbname":   "letstalk",
+			"dbname":   "talkabc",
 		}
 
 		if config["host"] == "" {

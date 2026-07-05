@@ -74,15 +74,8 @@ backend/
 │   │   ├── interaction_service.go
 │   │   ├── moment_service.go
 │   │   ├── payment_service.go
+│   │   ├── profile_service.go    # 个人资料业务逻辑（资料收集、签名设置）
 │   │   └── user_service.go
-│   ├── test/                 # 测试代码
-│   │   ├── helper_test.go    # 测试辅助工具（统一初始化日志、Redis）
-│   │   ├── integration_test.go # 集成测试
-│   │   ├── auth_login_test.go  # 登录模块测试
-│   │   ├── auth_register_test.go # 注册模块测试
-│   │   ├── sms_test.go         # 短信验证码测试
-│   │   ├── user_test.go        # 用户模块测试
-│   │   └── moment_test.go      # 动态模块测试
 │   └── websocket/            # WebSocket实时通信
 │       ├── client.go         # WebSocket客户端连接管理
 │       ├── hub.go            # WebSocket连接管理器（处理客户端注册/注销）
@@ -92,6 +85,8 @@ backend/
     │   └── logger.go         # 日志核心实现
     ├── response/             # 响应封装
     │   └── response.go       # 统一API响应格式
+    ├── security/             # 安全检查模块
+    │   └── content_filter.go # 内容安全过滤（昵称、签名安全检查）
     └── utils/                # 工具函数
         └── snowflake.go      # 雪花ID生成器
 ```
@@ -397,6 +392,28 @@ go build -o talkabc.exe ./cmd/server
 |------|------|------|------|
 | POST | `/api/v1/profile/me` | 完善个人信息 | 是 |
 | POST | `/api/v1/profile/preferences` | 设置理想对象条件 | 是 |
+| GET | `/api/v1/profile/status` | 检查资料收集状态 | 是 |
+| POST | `/api/v1/profile/sign` | 设置个性签名 | 是 |
+| POST | `/api/v1/profile/complete` | 完成资料收集 | 是 |
+
+#### 昵称安全规则
+昵称需通过以下安全校验：
+1. **长度限制**：2-20个字符
+2. **字符类型**：仅允许中文、英文、数字、下划线、连字符
+3. **敏感词过滤**：禁止包含暴力、色情、政治敏感、诈骗等违规词汇
+4. **URL过滤**：禁止包含 http/https/www 等超链接
+5. **HTML过滤**：禁止包含 HTML 标签
+6. **XSS过滤**：禁止包含 XSS 攻击代码
+
+#### 个性签名安全规则
+个性签名需通过以下安全校验：
+1. **长度限制**：最大200字符
+2. **敏感词过滤**：禁止包含暴力、色情、政治敏感、诈骗等违规词汇
+3. **URL过滤**：禁止包含 http/https/www 等超链接
+4. **HTML过滤**：禁止包含 HTML 标签
+5. **JavaScript过滤**：禁止包含脚本代码（如 `<script>`、`eval()`、`alert()`）
+6. **SQL注入过滤**：禁止包含 SQL 注入代码（如 `SELECT`、`INSERT`、`OR 1=1`）
+7. **XSS过滤**：禁止包含 XSS 攻击代码（如 `onclick=`、`onerror=`）
 
 ### 聊天消息模块 `/api/v1/messages`
 
@@ -912,3 +929,10 @@ system:
 - 33. JWT中间件增强：验证Redis中存储的token与请求token一致，防止旧token滥用
 - 34. 退出登录时清除access_token和refresh_token，确保完全退出
 - 35. 操作日志增加refresh_token、change_phone操作类型记录
+- 36. 新增用户资料收集流程（个人资料、头像、签名、目标资料），收集完成后才允许进入首页
+- 37. 新增资料收集状态检查接口 GET /api/v1/profile/status
+- 38. 新增个性签名设置接口 POST /api/v1/profile/sign
+- 39. 新增资料收集完成接口 POST /api/v1/profile/complete
+- 40. 创建安全检查模块 pkg/security/content_filter.go，提供昵称和签名的安全检查功能
+- 41. 昵称安全检查：长度限制(2-20字符)、字符类型限制、敏感词过滤、URL过滤、HTML过滤、XSS过滤
+- 42. 个性签名安全检查：长度限制(最大200字符)、敏感词过滤、URL过滤、HTML过滤、JavaScript过滤、SQL注入过滤、XSS过滤

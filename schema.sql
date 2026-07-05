@@ -1,4 +1,4 @@
--- LetsTalk 社交 App 数据库表结构
+-- TalkABC 社交 App 数据库表结构
 -- PostgreSQL
 
 -- 启用UUID扩展
@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS users (
     real_name VARCHAR(100),                          -- 真实姓名
     official INTEGER DEFAULT 0,                      -- 是否官方认证: 0否 1是
     real_verify INTEGER DEFAULT 0,                   -- 实名认证状态: 0未认证 1已认证
-    aim JSON                                         -- 理想对象条件（JSON格式）
+    aim JSON,                                        -- 理想对象条件（JSON格式）
+    profile_completed INTEGER DEFAULT 0              -- 资料收集完成状态：0-未完成，1-已完成
 );
 
 CREATE INDEX idx_users_phone_num ON users(phone_num);

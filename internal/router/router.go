@@ -79,6 +79,9 @@ func InitRouter() *gin.Engine {
 			// ==================== profile ====================
 			private.POST("/profile/me", handler.CollectMyInfo)
 			private.POST("/profile/preferences", handler.CollectAimInfo)
+			private.GET("/profile/status", handler.CheckProfileStatus)
+			private.POST("/profile/sign", handler.SetSignText)
+			private.POST("/profile/complete", handler.CompleteProfile)
 
 			// ==================== uploads ====================
 			private.POST("/users/avatar", handler.UploadAvatar)
