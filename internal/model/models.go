@@ -309,3 +309,108 @@ type PasswordHistory struct {
 	UserID       uint   `gorm:"not null;index"` // 用户ID
 	PasswordHash string `gorm:"size:100;not null"` // 历史密码哈希（bcrypt）
 }
+
+// AuditLog 操作审计日志模型
+// 【等保合规】记录用户操作行为，支持关联业务数据排查问题
+// 数据保留策略：90天
+type AuditLog struct {
+	ID          uint      `gorm:"primary_key"`
+	CreatedAt   time.Time `gorm:"type:timestamp with time zone"`
+	RequestID   string    `gorm:"size:64"`
+	TraceID     string    `gorm:"size:64"`
+	UserID      uint
+	Uid         string `gorm:"size:20"`
+	PhoneNum    string `gorm:"size:20"`
+	IP          string `gorm:"size:50"`
+	UA          string `gorm:"size:512"`
+	Method      string `gorm:"size:10"`
+	Path        string `gorm:"size:512"`
+	Operation   string `gorm:"size:100;not null"`
+	ResourceType string `gorm:"size:50"`
+	ResourceID  string `gorm:"size:100"`
+	Action      string `gorm:"size:50"`
+	BeforeData  JSONMap `gorm:"type:json"`
+	AfterData   JSONMap `gorm:"type:json"`
+	Result      int     `gorm:"default:0"`
+	ErrorMessage string `gorm:"type:text"`
+	DurationMs  int
+	StatusCode  int
+	Extra       JSONMap `gorm:"type:json"`
+}
+
+// AdminChangeLog 后台变更日志模型
+// 【等保合规】记录管理员/系统后台操作，支持审计追踪
+// 数据保留策略：永久（等保要求）
+type AdminChangeLog struct {
+	ID            uint      `gorm:"primary_key"`
+	CreatedAt     time.Time `gorm:"type:timestamp with time zone"`
+	RequestID     string    `gorm:"size:64"`
+	TraceID       string    `gorm:"size:64"`
+	OperatorID    uint
+	OperatorName  string `gorm:"size:100"`
+	OperatorRole  string `gorm:"size:50"`
+	IP            string `gorm:"size:50"`
+	UA            string `gorm:"size:512"`
+	Module        string `gorm:"size:50"`
+	Action        string `gorm:"size:50"`
+	TargetType    string `gorm:"size:50"`
+	TargetID      string `gorm:"size:100"`
+	TargetName    string `gorm:"size:200"`
+	ChangeContent JSONMap `gorm:"type:json;not null"`
+	BeforeData    JSONMap `gorm:"type:json"`
+	AfterData     JSONMap `gorm:"type:json"`
+	Reason        string `gorm:"size:500"`
+	Result        int     `gorm:"default:0"`
+	Extra         JSONMap `gorm:"type:json"`
+}
+
+// ComplianceLog 等保合规日志模型
+// 【等保合规】记录关键安全事件，事务保障，不可删除
+// 数据保留策略：永久（等保要求）
+type ComplianceLog struct {
+	ID        uint      `gorm:"primary_key"`
+	CreatedAt time.Time `gorm:"type:timestamp with time zone;not null"`
+	LogType   string    `gorm:"size:50;not null"`
+	Severity  string    `gorm:"size:20;not null"`
+	EventID   string    `gorm:"size:64;unique"`
+	RequestID string    `gorm:"size:64"`
+	TraceID   string    `gorm:"size:64"`
+	UserID    uint
+	Uid       string `gorm:"size:20"`
+	PhoneNum  string `gorm:"size:20"`
+	IP        string `gorm:"size:50"`
+	UserAgent string `gorm:"size:512"`
+	Action    string `gorm:"size:100;not null"`
+	Resource  string `gorm:"size:200"`
+	Permission string `gorm:"size:100"`
+	Result    string `gorm:"size:20;not null"`
+	Detail    JSONMap `gorm:"type:json"`
+	RawLog    string  `gorm:"type:text"`
+	Verified  int     `gorm:"default:0"`
+}
+
+// ExceptionLog 异常日志模型
+// 【系统运维】记录ERROR/WARN级别异常，过滤DEBUG/INFO
+// 数据保留策略：30天
+type ExceptionLog struct {
+	ID          uint      `gorm:"primary_key"`
+	CreatedAt   time.Time `gorm:"type:timestamp with time zone"`
+	RequestID   string    `gorm:"size:64"`
+	TraceID     string    `gorm:"size:64"`
+	Level       string    `gorm:"size:20;not null"`
+	LoggerName  string    `gorm:"size:200"`
+	Message     string    `gorm:"type:text;not null"`
+	ErrorType   string    `gorm:"size:200"`
+	StackTrace  string    `gorm:"type:text"`
+	UserID      uint
+	Uid         string `gorm:"size:20"`
+	IP          string `gorm:"size:50"`
+	Path        string `gorm:"size:512"`
+	Method      string `gorm:"size:10"`
+	OrderID     string `gorm:"size:100"`
+	BusinessID  string `gorm:"size:100"`
+	DurationMs  int
+	RetryCount  int `gorm:"default:0"`
+	Extra       JSONMap `gorm:"type:json"`
+	Hash        string `gorm:"size:64"`
+}

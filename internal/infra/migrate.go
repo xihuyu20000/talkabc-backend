@@ -24,12 +24,16 @@ import (
 //   UserMessageTop, UserMoment, UserNotify, VisitRecord
 func AutoMigrate(db *gorm.DB) {
 	tables := []interface{}{
+		&model.AdminChangeLog{},
 		&model.AdBanner{},
 		&model.AgreeFriend{},
+		&model.AuditLog{},
 		&model.ChatMessage{},
+		&model.ComplianceLog{},
 		&model.DatingPurpose{},
 		&model.Diamond{},
 		&model.DiamondRecord{},
+		&model.ExceptionLog{},
 		&model.FriendRelation{},
 		&model.Gift{},
 		&model.HobbyTag{},

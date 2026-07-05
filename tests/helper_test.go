@@ -91,6 +91,10 @@ func dropTestTables() {
 		"system_msgs",
 		"like_records",
 		"users",
+		"admin_change_logs",
+		"audit_logs",
+		"compliance_logs",
+		"exception_logs",
 	}
 
 	for _, table := range tables {

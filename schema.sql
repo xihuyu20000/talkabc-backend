@@ -422,7 +422,7 @@ CREATE INDEX idx_reset_tokens_user_id ON reset_tokens(user_id);
 CREATE INDEX idx_reset_tokens_token_hash ON reset_tokens(token_hash);
 CREATE INDEX idx_reset_tokens_expire_at ON reset_tokens(expire_at);
 
--- 敏感操作日志表
+-- 敏感操作日志表（保留旧表兼容）
 -- 【重置流程行为风控】记录敏感操作，不可删除
 CREATE TABLE IF NOT EXISTS operation_logs (
     id SERIAL PRIMARY KEY,
@@ -440,6 +440,145 @@ CREATE TABLE IF NOT EXISTS operation_logs (
 CREATE INDEX idx_operation_logs_user_id ON operation_logs(user_id);
 CREATE INDEX idx_operation_logs_operation ON operation_logs(operation);
 CREATE INDEX idx_operation_logs_created_at ON operation_logs(created_at);
+
+-- ============================================
+-- 日志系统表（PG存储）
+-- ============================================
+
+-- 操作审计日志表
+-- 【等保合规】记录用户操作行为，支持关联业务数据排查问题
+-- 数据保留策略：90天
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    request_id VARCHAR(64),                        -- 请求追踪ID（链路追踪）
+    trace_id VARCHAR(64),                          -- 分布式追踪ID
+    user_id INTEGER,                               -- 用户ID（0表示未登录）
+    uid VARCHAR(20),                               -- 用户UID（雪花ID）
+    phone_num VARCHAR(20),                         -- 用户手机号（脱敏存储）
+    ip VARCHAR(50),                                -- 操作IP
+    ua VARCHAR(512),                               -- 设备UA
+    method VARCHAR(10),                            -- HTTP方法
+    path VARCHAR(512),                             -- 请求路径
+    operation VARCHAR(100) NOT NULL,               -- 操作类型：register, login, logout, create_order等
+    resource_type VARCHAR(50),                     -- 资源类型：user, order, diamond等
+    resource_id VARCHAR(100),                      -- 资源ID（如订单号、钻石记录ID）
+    action VARCHAR(50),                            -- 操作动作：create, update, delete, query
+    before_data JSON,                              -- 变更前数据（JSON格式）
+    after_data JSON,                               -- 变更后数据（JSON格式）
+    result INTEGER DEFAULT 0,                      -- 操作结果：0-失败，1-成功，2-部分成功
+    error_message TEXT,                            -- 错误信息
+    duration_ms INTEGER,                           -- 请求耗时（毫秒）
+    status_code INTEGER,                           -- HTTP状态码
+    extra JSON                                     -- 扩展字段（JSON格式）
+);
+
+CREATE INDEX idx_audit_logs_request_id ON audit_logs(request_id);
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_uid ON audit_logs(uid);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX idx_audit_logs_operation ON audit_logs(operation);
+CREATE INDEX idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
+
+-- 后台变更日志表
+-- 【等保合规】记录管理员/系统后台操作，支持审计追踪
+-- 数据保留策略：永久（等保要求）
+CREATE TABLE IF NOT EXISTS admin_change_logs (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    request_id VARCHAR(64),                        -- 请求追踪ID
+    trace_id VARCHAR(64),                          -- 分布式追踪ID
+    operator_id INTEGER,                           -- 操作人ID（管理员ID）
+    operator_name VARCHAR(100),                    -- 操作人名称
+    operator_role VARCHAR(50),                     -- 操作人角色
+    ip VARCHAR(50),                                -- 操作IP
+    ua VARCHAR(512),                               -- 设备UA
+    module VARCHAR(50),                            -- 操作模块：user_manage, order_manage, system_setting等
+    action VARCHAR(50),                            -- 操作动作：create, update, delete, ban, unban等
+    target_type VARCHAR(50),                       -- 目标类型：user, order, config等
+    target_id VARCHAR(100),                        -- 目标ID
+    target_name VARCHAR(200),                      -- 目标名称（如用户名、订单号）
+    change_content JSON NOT NULL,                  -- 变更内容（JSON格式）
+    before_data JSON,                              -- 变更前数据
+    after_data JSON,                               -- 变更后数据
+    reason VARCHAR(500),                           -- 变更原因
+    result INTEGER DEFAULT 0,                      -- 操作结果：0-失败，1-成功
+    extra JSON                                     -- 扩展字段
+);
+
+CREATE INDEX idx_admin_change_logs_request_id ON admin_change_logs(request_id);
+CREATE INDEX idx_admin_change_logs_operator_id ON admin_change_logs(operator_id);
+CREATE INDEX idx_admin_change_logs_created_at ON admin_change_logs(created_at DESC);
+CREATE INDEX idx_admin_change_logs_module ON admin_change_logs(module);
+CREATE INDEX idx_admin_change_logs_target ON admin_change_logs(target_type, target_id);
+
+-- 等保合规日志表
+-- 【等保合规】记录关键安全事件，事务保障，不可删除
+-- 数据保留策略：永久（等保要求）
+-- 特殊约束：created_at不可修改，表无deleted_at字段
+CREATE TABLE IF NOT EXISTS compliance_logs (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    log_type VARCHAR(50) NOT NULL,                 -- 日志类型：login_success, login_failure, privilege_escalation, data_access等
+    severity VARCHAR(20) NOT NULL,                 -- 严重级别：INFO, WARN, ERROR, CRITICAL
+    event_id VARCHAR(64) UNIQUE,                   -- 事件唯一ID（UUID）
+    request_id VARCHAR(64),                        -- 请求追踪ID
+    trace_id VARCHAR(64),                          -- 分布式追踪ID
+    user_id INTEGER,                               -- 用户ID
+    uid VARCHAR(20),                               -- 用户UID
+    phone_num VARCHAR(20),                         -- 用户手机号（脱敏）
+    ip VARCHAR(50),                                -- 来源IP
+    user_agent VARCHAR(512),                       -- 用户代理
+    action VARCHAR(100) NOT NULL,                  -- 行为描述
+    resource VARCHAR(200),                         -- 访问资源
+    permission VARCHAR(100),                       -- 权限类型
+    result VARCHAR(20) NOT NULL,                   -- 结果：ALLOW, DENY, SUCCESS, FAILURE
+    detail JSON,                                   -- 详细信息（JSON格式）
+    raw_log TEXT,                                  -- 原始日志内容
+    verified INTEGER DEFAULT 0                     -- 是否已审核：0-未审核，1-已审核
+);
+
+CREATE INDEX idx_compliance_logs_event_id ON compliance_logs(event_id);
+CREATE INDEX idx_compliance_logs_request_id ON compliance_logs(request_id);
+CREATE INDEX idx_compliance_logs_user_id ON compliance_logs(user_id);
+CREATE INDEX idx_compliance_logs_created_at ON compliance_logs(created_at DESC);
+CREATE INDEX idx_compliance_logs_log_type ON compliance_logs(log_type);
+CREATE INDEX idx_compliance_logs_severity ON compliance_logs(severity);
+
+-- 异常日志表
+-- 【系统运维】记录ERROR/WARN级别异常，过滤DEBUG/INFO
+-- 数据保留策略：30天
+-- 日增量：控制在几十万条以内
+CREATE TABLE IF NOT EXISTS exception_logs (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    request_id VARCHAR(64),                        -- 请求追踪ID
+    trace_id VARCHAR(64),                          -- 分布式追踪ID
+    level VARCHAR(20) NOT NULL,                    -- 日志级别：WARN, ERROR, FATAL
+    logger_name VARCHAR(200),                      -- 日志记录器名称
+    message TEXT NOT NULL,                         -- 日志消息
+    error_type VARCHAR(200),                       -- 错误类型（如：database error, network error）
+    stack_trace TEXT,                              -- 堆栈信息
+    user_id INTEGER,                               -- 用户ID
+    uid VARCHAR(20),                               -- 用户UID
+    ip VARCHAR(50),                                -- 请求IP
+    path VARCHAR(512),                             -- 请求路径
+    method VARCHAR(10),                            -- HTTP方法
+    order_id VARCHAR(100),                         -- 关联订单号
+    business_id VARCHAR(100),                      -- 业务ID（如钻石交易ID）
+    duration_ms INTEGER,                           -- 耗时（毫秒）
+    retry_count INTEGER DEFAULT 0,                 -- 重试次数
+    extra JSON,                                    -- 扩展字段
+    hash VARCHAR(64)                               -- 日志哈希（用于去重）
+);
+
+CREATE INDEX idx_exception_logs_request_id ON exception_logs(request_id);
+CREATE INDEX idx_exception_logs_created_at ON exception_logs(created_at DESC);
+CREATE INDEX idx_exception_logs_level ON exception_logs(level);
+CREATE INDEX idx_exception_logs_error_type ON exception_logs(error_type);
+CREATE INDEX idx_exception_logs_user_id ON exception_logs(user_id);
+CREATE INDEX idx_exception_logs_order_id ON exception_logs(order_id);
+CREATE INDEX idx_exception_logs_hash ON exception_logs(hash);
 
 -- 密码历史记录表
 -- 【最低安全策略】记录用户历史密码，防止重复使用（保留最近5次）
