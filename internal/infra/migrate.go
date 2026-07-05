@@ -42,6 +42,7 @@ func AutoMigrate(db *gorm.DB) {
 		&model.MemberRecord{},
 		&model.MomentComment{},
 		&model.MomentPraise{},
+		&model.OAuthUser{},
 		&model.OperationLog{},
 		&model.PasswordHistory{},
 		&model.ResetToken{},

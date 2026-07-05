@@ -282,6 +282,69 @@ paths:
       summary: 验证码登录
       tags:
       - 认证
+  /auth/login/oauth:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        使用第三方平台（Apple、Google、微信、支付宝、Email）进行登录
+
+        **支持的登录方式：**
+        - apple: Apple登录，需提供id_token
+        - google: Google登录，需提供id_token
+        - wechat: 微信登录，需提供code
+        - alipay: 支付宝登录，需提供code
+        - email: 邮箱登录，需提供email
+
+        **安全规则：**
+        - 1. 验证第三方平台返回的凭证有效性
+        - 2. 如果是新用户，自动创建账号
+        - 3. 如果已绑定，直接登录
+        - 4. 检查用户账号状态（正常/封禁/注销）
+        - 5. 记录登录操作日志（不可删除）
+      parameters:
+      - description: 登录方式：apple/google/wechat/alipay/email
+        in: formData
+        name: provider
+        required: true
+        type: string
+      - description: 授权码（微信、支付宝登录使用）
+        in: formData
+        name: code
+        type: string
+      - description: ID令牌（Apple、Google登录使用）
+        in: formData
+        name: id_token
+        type: string
+      - description: 邮箱地址（邮箱登录使用）
+        in: formData
+        name: email
+        type: string
+      - description: 设备ID
+        in: formData
+        name: device_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功，返回access_token、refresh_token、new_user
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误或验证失败
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 登录失败
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 第三方登录
+      tags:
+      - 认证
   /auth/login/password:
     post:
       consumes:
@@ -352,6 +415,124 @@ paths:
       security:
       - BearerAuth: []
       summary: 退出登录
+      tags:
+      - 认证
+  /auth/oauth/bind:
+    post:
+      consumes:
+      - application/json
+      description: 将第三方平台账号绑定到当前登录用户
+      parameters:
+      - description: 绑定方式：apple/google/wechat/alipay/email
+        in: formData
+        name: provider
+        required: true
+        type: string
+      - description: 授权码（微信、支付宝绑定使用）
+        in: formData
+        name: code
+        type: string
+      - description: ID令牌（Apple、Google绑定使用）
+        in: formData
+        name: id_token
+        type: string
+      - description: 邮箱地址（邮箱绑定使用）
+        in: formData
+        name: email
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 绑定成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误或验证失败
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未登录
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 绑定失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 绑定第三方账号
+      tags:
+      - 认证
+  /auth/oauth/list:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户已绑定的第三方平台账号列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功，返回已绑定的provider列表
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未登录
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 获取失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取已绑定的第三方账号列表
+      tags:
+      - 认证
+  /auth/oauth/unbind:
+    post:
+      consumes:
+      - application/json
+      description: 解绑当前登录用户的第三方平台账号
+      parameters:
+      - description: 解绑方式：apple/google/wechat/alipay/email
+        in: formData
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 解绑成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未登录
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 解绑失败
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 解绑第三方账号
       tags:
       - 认证
   /auth/refresh-token:

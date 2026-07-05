@@ -375,6 +375,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/login/oauth": {
+            "post": {
+                "description": "使用第三方平台（Apple、Google、微信、支付宝、Email）进行登录\n\n**支持的登录方式：**\n- apple: Apple登录，需提供id_token\n- google: Google登录，需提供id_token\n- wechat: 微信登录，需提供code\n- alipay: 支付宝登录，需提供code\n- email: 邮箱登录，需提供email\n\n**安全规则：**\n- 1. 验证第三方平台返回的凭证有效性\n- 2. 如果是新用户，自动创建账号\n- 3. 如果已绑定，直接登录\n- 4. 检查用户账号状态（正常/封禁/注销）\n- 5. 记录登录操作日志（不可删除）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "第三方登录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "登录方式：apple/google/wechat/alipay/email",
+                        "name": "provider",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "授权码（微信、支付宝登录使用）",
+                        "name": "code",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID令牌（Apple、Google登录使用）",
+                        "name": "id_token",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "邮箱地址（邮箱登录使用）",
+                        "name": "email",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备ID",
+                        "name": "device_id",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "登录成功，返回access_token、refresh_token、new_user",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误或验证失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "登录失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login/password": {
             "post": {
                 "description": "使用手机号和密码登录\n\n**安全规则：**\n- 1. IP黑名单检查\n- 2. IP登录频率限制（1分钟10次）\n- 3. 手机号黑名单检查\n- 4. 设备黑名单检查\n- 5. 登录失败次数限制（5分钟内5次失败锁定15分钟）\n- 6. 用户账号状态检查（正常/封禁/注销）\n- 7. 登录成功后重置失败次数\n- 8. 记录登录操作日志（用户ID、IP、UA、操作类型、是否成功，不可删除）\n\n**密码存储：** 使用bcrypt加密（cost=10，自动内置盐）",
@@ -456,6 +527,185 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "退出成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/oauth/bind": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "将第三方平台账号绑定到当前登录用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "绑定第三方账号",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "绑定方式：apple/google/wechat/alipay/email",
+                        "name": "provider",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "授权码（微信、支付宝绑定使用）",
+                        "name": "code",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID令牌（Apple、Google绑定使用）",
+                        "name": "id_token",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "邮箱地址（邮箱绑定使用）",
+                        "name": "email",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "绑定成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误或验证失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "绑定失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/oauth/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前登录用户已绑定的第三方平台账号列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "获取已绑定的第三方账号列表",
+                "responses": {
+                    "200": {
+                        "description": "获取成功，返回已绑定的provider列表",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "获取失败",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/oauth/unbind": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "解绑当前登录用户的第三方平台账号",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "认证"
+                ],
+                "summary": "解绑第三方账号",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "解绑方式：apple/google/wechat/alipay/email",
+                        "name": "provider",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "解绑成功",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "解绑失败",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

@@ -51,6 +51,7 @@ func InitRouter() *gin.Engine {
 			public.POST("/auth/register", handler.Register)
 			public.POST("/auth/login/code", handler.LoginByCode)
 			public.POST("/auth/login/password", handler.LoginByPassword)
+			public.POST("/auth/login/oauth", handler.OAuthLogin)
 			public.POST("/auth/refresh-token", handler.RefreshToken)
 			// ==================== 重置密码（重置凭证） ====================
 			public.POST("/auth/reset-password/initiate", handler.InitiateResetPassword)
@@ -67,6 +68,9 @@ func InitRouter() *gin.Engine {
 			// ==================== auth ====================
 			private.POST("/auth/logout", handler.Logout)
 			private.POST("/auth/change-phone", handler.ChangePhone)
+			private.POST("/auth/oauth/bind", handler.OAuthBind)
+			private.POST("/auth/oauth/unbind", handler.OAuthUnbind)
+			private.GET("/auth/oauth/list", handler.GetOAuthBindings)
 
 			// ==================== users ====================
 			private.GET("/users", handler.GetUserList)

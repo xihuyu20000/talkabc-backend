@@ -414,3 +414,16 @@ type ExceptionLog struct {
 	Extra       JSONMap `gorm:"type:json"`
 	Hash        string `gorm:"size:64"`
 }
+
+// OAuthUser 第三方登录关联模型
+// 记录用户与第三方平台的关联关系
+type OAuthUser struct {
+	gorm.Model
+	UserID      uint   `gorm:"not null;index"`           // 关联的本地用户ID
+	Provider    string `gorm:"size:30;not null;index"`   // 第三方平台类型：apple, google, wechat, alipay, email
+	ProviderID  string `gorm:"size:255;not null;index"`  // 第三方平台返回的用户唯一标识
+	AccessToken string `gorm:"size:500"`                 // 第三方平台访问令牌（可选）
+	RefreshToken string `gorm:"size:500"`                // 第三方平台刷新令牌（可选）
+	ExpireAt    time.Time                                // 令牌过期时间
+	Extra       JSONMap `gorm:"type:json"`               // 额外信息（如用户头像、昵称等）
+}

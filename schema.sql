@@ -593,6 +593,27 @@ CREATE TABLE IF NOT EXISTS password_histories (
 
 CREATE INDEX idx_password_histories_user_id ON password_histories(user_id);
 
+-- 第三方登录关联表
+-- 记录用户与第三方平台（Apple、Google、微信、支付宝、Email）的关联关系
+CREATE TABLE IF NOT EXISTS o_auth_users (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    user_id INTEGER NOT NULL,                      -- 关联的本地用户ID
+    provider VARCHAR(30) NOT NULL,                 -- 第三方平台类型：apple, google, wechat, alipay, email
+    provider_id VARCHAR(255) NOT NULL,             -- 第三方平台返回的用户唯一标识
+    access_token VARCHAR(500),                     -- 第三方平台访问令牌（可选）
+    refresh_token VARCHAR(500),                    -- 第三方平台刷新令牌（可选）
+    expire_at TIMESTAMP,                           -- 令牌过期时间
+    extra JSON                                     -- 额外信息（如用户头像、昵称等）
+);
+
+CREATE INDEX idx_o_auth_users_user_id ON o_auth_users(user_id);
+CREATE INDEX idx_o_auth_users_provider ON o_auth_users(provider);
+CREATE INDEX idx_o_auth_users_provider_id ON o_auth_users(provider_id);
+CREATE UNIQUE INDEX idx_o_auth_users_provider_provider_id ON o_auth_users(provider, provider_id);
+
 -- ============================================
 -- 初始化数据
 -- ============================================
