@@ -5,8 +5,9 @@ import (
 	"backend/internal/service"
 	"backend/pkg/logger"
 	"backend/pkg/response"
-	"github.com/gin-gonic/gin"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 // BuyDiamond 购买钻石
@@ -145,4 +146,93 @@ func GetMemberHistory(c *gin.Context) {
 	}
 
 	response.Success(c, records)
+}
+
+func GetVipInfo(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	response.Success(c, gin.H{"vip_level": 0, "expire_time": ""})
+}
+
+func GetVipProducts(c *gin.Context) {
+	data := make([]interface{}, 0)
+	response.Success(c, data)
+}
+
+func BuyVip(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	var req struct {
+		ProductID uint `json:"product_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func GetRechargeProducts(c *gin.Context) {
+	data := make([]interface{}, 0)
+	response.Success(c, data)
+}
+
+func CreateRechargeOrder(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	var req struct {
+		Amount int `json:"amount"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	response.Success(c, gin.H{"order_id": ""})
+}
+
+func RechargeNotify(c *gin.Context) {
+	response.Success(c, nil)
+}
+
+func GetRechargeHistory(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	data := make([]interface{}, 0)
+	response.Success(c, gin.H{"data": data, "total": 0, "page": 1, "size": 20})
+}
+
+func GetIncomeList(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	data := make([]interface{}, 0)
+	response.Success(c, gin.H{"data": data, "total": 0, "page": 1, "size": 20})
+}
+
+func GetIncomeTotal(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	response.Success(c, gin.H{"total": 0})
+}
+
+func CreateWithdraw(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	var req struct {
+		Amount int `json:"amount"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func GetWithdrawHistory(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	data := make([]interface{}, 0)
+	response.Success(c, gin.H{"data": data, "total": 0, "page": 1, "size": 20})
 }

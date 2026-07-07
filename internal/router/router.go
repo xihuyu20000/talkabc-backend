@@ -1,13 +1,13 @@
 package router
 
 import (
+	"backend/internal/config"
+	"backend/internal/handler"
+	"backend/internal/middleware"
 	_ "backend/swagger"
-	"backend/internal/config"     // 配置模块
-	"backend/internal/handler"    // 处理器函数
-	"backend/internal/middleware" // 中间件（JWT认证等）
 
-	"github.com/gin-contrib/cors" // CORS跨域资源共享
-	"github.com/gin-gonic/gin"    // Gin Web框架
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -43,7 +43,7 @@ func InitRouter() *gin.Engine {
 	{
 		public := apiV1.Group("/")
 		{
-			// ==================== auth & sms ====================
+			// ===== 认证模块（公开）=====
 			public.GET("/auth/code-sms", handler.SendSMSCode)
 			public.POST("/auth/code-sms/verify", handler.VerifySMSCode)
 			public.GET("/auth/code-alnum", handler.GenerateAlnumCode)
@@ -53,85 +53,146 @@ func InitRouter() *gin.Engine {
 			public.POST("/auth/login/password", handler.LoginByPassword)
 			public.POST("/auth/login/oauth", handler.OAuthLogin)
 			public.POST("/auth/refresh-token", handler.RefreshToken)
-			// ==================== 重置密码（重置凭证） ====================
 			public.POST("/auth/reset-password/initiate", handler.InitiateResetPassword)
 			public.GET("/auth/reset-password/validate", handler.ValidateResetToken)
 			public.POST("/auth/reset-password/complete", handler.CompleteResetPassword)
+
+			// ===== 广告模块（公开）=====
+			public.GET("/ad/list", handler.GetAdList)
 		}
 
 		private := apiV1.Group("/", middleware.JWT())
 		{
-			// ==================== system ====================
+			// ===== 系统模块 =====
 			private.GET("/system/log-level", handler.GetLogLevel)
 			private.POST("/system/log-level", handler.SetLogLevel)
 
-			// ==================== auth ====================
+			// ===== 认证模块（私有）=====
 			private.POST("/auth/logout", handler.Logout)
 			private.POST("/auth/change-phone", handler.ChangePhone)
 			private.POST("/auth/oauth/bind", handler.OAuthBind)
 			private.POST("/auth/oauth/unbind", handler.OAuthUnbind)
 			private.GET("/auth/oauth/list", handler.GetOAuthBindings)
 
-			// ==================== users ====================
+			// ===== 用户模块 =====
 			private.GET("/users", handler.GetUserList)
+			private.GET("/users/me", handler.GetUserMe)
+			private.PUT("/users/me", handler.UpdateUserMe)
 			private.GET("/users/:uid", handler.GetUserInfo)
+			private.POST("/users/:uid/follow", handler.FollowUser)
+			private.DELETE("/users/:uid/follow", handler.UnfollowUser)
+			private.GET("/users/:uid/follow/status", handler.CheckFollowStatus)
 			private.GET("/users/:uid/following", handler.GetFocusList)
 			private.GET("/users/:uid/fans", handler.GetFansList)
 			private.POST("/users/:uid/greet", handler.GreetUser)
 			private.POST("/users/:uid/notification/:flag", handler.SetUserNotify)
+			private.GET("/users/:uid/online", handler.GetUserOnlineStatus)
+			private.GET("/users/search", handler.SearchUsers)
 
-			// ==================== profile ====================
+			// ===== 用户资料模块 =====
 			private.POST("/profile/me", handler.CollectMyInfo)
 			private.POST("/profile/preferences", handler.CollectAimInfo)
 			private.GET("/profile/status", handler.CheckProfileStatus)
 			private.POST("/profile/sign", handler.SetSignText)
 			private.POST("/profile/complete", handler.CompleteProfile)
 
-			// ==================== uploads ====================
+			// ===== 文件上传模块 =====
 			private.POST("/users/avatar", handler.UploadAvatar)
 			private.POST("/uploads/image", handler.UploadImage)
 			private.POST("/uploads/audio", handler.UploadAudio)
 			private.POST("/uploads/video", handler.UploadVideo)
 			private.POST("/uploads/file", handler.UploadFile)
 
-			// ==================== notifications ====================
-			private.GET("/notifications/praise", handler.GetPraiseMeList)
-			private.GET("/notifications/comment", handler.GetCommentMeList)
-			private.GET("/notifications/friend", handler.GetAddMeList)
-			private.GET("/notifications/visit", handler.GetVisitMeList)
-			private.GET("/notifications/like", handler.GetLikeMeList)
+			// ===== 通知模块 =====
+			private.GET("/notifications/praise-me", handler.GetPraiseMeList)
+			private.GET("/notifications/comment-me", handler.GetCommentMeList)
+			private.GET("/notifications/add-me", handler.GetAddMeList)
+			private.GET("/notifications/visit-me", handler.GetVisitMeList)
+			private.GET("/notifications/like-me", handler.GetLikeMeList)
+			private.POST("/notifications/friend-request/:uid/:flag", handler.AgreeFriendRequest)
+			private.GET("/notifications", handler.GetNotificationList)
+			private.POST("/notifications/read", handler.MarkNotificationsRead)
+			private.GET("/notifications/count", handler.GetNotificationCount)
 
-			// ==================== friendships ====================
-			private.POST("/friendships/:uid/:flag", handler.AddFriend)
-			private.POST("/friendships/agree/:uid/:flag", handler.AgreeFriendRequest)
+			// ===== 好友模块 =====
+			private.POST("/friends/:uid/focus", handler.AddFriend)
+			private.POST("/friends/:uid/notify/:flag", handler.SetUserNotify)
+			private.GET("/friends/requests", handler.GetFriendRequests)
+			private.POST("/friends/requests/:uid/:flag", handler.AgreeFriendRequest)
+			private.POST("/friends/greet/:uid", handler.GreetUser)
+			private.GET("/friends", handler.GetFriendList)
+			private.DELETE("/friends/:uid", handler.DeleteFriend)
 
-			// ==================== ads ====================
-			private.GET("/ads/latest", handler.GetLatestAdBanner)
-
-			// ==================== gifts ====================
+			// ===== 礼物模块 =====
+			private.GET("/gifts", handler.GetGiftList)
 			private.POST("/gifts/send/:uid/:giftid", handler.SendGift)
 
-			// ==================== messages ====================
+			// ===== 消息模块 =====
 			private.GET("/messages/system", handler.GetSystemMsgList)
 			private.GET("/messages/latest", handler.GetLatestUserMsg)
-			private.GET("/messages/:uid", handler.GetUserMsgHistory)
-			private.POST("/messages/top/:uid/:flag", handler.SetMessageTop)
-			private.DELETE("/messages/:uid", handler.ClearChatHistory)
+			private.GET("/messages/users/:uid", handler.GetUserMsgHistory)
+			private.POST("/messages/users/:uid", handler.SendUserMessage)
+			private.POST("/messages/users/:uid/read", handler.MarkMessagesRead)
+			private.POST("/messages/users/:uid/clear", handler.ClearChatHistory)
+			private.POST("/messages/users/:uid/top/:flag", handler.SetMessageTop)
+			private.DELETE("/messages/:msgid", handler.DeleteMessage)
+			private.POST("/messages/:msgid/recall", handler.RecallMessage)
 
-			// ==================== moments ====================
-			private.GET("/moments/latest", handler.GetLatestMoment)
-			private.GET("/users/:uid/moments", handler.GetUserMoment)
+			// ===== 朋友圈模块 =====
+			private.GET("/moments", handler.GetLatestMoment)
+			private.GET("/moments/following", handler.GetFollowingMoment)
+			private.GET("/moments/me", handler.GetMyLatestMoment)
+			private.GET("/moments/users/:uid", handler.GetUserMoment)
+			private.GET("/moments/:mid", handler.GetMomentDetail)
 			private.GET("/moments/:mid/comments", handler.GetMomentComments)
+			private.POST("/moments/:mid/comments", handler.CommentMoment)
+			private.POST("/moments/:mid/praise", handler.PraiseMoment)
+			private.DELETE("/moments/:mid/praise", handler.CancelPraiseMoment)
 			private.POST("/moments", handler.PublishMoment)
+			private.DELETE("/moments/:mid", handler.DeleteMoment)
+			private.DELETE("/moments/comments/:cid", handler.DeleteComment)
 
-			// ==================== diamonds ====================
-			private.POST("/diamonds/buy/:did", handler.BuyDiamond)
-			private.GET("/diamonds/stock", handler.GetDiamondStock)
-			private.GET("/diamonds/history", handler.GetDiamondHistory)
+			// ===== VIP/充值模块 =====
+			private.GET("/vip/info", handler.GetVipInfo)
+			private.GET("/vip/products", handler.GetVipProducts)
+			private.POST("/vip/buy", handler.BuyVip)
+			private.GET("/vip/diamond", handler.GetDiamondStock)
+			private.GET("/vip/recharge/products", handler.GetRechargeProducts)
+			private.POST("/vip/recharge", handler.CreateRechargeOrder)
+			private.POST("/vip/recharge/notify", handler.RechargeNotify)
+			private.GET("/vip/recharge/history", handler.GetRechargeHistory)
 
-			// ==================== memberships ====================
-			private.POST("/memberships/buy/:vid", handler.BuyMember)
-			private.GET("/memberships/history", handler.GetMemberHistory)
+			// ===== 收益模块 =====
+			private.GET("/income/list", handler.GetIncomeList)
+			private.GET("/income/total", handler.GetIncomeTotal)
+			private.POST("/income/withdraw", handler.CreateWithdraw)
+			private.GET("/income/withdraw/history", handler.GetWithdrawHistory)
+
+			// ===== 实名认证模块 =====
+			private.GET("/verification/real/status", handler.GetRealVerifyStatus)
+			private.POST("/verification/real/apply", handler.ApplyRealVerify)
+			private.GET("/verification/official/status", handler.GetOfficialVerifyStatus)
+			private.POST("/verification/official/apply", handler.ApplyOfficialVerify)
+
+			// ===== 设置模块 =====
+			private.GET("/settings/blacklist", handler.GetBlacklist)
+			private.POST("/settings/blacklist/:uid", handler.ToggleBlacklist)
+			private.GET("/settings/language", handler.GetLanguage)
+			private.PUT("/settings/language", handler.UpdateLanguage)
+			private.GET("/settings/privacy", handler.GetPrivacySettings)
+			private.PUT("/settings/privacy", handler.UpdatePrivacySettings)
+
+			// ===== 分享模块 =====
+			private.POST("/share/generate", handler.GenerateShareLink)
+			private.GET("/share/invite/reward", handler.GetInviteReward)
+
+			// ===== 广告模块（私有）=====
+			private.POST("/ad/click", handler.TrackAdClick)
+			private.POST("/ad/impression", handler.TrackAdImpression)
+
+			// ===== WebSocket模块 =====
+			private.GET("/websocket/connect", handler.WebSocketConnect)
+			private.POST("/websocket/ping", handler.WebSocketPing)
 		}
 	}
 
@@ -139,7 +200,6 @@ func InitRouter() *gin.Engine {
 
 	r.Static("/uploads", "./uploads")
 
-	// ==================== websocket ====================
 	r.GET("/ws", handler.WebSocketHandler)
 
 	r.Any("/api/v1/api/v1/*path", func(c *gin.Context) {

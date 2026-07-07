@@ -42,21 +42,20 @@ import (
 // @Accept application/json
 // @Produce application/json
 // @Param phonenum formData string true "手机号"
-// @Param code formData string true "验证码"
-// @Param password formData string true "密码（≥8位，至少包含两种字符类型）"
-// @Param device_id formData string false "设备ID"
-// @Success 200 {object} map[string]interface{} "注册成功，返回access_token和refresh_token"
-// @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
-// @Failure 500 {object} map[string]interface{} "注册失败"
-// @Router /auth/register [post]
 func Register(c *gin.Context) {
-	phoneNum := c.PostForm("phonenum")
-	code := c.PostForm("code")
-	password := c.PostForm("password")
-	// 【注册安全规则5】获取设备ID（由客户端传递，用于设备黑名单校验）
-	deviceID := c.PostForm("device_id")
+	var req struct {
+		PhoneNum string `json:"phonenum" binding:"required"`
+		Code     string `json:"code" binding:"required"`
+		Password string `json:"password" binding:"required"`
+		DeviceID string `json:"device_id"`
+	}
 
-	if phoneNum == "" || code == "" || password == "" {
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	if req.PhoneNum == "" || req.Code == "" || req.Password == "" {
 		response.BadRequest(c, "手机号、验证码和密码不能为空")
 		return
 	}
@@ -66,24 +65,24 @@ func Register(c *gin.Context) {
 	ua := c.GetHeader("User-Agent")
 
 	// 【注册安全规则】组装注册请求，包含IP、设备ID、UA用于安全校验和日志记录
-	req := service.RegisterRequest{
-		PhoneNum: phoneNum,
-		Code:     code,
-		Password: password,
+	serviceReq := service.RegisterRequest{
+		PhoneNum: req.PhoneNum,
+		Code:     req.Code,
+		Password: req.Password,
 		IP:       clientIP,
-		DeviceID: deviceID,
+		DeviceID: req.DeviceID,
 		UA:       ua,
 	}
 
-	logger.Infof("[Handler] Register - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
+	logger.Infof("[Handler] Register - PhoneNum: %s, DeviceID: %s, IP: %s", serviceReq.PhoneNum, serviceReq.DeviceID, serviceReq.IP)
 
-	result, err := service.Register(req)
+	result, err := service.Register(serviceReq)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return
 	}
 
-	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken})
+	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken, "user": result.User})
 }
 
 /**
@@ -153,9 +152,17 @@ bcrypt cost 设置 10～12，平衡安全与性能
 // @Failure 500 {object} map[string]interface{} "发起失败"
 // @Router /auth/reset-password/initiate [post]
 func InitiateResetPassword(c *gin.Context) {
-	phoneNum := c.PostForm("phonenum")
-	// 【重置凭证】获取设备ID，用于绑定唯一信息，防止跨账号盗用
-	deviceID := c.PostForm("device_id")
+	var body struct {
+		PhoneNum string `json:"phonenum"`
+		DeviceID string `json:"device_id"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	phoneNum := body.PhoneNum
+	deviceID := body.DeviceID
 
 	if phoneNum == "" {
 		response.BadRequest(c, "手机号不能为空")
@@ -251,11 +258,21 @@ func ValidateResetToken(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "重置失败"
 // @Router /auth/reset-password/complete [post]
 func CompleteResetPassword(c *gin.Context) {
-	token := c.PostForm("token")
-	pwd1 := c.PostForm("pwd1")
-	pwd2 := c.PostForm("pwd2")
-	// 【重置凭证】获取设备ID，验证绑定信息，防止跨账号盗用
-	deviceID := c.PostForm("device_id")
+	var body struct {
+		Token    string `json:"token"`
+		Pwd1     string `json:"pwd1"`
+		Pwd2     string `json:"pwd2"`
+		DeviceID string `json:"device_id"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	token := body.Token
+	pwd1 := body.Pwd1
+	pwd2 := body.Pwd2
+	deviceID := body.DeviceID
 
 	if token == "" || pwd1 == "" || pwd2 == "" {
 		response.BadRequest(c, "参数不能为空")
@@ -312,10 +329,19 @@ func CompleteResetPassword(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "更换失败"
 // @Router /auth/change-phone [post]
 func ChangePhone(c *gin.Context) {
-	newPhone := c.PostForm("new_phone")
-	code := c.PostForm("code")
-	// 【更换手机号安全规则】获取设备ID，用于频率限制和日志记录
-	deviceID := c.PostForm("device_id")
+	var body struct {
+		NewPhone string `json:"new_phone"`
+		Code     string `json:"code"`
+		DeviceID string `json:"device_id"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	newPhone := body.NewPhone
+	code := body.Code
+	deviceID := body.DeviceID
 
 	if newPhone == "" || code == "" {
 		response.BadRequest(c, "新手机号和验证码不能为空")

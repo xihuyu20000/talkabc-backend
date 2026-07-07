@@ -109,3 +109,42 @@ func GetOnlineStatus(c *gin.Context) {
 	status := ws.GetOnlineStatus(uid)
 	response.Success(c, gin.H{"uid": uid, "online": status})
 }
+
+func WebSocketConnect(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		response.BadRequest(c, "缺少token")
+		return
+	}
+
+	claims := &jwt.MapClaims{}
+	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.AppConfig.JWT.Secret), nil
+	})
+	if err != nil {
+		response.Unauthorized(c, "token无效")
+		return
+	}
+
+	uid, ok := (*claims)["uid"].(string)
+	if !ok {
+		response.BadRequest(c, "用户ID无效")
+		return
+	}
+
+	conn, err := wsUpgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		response.InternalError(c, "连接升级失败")
+		return
+	}
+
+	client := ws.NewClient(ws.GetHub(), conn, uid, "")
+	ws.GetHub().Register(client)
+
+	go client.WritePump()
+	client.ReadPump()
+}
+
+func WebSocketPing(c *gin.Context) {
+	response.Success(c, gin.H{"pong": true})
+}

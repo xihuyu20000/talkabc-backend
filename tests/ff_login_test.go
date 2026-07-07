@@ -3,10 +3,10 @@ package test
 import (
 	"backend/internal/config"
 	"backend/internal/handler"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -62,9 +62,14 @@ func TestLoginByCode_FullFlow(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 		router.ServeHTTP(registerResp, registerReq)
 
@@ -115,9 +120,13 @@ func TestLoginByCode_FullFlow(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code)
-		loginReq, _ := http.NewRequest("POST", "/v1/login/code", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/code", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginResp := httptest.NewRecorder()
 
 		router.ServeHTTP(loginResp, loginReq)
@@ -222,9 +231,14 @@ func TestLoginByPassword_FullFlow(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 		router.ServeHTTP(registerResp, registerReq)
 
@@ -243,9 +257,13 @@ func TestLoginByPassword_FullFlow(t *testing.T) {
 
 	// ==================== Step2: 密码登录 ====================
 	t.Run("Step2_LoginByPassword", func(t *testing.T) {
-		formData := strings.NewReader("phonenum=" + phoneNum + "&pwd=" + password)
-		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"pwd":      password,
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginResp := httptest.NewRecorder()
 
 		router.ServeHTTP(loginResp, loginReq)
@@ -295,9 +313,13 @@ func TestLoginByPassword_FullFlow(t *testing.T) {
 
 	// ==================== Step3: 密码错误登录失败测试 ====================
 	t.Run("Step3_WrongPassword_LoginFailed", func(t *testing.T) {
-		formData := strings.NewReader("phonenum=" + phoneNum + "&pwd=WrongPassword")
-		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"pwd":      "WrongPassword",
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginResp := httptest.NewRecorder()
 
 		router.ServeHTTP(loginResp, loginReq)

@@ -3,10 +3,10 @@ package test
 import (
 	"backend/internal/config"
 	"backend/internal/handler"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -104,10 +104,15 @@ func TestRegister_FullFlow(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		// 构造注册请求（使用表单数据格式）
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		// 构造注册请求（使用 JSON 格式）
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 
 		router.ServeHTTP(registerResp, registerReq)

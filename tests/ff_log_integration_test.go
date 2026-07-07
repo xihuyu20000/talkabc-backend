@@ -6,9 +6,10 @@ import (
 	"backend/internal/model"
 	"backend/internal/repository"
 	"backend/internal/service"
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -49,9 +50,14 @@ func TestLoginOperationLog_WriteToPG(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 		router.ServeHTTP(registerResp, registerReq)
 
@@ -79,9 +85,13 @@ func TestLoginOperationLog_WriteToPG(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code)
-		loginReq, _ := http.NewRequest("POST", "/v1/login/code", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/code", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginReq.Header.Set("User-Agent", "TestAgent/1.0")
 		loginResp := httptest.NewRecorder()
 
@@ -137,9 +147,13 @@ func TestLoginOperationLog_WriteToPG(t *testing.T) {
 	})
 
 	t.Run("Step3_LoginFailed_OperationLogWritten", func(t *testing.T) {
-		formData := strings.NewReader("phonenum=" + phoneNum + "&pwd=WrongPassword123")
-		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"pwd":      "WrongPassword123",
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginResp := httptest.NewRecorder()
 
 		router.ServeHTTP(loginResp, loginReq)
@@ -213,9 +227,14 @@ func TestRegisterOperationLog_WriteToPG(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 
 		router.ServeHTTP(registerResp, registerReq)

@@ -4,6 +4,7 @@ import (
 	"backend/internal/config"
 	"backend/internal/handler"
 	"backend/internal/middleware"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -97,9 +98,14 @@ func TestCollectProfile_FullFlow(t *testing.T) {
 		code := sentMsgs[0].Code
 
 		// 注册
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 
 		router.ServeHTTP(registerResp, registerReq)
@@ -394,14 +400,22 @@ func TestSetSignText_TooLong(t *testing.T) {
 	code := sentMsgs[0].Code
 
 	// 注册
-	formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-	registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-	registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	registerData := map[string]string{
+		"phonenum": phoneNum,
+		"code":     code,
+		"password": password,
+	}
+	jsonData, _ := json.Marshal(registerData)
+	registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+	registerReq.Header.Set("Content-Type", "application/json")
 	registerResp := httptest.NewRecorder()
 	router.ServeHTTP(registerResp, registerReq)
 
 	var result map[string]interface{}
 	json.Unmarshal(registerResp.Body.Bytes(), &result)
+	if registerResp.Code != http.StatusOK || result["code"] != float64(0) {
+		t.Fatalf("Register failed with status %d: %s", registerResp.Code, registerResp.Body.String())
+	}
 	data := result["data"].(map[string]interface{})
 	accessToken := data["access_token"].(string)
 

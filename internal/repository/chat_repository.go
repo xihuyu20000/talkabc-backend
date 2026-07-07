@@ -277,3 +277,16 @@ func SendFileMessage(senderID, receiverID uint, fileURL string) error {
 func SendGift(senderID, receiverID, giftID uint) error {
 	return nil
 }
+
+// MarkMessagesRead 标记消息已读
+// 参数说明：
+//   - userID: 用户数据库ID
+//   - targetID: 聊天对象数据库ID
+//
+// 返回值：
+//   - error: 错误信息
+func MarkMessagesRead(userID, targetID uint) error {
+	return config.DB.Model(&model.ChatMessage{}).
+		Where("sender_id = ? AND receiver_id = ? AND read_status = 0", targetID, userID).
+		Update("read_status", 1).Error
+}

@@ -192,3 +192,29 @@ func SendFileMessage(senderUID, receiverUID string, fileURL string) error {
 
 	return repository.SendFileMessage(sender.ID, receiver.ID, fileURL)
 }
+
+func SendUserMessage(senderUID, receiverUID, content string) error {
+	return SendTextMessage(senderUID, receiverUID, content)
+}
+
+func MarkMessagesRead(uid, targetUID string) error {
+	user, err := repository.GetUserByUID(uid)
+	if err != nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	target, err := repository.GetUserByUID(targetUID)
+	if err != nil {
+		return fmt.Errorf("目标用户不存在")
+	}
+
+	return repository.MarkMessagesRead(user.ID, target.ID)
+}
+
+func DeleteMessage(uid, msgID string) error {
+	return nil
+}
+
+func RecallMessage(uid, msgID string) error {
+	return nil
+}

@@ -3,10 +3,10 @@ package test
 import (
 	"backend/internal/config"
 	"backend/internal/handler"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -82,9 +82,14 @@ func TestForgotPassword_FullFlow(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 		router.ServeHTTP(registerResp, registerReq)
 
@@ -104,9 +109,12 @@ func TestForgotPassword_FullFlow(t *testing.T) {
 	// ==================== Step2: 发起密码重置 ====================
 	// 模拟用户点击"忘记密码"，输入手机号，系统生成重置Token并发送
 	t.Run("Step2_InitiateResetPassword", func(t *testing.T) {
-		formData := strings.NewReader("phonenum=" + phoneNum)
-		initiateReq, _ := http.NewRequest("POST", "/v1/reset-password/initiate", formData)
-		initiateReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		initiateData := map[string]string{
+			"phonenum": phoneNum,
+		}
+		jsonData, _ := json.Marshal(initiateData)
+		initiateReq, _ := http.NewRequest("POST", "/v1/reset-password/initiate", bytes.NewBuffer(jsonData))
+		initiateReq.Header.Set("Content-Type", "application/json")
 		initiateResp := httptest.NewRecorder()
 
 		router.ServeHTTP(initiateResp, initiateReq)
@@ -198,9 +206,14 @@ func TestForgotPassword_FullFlow(t *testing.T) {
 			t.Skip("No reset token generated in previous step")
 		}
 
-		formData := strings.NewReader("token=" + resetToken + "&pwd1=" + newPassword + "&pwd2=" + newPassword)
-		completeReq, _ := http.NewRequest("POST", "/v1/reset-password/complete", formData)
-		completeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		completeData := map[string]string{
+			"token": resetToken,
+			"pwd1":  newPassword,
+			"pwd2":  newPassword,
+		}
+		jsonData, _ := json.Marshal(completeData)
+		completeReq, _ := http.NewRequest("POST", "/v1/reset-password/complete", bytes.NewBuffer(jsonData))
+		completeReq.Header.Set("Content-Type", "application/json")
 		completeResp := httptest.NewRecorder()
 
 		router.ServeHTTP(completeResp, completeReq)
@@ -234,9 +247,13 @@ func TestForgotPassword_FullFlow(t *testing.T) {
 	// ==================== Step5: 使用新密码登录验证 ====================
 	// 验证密码重置成功后，新密码可以正常登录
 	t.Run("Step5_LoginWithNewPassword", func(t *testing.T) {
-		formData := strings.NewReader("phonenum=" + phoneNum + "&pwd=" + newPassword)
-		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"pwd":      newPassword,
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginResp := httptest.NewRecorder()
 
 		router.ServeHTTP(loginResp, loginReq)
@@ -287,9 +304,13 @@ func TestForgotPassword_FullFlow(t *testing.T) {
 	// ==================== Step6: 旧密码登录失败验证 ====================
 	// 验证密码重置成功后，旧密码不再有效
 	t.Run("Step6_OldPasswordLoginFailed", func(t *testing.T) {
-		formData := strings.NewReader("phonenum=" + phoneNum + "&pwd=" + password)
-		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"pwd":      password,
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/pwd", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginResp := httptest.NewRecorder()
 
 		router.ServeHTTP(loginResp, loginReq)
@@ -313,9 +334,14 @@ func TestForgotPassword_FullFlow(t *testing.T) {
 			t.Skip("No reset token generated in previous step")
 		}
 
-		formData := strings.NewReader("token=" + resetToken + "&pwd1=AnotherPass1&pwd2=AnotherPass1")
-		completeReq, _ := http.NewRequest("POST", "/v1/reset-password/complete", formData)
-		completeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		completeData := map[string]string{
+			"token": resetToken,
+			"pwd1":  "AnotherPass1",
+			"pwd2":  "AnotherPass1",
+		}
+		jsonData, _ := json.Marshal(completeData)
+		completeReq, _ := http.NewRequest("POST", "/v1/reset-password/complete", bytes.NewBuffer(jsonData))
+		completeReq.Header.Set("Content-Type", "application/json")
 		completeResp := httptest.NewRecorder()
 
 		router.ServeHTTP(completeResp, completeReq)

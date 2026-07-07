@@ -157,3 +157,14 @@ func AddVisitRecord(visitorID, targetID uint) error {
 	}
 	return config.DB.Create(&visit).Error
 }
+
+// RemoveFriend 删除好友
+// 参数说明：
+//   - userID: 用户数据库ID
+//   - targetID: 好友数据库ID
+//
+// 返回值：
+//   - error: 错误信息
+func RemoveFriend(userID, targetID uint) error {
+	return config.DB.Where("user_id = ? AND target_id = ?", userID, targetID).Delete(&model.UserFriend{}).Error
+}

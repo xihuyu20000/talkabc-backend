@@ -137,3 +137,64 @@ func GetMomentComments(momentID uint) ([]interface{}, error) {
 
 	return result, nil
 }
+
+func GetFollowingMoment(uid string) ([]UserMomentDTO, error) {
+	user, err := repository.GetUserByUID(uid)
+	if err != nil {
+		return nil, fmt.Errorf("用户不存在")
+	}
+
+	moments, err := repository.GetFollowingMoment(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []UserMomentDTO
+	for _, moment := range moments {
+		result = append(result, ConvertMomentToDTO(moment))
+	}
+
+	return result, nil
+}
+
+func GetMomentDetail(momentID uint) (*UserMomentDTO, error) {
+	moment, err := repository.GetMomentByID(momentID)
+	if err != nil {
+		return nil, fmt.Errorf("动态不存在")
+	}
+
+	result := ConvertMomentToDTO(*moment)
+	return &result, nil
+}
+
+func CancelPraiseMoment(userUID string, momentID uint) error {
+	user, err := repository.GetUserByUID(userUID)
+	if err != nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	err = repository.RemoveMomentPraise(user.ID, momentID)
+	if err != nil {
+		return err
+	}
+
+	return repository.UpdateMomentPraiseNum(momentID)
+}
+
+func DeleteMoment(userUID string, momentID uint) error {
+	user, err := repository.GetUserByUID(userUID)
+	if err != nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	return repository.DeleteMoment(user.ID, momentID)
+}
+
+func DeleteComment(userUID string, commentID uint) error {
+	user, err := repository.GetUserByUID(userUID)
+	if err != nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	return repository.DeleteMomentComment(user.ID, commentID)
+}

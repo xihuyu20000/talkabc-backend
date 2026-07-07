@@ -32,3 +32,17 @@ func AgreeFriendRequest(userUID, targetUID string, flag int) error {
 
 	return repository.AgreeFriendRequest(user.ID, target.ID, flag)
 }
+
+func RemoveFriend(uid, targetUID string) error {
+	user, err := repository.GetUserByUID(uid)
+	if err != nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	target, err := repository.GetUserByUID(targetUID)
+	if err != nil {
+		return fmt.Errorf("目标用户不存在")
+	}
+
+	return repository.RemoveFriend(user.ID, target.ID)
+}

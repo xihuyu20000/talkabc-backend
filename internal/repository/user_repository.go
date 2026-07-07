@@ -32,18 +32,21 @@ func GetUserByUID(uid string) (*model.User, error) {
 	return &user, err
 }
 
-// GetUserList 获取用户列表（支持筛选条件）
+// GetUserList 获取用户列表（支持筛选条件和分页）
 // 参数说明：
 //   - filters: 筛选条件映射
 //     - gender: 性别（0-未知，1-男，2-女），2表示不限
 //     - age: 年龄范围数组 [minAge, maxAge]
 //     - official: 是否官方认证，1表示官方账号
 //     - latest: 是否按最新排序，1表示按创建时间降序
+//     - page: 页码，默认1
+//     - size: 每页数量，默认20
 //
 // 返回值：
 //   - []model.User: 用户列表
+//   - int: 总记录数
 //   - error: 错误信息
-func GetUserList(filters map[string]interface{}) ([]model.User, error) {
+func GetUserList(filters map[string]interface{}) ([]model.User, int, error) {
 	var users []model.User
 	query := config.DB
 
@@ -68,8 +71,24 @@ func GetUserList(filters map[string]interface{}) ([]model.User, error) {
 		query = query.Order("created_at DESC")
 	}
 
-	err := query.Find(&users).Error
-	return users, err
+	var total int
+	err := query.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	page := 1
+	size := 20
+	if p, ok := filters["page"].(int); ok && p > 0 {
+		page = p
+	}
+	if s, ok := filters["size"].(int); ok && s > 0 {
+		size = s
+	}
+
+	offset := (page - 1) * size
+	err = query.Offset(offset).Limit(size).Find(&users).Error
+	return users, total, err
 }
 
 // GetFocusList 获取用户关注列表

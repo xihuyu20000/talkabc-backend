@@ -67,16 +67,32 @@ func ConvertUserToUserInfo(user model.User) UserInfo {
 	}
 }
 
-func GetUserList(options map[string]string) ([]UserInfo, error) {
+type UserListResponse struct {
+	Data  []UserInfo `json:"data"`
+	Total int        `json:"total"`
+	Page  int        `json:"page"`
+	Size  int        `json:"size"`
+}
+
+func GetUserList(options map[string]string) (*UserListResponse, error) {
 	filters := make(map[string]interface{})
+
+	page := 1
+	size := 20
 
 	for key, value := range options {
 		if v, err := strconv.Atoi(value); err == nil {
 			filters[key] = v
+			if key == "page" {
+				page = v
+			}
+			if key == "size" {
+				size = v
+			}
 		}
 	}
 
-	users, err := repository.GetUserList(filters)
+	users, total, err := repository.GetUserList(filters)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +102,12 @@ func GetUserList(options map[string]string) ([]UserInfo, error) {
 		result = append(result, ConvertUserToUserInfo(user))
 	}
 
-	return result, nil
+	return &UserListResponse{
+		Data:  result,
+		Total: total,
+		Page:  page,
+		Size:  size,
+	}, nil
 }
 
 func GetUserInfo(uid string) (*UserInfo, error) {

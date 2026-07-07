@@ -180,10 +180,11 @@ func TestSendSMSCode_SuccessRedisRecord(t *testing.T) {
 	router.GET("/v1/code/sms", handler.SendSMSCode)
 
 	phoneNum := "13800138000"
+	tag := "register"
 	
 	config.RDB.FlushDB(config.RDB.Context())
 	
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s&tag=%s", phoneNum, tag), nil)
 	resp := httptest.NewRecorder()
 
 	router.ServeHTTP(resp, req)
@@ -202,7 +203,7 @@ func TestSendSMSCode_SuccessRedisRecord(t *testing.T) {
 		t.Errorf("Expected code %d, got %d. Error: %s", response.Code0, result.Code, result.Msg)
 	}
 
-	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, "default")
+	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, tag)
 	code, err := config.RDB.Get(config.RDB.Context(), key).Result()
 	if err != nil {
 		t.Errorf("Failed to get verification code from Redis: %v", err)
@@ -259,10 +260,11 @@ func TestVerifySMSCode_Success(t *testing.T) {
 	router.POST("/v1/code/sms/verify", handler.VerifySMSCode)
 
 	phoneNum := "13800138001"
+	tag := "register"
 	
 	config.RDB.FlushDB(config.RDB.Context())
 	
-	getReq, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	getReq, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s&tag=%s", phoneNum, tag), nil)
 	getResp := httptest.NewRecorder()
 	router.ServeHTTP(getResp, getReq)
 
@@ -270,13 +272,13 @@ func TestVerifySMSCode_Success(t *testing.T) {
 		t.Fatalf("Expected status %d, got %d", http.StatusOK, getResp.Code)
 	}
 
-	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, "default")
+	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, tag)
 	storedCode, err := config.RDB.Get(config.RDB.Context(), key).Result()
 	if err != nil {
 		t.Fatalf("Failed to get verification code from Redis: %v", err)
 	}
 
-	body := fmt.Sprintf(`{"phonenum": "%s", "code": "%s"}`, phoneNum, storedCode)
+	body := fmt.Sprintf(`{"phonenum": "%s", "code": "%s", "tag": "%s"}`, phoneNum, storedCode, tag)
 	verifyReq, _ := http.NewRequest("POST", "/v1/code/sms/verify", bytes.NewBufferString(body))
 	verifyReq.Header.Set("Content-Type", "application/json")
 	verifyResp := httptest.NewRecorder()
@@ -299,10 +301,11 @@ func TestSendSMSCode_MockGateway_Success(t *testing.T) {
 	router.GET("/v1/code/sms", handler.SendSMSCode)
 
 	phoneNum := "13900139000"
+	tag := "register"
 
 	config.RDB.FlushDB(config.RDB.Context())
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s&tag=%s", phoneNum, tag), nil)
 	resp := httptest.NewRecorder()
 
 	router.ServeHTTP(resp, req)
@@ -331,7 +334,7 @@ func TestSendSMSCode_MockGateway_Success(t *testing.T) {
 		t.Errorf("Expected minutes '5', got '%s'", msg.Minutes)
 	}
 
-	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, "default")
+	key := fmt.Sprintf("verification_code:%s:%s:%s", phoneNum, repository.VerificationCodeTypeSMS, tag)
 	storedCode, err := config.RDB.Get(config.RDB.Context(), key).Result()
 	if err != nil {
 		t.Errorf("Failed to get verification code from Redis: %v", err)
@@ -357,10 +360,11 @@ func TestSendSMSCode_MockGateway_Failure(t *testing.T) {
 	router.GET("/v1/code/sms", handler.SendSMSCode)
 
 	phoneNum := "13900139001"
+	tag := "register"
 
 	config.RDB.FlushDB(config.RDB.Context())
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s&tag=%s", phoneNum, tag), nil)
 	resp := httptest.NewRecorder()
 
 	router.ServeHTTP(resp, req)
@@ -387,10 +391,11 @@ func TestSendSMSCode_MockGateway_Cooldown(t *testing.T) {
 	router.GET("/v1/code/sms", handler.SendSMSCode)
 
 	phoneNum := "13900139002"
+	tag := "register"
 
 	config.RDB.FlushDB(config.RDB.Context())
 
-	req1, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	req1, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s&tag=%s", phoneNum, tag), nil)
 	resp1 := httptest.NewRecorder()
 	router.ServeHTTP(resp1, req1)
 
@@ -400,7 +405,7 @@ func TestSendSMSCode_MockGateway_Cooldown(t *testing.T) {
 		t.Fatalf("First request should succeed. Status: %d, Error: %s", resp1.Code, result.Msg)
 	}
 
-	req2, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s", phoneNum), nil)
+	req2, _ := http.NewRequest("GET", fmt.Sprintf("/v1/code/sms?phonenum=%s&tag=%s", phoneNum, tag), nil)
 	resp2 := httptest.NewRecorder()
 	router.ServeHTTP(resp2, req2)
 

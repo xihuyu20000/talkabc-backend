@@ -147,3 +147,41 @@ func GetMomentComments(momentID uint) ([]model.MomentComment, error) {
 	err := config.DB.Where("moment_id = ?", momentID).Order("created_at DESC").Find(&comments).Error
 	return comments, err
 }
+
+// GetFollowingMoment 获取关注用户的动态列表
+// 参数说明：
+//   - userID: 用户数据库ID
+//
+// 返回值：
+//   - []model.UserMoment: 动态列表（按发布时间降序）
+//   - error: 错误信息
+func GetFollowingMoment(userID uint) ([]model.UserMoment, error) {
+	var focusIDs []uint
+	config.DB.Model(&model.UserFocus{}).Where("user_id = ?", userID).Pluck("target_id", &focusIDs)
+
+	var moments []model.UserMoment
+	err := config.DB.Where("user_id IN (?)", focusIDs).Order("pub_ts DESC").Limit(20).Find(&moments).Error
+	return moments, err
+}
+
+// DeleteMoment 删除动态
+// 参数说明：
+//   - userID: 用户数据库ID
+//   - momentID: 动态ID
+//
+// 返回值：
+//   - error: 错误信息
+func DeleteMoment(userID, momentID uint) error {
+	return config.DB.Where("id = ? AND user_id = ?", momentID, userID).Delete(&model.UserMoment{}).Error
+}
+
+// DeleteMomentComment 删除评论
+// 参数说明：
+//   - userID: 用户数据库ID
+//   - commentID: 评论ID
+//
+// 返回值：
+//   - error: 错误信息
+func DeleteMomentComment(userID, commentID uint) error {
+	return config.DB.Where("id = ? AND user_id = ?", commentID, userID).Delete(&model.MomentComment{}).Error
+}

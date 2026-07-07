@@ -38,20 +38,19 @@ import (
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
-// @Param phonenum formData string true "手机号"
-// @Param code formData string true "验证码"
-// @Param device_id formData string false "设备ID"
-// @Success 200 {object} map[string]interface{} "登录成功，返回access_token和refresh_token"
-// @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
-// @Failure 500 {object} map[string]interface{} "登录失败"
-// @Router /auth/login/code [post]
 func LoginByCode(c *gin.Context) {
-	phoneNum := c.PostForm("phonenum")
-	code := c.PostForm("code")
-	// 【登录安全规则4】获取设备ID（由客户端传递，用于设备黑名单校验）
-	deviceID := c.PostForm("device_id")
+	var req struct {
+		PhoneNum string `json:"phonenum" binding:"required"`
+		Code     string `json:"code" binding:"required"`
+		DeviceID string `json:"device_id"`
+	}
 
-	if phoneNum == "" || code == "" {
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	if req.PhoneNum == "" || req.Code == "" {
 		response.BadRequest(c, "手机号和验证码不能为空")
 		return
 	}
@@ -61,23 +60,23 @@ func LoginByCode(c *gin.Context) {
 	ua := c.GetHeader("User-Agent")
 
 	// 【登录安全规则】组装登录请求，包含IP、设备ID、UA用于安全校验和日志记录
-	req := service.LoginRequest{
-		PhoneNum: phoneNum,
-		Code:     code,
+	serviceReq := service.LoginRequest{
+		PhoneNum: req.PhoneNum,
+		Code:     req.Code,
 		IP:       clientIP,
-		DeviceID: deviceID,
+		DeviceID: req.DeviceID,
 		UA:       ua,
 	}
 
-	logger.Infof("[Handler] LoginByCode - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
+	logger.Infof("[Handler] LoginByCode - PhoneNum: %s, DeviceID: %s, IP: %s", serviceReq.PhoneNum, serviceReq.DeviceID, serviceReq.IP)
 
-	result, err := service.LoginByCode(req)
+	result, err := service.LoginByCode(serviceReq)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return
 	}
 
-	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken})
+	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken, "user": result.User})
 }
 
 // LoginByPassword 密码登录
@@ -98,19 +97,19 @@ func LoginByCode(c *gin.Context) {
 // @Accept application/json
 // @Produce application/json
 // @Param phonenum formData string true "手机号"
-// @Param pwd formData string true "密码"
-// @Param device_id formData string false "设备ID"
-// @Success 200 {object} map[string]interface{} "登录成功，返回access_token和refresh_token"
-// @Failure 400 {object} map[string]interface{} "请求参数错误或安全校验失败"
-// @Failure 500 {object} map[string]interface{} "登录失败"
-// @Router /auth/login/password [post]
 func LoginByPassword(c *gin.Context) {
-	phoneNum := c.PostForm("phonenum")
-	password := c.PostForm("pwd")
-	// 【登录安全规则4】获取设备ID（由客户端传递，用于设备黑名单校验）
-	deviceID := c.PostForm("device_id")
+	var req struct {
+		PhoneNum string `json:"phonenum" binding:"required"`
+		Password string `json:"pwd" binding:"required"`
+		DeviceID string `json:"device_id"`
+	}
 
-	if phoneNum == "" || password == "" {
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	if req.PhoneNum == "" || req.Password == "" {
 		response.BadRequest(c, "手机号和密码不能为空")
 		return
 	}
@@ -120,23 +119,23 @@ func LoginByPassword(c *gin.Context) {
 	ua := c.GetHeader("User-Agent")
 
 	// 【登录安全规则】组装登录请求，包含IP、设备ID、UA用于安全校验和日志记录
-	req := service.LoginRequest{
-		PhoneNum: phoneNum,
-		Password: password,
+	serviceReq := service.LoginRequest{
+		PhoneNum: req.PhoneNum,
+		Password: req.Password,
 		IP:       clientIP,
-		DeviceID: deviceID,
+		DeviceID: req.DeviceID,
 		UA:       ua,
 	}
 
-	logger.Infof("[Handler] LoginByPassword - PhoneNum: %s, DeviceID: %s, IP: %s", req.PhoneNum, req.DeviceID, req.IP)
+	logger.Infof("[Handler] LoginByPassword - PhoneNum: %s, DeviceID: %s, IP: %s", serviceReq.PhoneNum, serviceReq.DeviceID, serviceReq.IP)
 
-	result, err := service.LoginByPassword(req)
+	result, err := service.LoginByPassword(serviceReq)
 	if err != nil {
 		response.Error(c, 1, err.Error())
 		return
 	}
 
-	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken})
+	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken, "user": result.User})
 }
 
 // RefreshToken 刷新访问令牌
@@ -185,7 +184,7 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken})
+	response.Success(c, gin.H{"access_token": result.AccessToken, "refresh_token": result.RefreshToken, "user": result.User})
 }
 
 // Logout 退出登录

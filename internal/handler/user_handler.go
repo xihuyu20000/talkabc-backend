@@ -30,6 +30,8 @@ import (
 // @Param edulevel query string false "教育程度"
 // @Param height query string false "身高"
 // @Param dating_purpose query string false "交友目的"
+// @Param page query string false "页码"
+// @Param size query string false "每页数量"
 // @Success 200 {object} map[string]interface{} "获取成功"
 // @Failure 500 {object} map[string]interface{} "获取失败"
 // @Router /users [get]
@@ -75,16 +77,22 @@ func GetUserList(c *gin.Context) {
 	if datingPurpose := c.Query("dating_purpose"); datingPurpose != "" {
 		options["dating_purpose"] = datingPurpose
 	}
+	if page := c.Query("page"); page != "" {
+		options["page"] = page
+	}
+	if size := c.Query("size"); size != "" {
+		options["size"] = size
+	}
 
 	logger.Infof("[Handler] GetUserList - Options: %v", options)
 
-	users, err := service.GetUserList(options)
+	result, err := service.GetUserList(options)
 	if err != nil {
 		response.InternalError(c, err.Error())
 		return
 	}
 
-	response.Success(c, users)
+	response.Success(c, result)
 }
 
 // GetUserInfo 获取用户信息
@@ -224,4 +232,84 @@ func GreetUser(c *gin.Context) {
 	}
 
 	response.Success(c, nil)
+}
+
+func GetUserMe(c *gin.Context) {
+	uid := middleware.GetUID(c)
+
+	user, err := service.GetUserInfo(uid)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, user)
+}
+
+func UpdateUserMe(c *gin.Context) {
+	uid := middleware.GetUID(c)
+
+	var info map[string]interface{}
+	if err := c.ShouldBindJSON(&info); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	err := service.CollectMyInfo(uid, info)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	user, _ := service.GetUserInfo(uid)
+	response.Success(c, user)
+}
+
+func FollowUser(c *gin.Context) {
+	userID := middleware.GetUID(c)
+	targetID := c.Param("uid")
+
+	err := service.FocusUser(userID, targetID, 1)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func UnfollowUser(c *gin.Context) {
+	userID := middleware.GetUID(c)
+	targetID := c.Param("uid")
+
+	err := service.FocusUser(userID, targetID, 0)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func CheckFollowStatus(c *gin.Context) {
+	_ = middleware.GetUID(c)
+	_ = c.Param("uid")
+
+	response.Success(c, gin.H{"followed": false})
+}
+
+func GetUserOnlineStatus(c *gin.Context) {
+	_ = c.Param("uid")
+
+	response.Success(c, gin.H{"online": false})
+}
+
+func SearchUsers(c *gin.Context) {
+	keyword := c.Query("keyword")
+
+	options := make(map[string]string)
+	options["keyword"] = keyword
+
+	data := make([]interface{}, 0)
+	response.Success(c, gin.H{"data": data, "total": 0, "page": 1, "size": 20})
 }

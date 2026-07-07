@@ -160,3 +160,136 @@ func PublishMoment(c *gin.Context) {
 
 	response.Success(c, nil)
 }
+
+func GetFollowingMoment(c *gin.Context) {
+	uid := middleware.GetUID(c)
+
+	moments, err := service.GetFollowingMoment(uid)
+	if err != nil {
+		response.InternalError(c, err.Error())
+		return
+	}
+
+	response.Success(c, moments)
+}
+
+func GetMomentDetail(c *gin.Context) {
+	midStr := c.Param("mid")
+
+	mid, err := strconv.ParseUint(midStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "动态ID参数错误")
+		return
+	}
+
+	moment, err := service.GetMomentDetail(uint(mid))
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, moment)
+}
+
+func CommentMoment(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	midStr := c.Param("mid")
+
+	mid, err := strconv.ParseUint(midStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "动态ID参数错误")
+		return
+	}
+
+	var req struct {
+		Text string `json:"text"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	err = service.CommentMoment(uid, uint(mid), req.Text)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func PraiseMoment(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	midStr := c.Param("mid")
+
+	mid, err := strconv.ParseUint(midStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "动态ID参数错误")
+		return
+	}
+
+	err = service.PraiseMoment(uid, uint(mid))
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func CancelPraiseMoment(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	midStr := c.Param("mid")
+
+	mid, err := strconv.ParseUint(midStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "动态ID参数错误")
+		return
+	}
+
+	err = service.CancelPraiseMoment(uid, uint(mid))
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func DeleteMoment(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	midStr := c.Param("mid")
+
+	mid, err := strconv.ParseUint(midStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "动态ID参数错误")
+		return
+	}
+
+	err = service.DeleteMoment(uid, uint(mid))
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func DeleteComment(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	cidStr := c.Param("cid")
+
+	cid, err := strconv.ParseUint(cidStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "评论ID参数错误")
+		return
+	}
+
+	err = service.DeleteComment(uid, uint(cid))
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}

@@ -38,8 +38,9 @@ type LoginRequest struct {
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	AccessToken  string // 访问令牌
-	RefreshToken string // 刷新令牌
+	AccessToken  string   // 访问令牌
+	RefreshToken string   // 刷新令牌
+	User         UserInfo // 用户信息
 }
 
 // GenerateSMSCode 生成并发送短信验证码（带完整的频率限制和安全校验）
@@ -372,9 +373,12 @@ func Register(req RegisterRequest) (*LoginResponse, error) {
 	repository.SaveUserToken(user.Uid, accessToken)
 	repository.SaveRefreshToken(user.Uid, refreshToken)
 
+	userInfo := ConvertUserToUserInfo(*user)
+
 	return &LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		User:         userInfo,
 	}, nil
 }
 
@@ -480,9 +484,12 @@ func LoginByCode(req LoginRequest) (*LoginResponse, error) {
 	repository.SaveUserToken(user.Uid, accessToken)
 	repository.SaveRefreshToken(user.Uid, refreshToken)
 
+	userInfo := ConvertUserToUserInfo(*user)
+
 	return &LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		User:         userInfo,
 	}, nil
 }
 
@@ -582,9 +589,12 @@ func LoginByPassword(req LoginRequest) (*LoginResponse, error) {
 	repository.SaveUserToken(user.Uid, accessToken)
 	repository.SaveRefreshToken(user.Uid, refreshToken)
 
+	userInfo := ConvertUserToUserInfo(*user)
+
 	return &LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		User:         userInfo,
 	}, nil
 }
 
@@ -597,8 +607,9 @@ type RefreshTokenRequest struct {
 
 // RefreshTokenResponse 刷新令牌响应
 type RefreshTokenResponse struct {
-	AccessToken  string // 新的访问令牌
-	RefreshToken string // 新的刷新令牌
+	AccessToken  string   // 新的访问令牌
+	RefreshToken string   // 新的刷新令牌
+	User         UserInfo // 用户信息
 }
 
 // RefreshToken 刷新访问令牌
@@ -660,9 +671,12 @@ func RefreshToken(req RefreshTokenRequest) (*RefreshTokenResponse, error) {
 	// 【刷新令牌安全规则7】记录刷新操作日志（不可删除）
 	repository.LogOperation(user.ID, req.IP, req.UA, "refresh_token", true, "刷新令牌成功")
 
+	userInfo := ConvertUserToUserInfo(*user)
+
 	return &RefreshTokenResponse{
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
+		User:         userInfo,
 	}, nil
 }
 

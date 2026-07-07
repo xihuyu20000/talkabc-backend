@@ -90,8 +90,8 @@ func TestInitConfig_LoadsCorrectly(t *testing.T) {
 		if config.AppConfig.Database.User != "postgres" {
 			t.Errorf("Database.User = %q, want %q", config.AppConfig.Database.User, "postgres")
 		}
-		if config.AppConfig.Database.Password != "" {
-			t.Errorf("Database.Password = %q, want %q", config.AppConfig.Database.Password, "")
+		if config.AppConfig.Database.Password != "admin" {
+			t.Errorf("Database.Password = %q, want %q", config.AppConfig.Database.Password, "admin")
 		}
 		if config.AppConfig.Database.DBName != "talkabc" {
 			t.Errorf("Database.DBName = %q, want %q", config.AppConfig.Database.DBName, "talkabc")

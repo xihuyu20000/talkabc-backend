@@ -4,6 +4,7 @@ import (
 	"backend/internal/config"
 	"backend/internal/handler"
 	"backend/internal/middleware"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -39,7 +40,7 @@ func TestRefreshToken_FullFlow(t *testing.T) {
 	})
 	protected.POST("/logout", handler.Logout)
 
-	phoneNum := "13900139007"
+	phoneNum := "13900139020"
 	password := "Test@1234"
 
 	config.RDB.FlushDB(config.RDB.Context())
@@ -62,9 +63,14 @@ func TestRefreshToken_FullFlow(t *testing.T) {
 		}
 		code := sentMsgs[0].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=" + password)
-		registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-		registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		registerData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+			"password": password,
+		}
+		jsonData, _ := json.Marshal(registerData)
+		registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 		router.ServeHTTP(registerResp, registerReq)
 		if registerResp.Code != http.StatusOK {
@@ -91,9 +97,13 @@ func TestRefreshToken_FullFlow(t *testing.T) {
 		}
 		code := sentMsgs[1].Code
 
-		formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code)
-		loginReq, _ := http.NewRequest("POST", "/v1/login/code", formData)
-		loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		loginData := map[string]string{
+			"phonenum": phoneNum,
+			"code":     code,
+		}
+		jsonData, _ := json.Marshal(loginData)
+		loginReq, _ := http.NewRequest("POST", "/v1/login/code", bytes.NewBuffer(jsonData))
+		loginReq.Header.Set("Content-Type", "application/json")
 		loginResp := httptest.NewRecorder()
 		router.ServeHTTP(loginResp, loginReq)
 		if loginResp.Code != http.StatusOK {
@@ -290,7 +300,7 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 	protected := router.Group("/v1/", middleware.JWT())
 	protected.POST("/logout", handler.Logout)
 
-	phoneNum := "13900139008"
+	phoneNum := "13900139021"
 
 	config.RDB.FlushDB(config.RDB.Context())
 	mockSMSGateway.ClearSentMessages()
@@ -303,9 +313,14 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 	config.RDB.Del(config.RDB.Context(), "sms_cooldown:"+phoneNum)
 	code := mockSMSGateway.GetSentMessages()[0].Code
 
-	formData := strings.NewReader("phonenum=" + phoneNum + "&code=" + code + "&password=Test@1234")
-	registerReq, _ := http.NewRequest("POST", "/v1/register", formData)
-	registerReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	registerData := map[string]string{
+		"phonenum": phoneNum,
+		"code":     code,
+		"password": "Test@1234",
+	}
+	jsonData, _ := json.Marshal(registerData)
+	registerReq, _ := http.NewRequest("POST", "/v1/register", bytes.NewBuffer(jsonData))
+	registerReq.Header.Set("Content-Type", "application/json")
 	registerResp := httptest.NewRecorder()
 	router.ServeHTTP(registerResp, registerReq)
 

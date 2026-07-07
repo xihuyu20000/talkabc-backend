@@ -241,3 +241,97 @@ func GetLatestAdBanner(c *gin.Context) {
 
 	response.Success(c, banners)
 }
+
+func SendUserMessage(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	targetID := c.Param("uid")
+
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误")
+		return
+	}
+
+	err := service.SendUserMessage(uid, targetID, req.Content)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func MarkMessagesRead(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	targetID := c.Param("uid")
+
+	err := service.MarkMessagesRead(uid, targetID)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func DeleteMessage(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	msgID := c.Param("msgid")
+
+	err := service.DeleteMessage(uid, msgID)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func RecallMessage(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	msgID := c.Param("msgid")
+
+	err := service.RecallMessage(uid, msgID)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func GetFriendRequests(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	data := make([]interface{}, 0)
+	response.Success(c, gin.H{"data": data, "total": 0, "page": 1, "size": 20})
+}
+
+func GetFriendList(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	data := make([]interface{}, 0)
+	response.Success(c, gin.H{"data": data, "total": 0, "page": 1, "size": 20})
+}
+
+func DeleteFriend(c *gin.Context) {
+	uid := middleware.GetUID(c)
+	targetID := c.Param("uid")
+
+	err := service.RemoveFriend(uid, targetID)
+	if err != nil {
+		response.Error(c, 1, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+func GetGiftList(c *gin.Context) {
+	_ = middleware.GetUID(c)
+
+	data := make([]interface{}, 0)
+	response.Success(c, data)
+}
