@@ -202,9 +202,10 @@ paths:
         in: query
         name: captcha_code
         type: string
-      - description: 业务标签（如register、login，默认default）
+      - description: 业务标签，允许的值：register(注册)、login(登录)、change_phone(更换手机号)、reset_password(重置密码)
         in: query
         name: tag
+        required: true
         type: string
       produces:
       - application/json
@@ -239,7 +240,7 @@ paths:
         - 一次性使用：无论验证是否成功，验证码都会被删除
         - 业务隔离：不同业务类型的验证码独立验证（通过tag区分）
       parameters:
-      - description: 包含phonenum、code、tag
+      - description: 包含phonenum(手机号)、code(验证码)、tag(业务标签，允许的值：register、login、change_phone、reset_password)
         in: body
         name: body
         required: true

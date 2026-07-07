@@ -68,8 +68,21 @@ func GenerateSMSCode(req GenerateSMSCodeRequest) error {
 	}
 
 	if req.Tag == "" {
-		req.Tag = "default"
-		logger.Debugf("[SMS] GenerateSMSCode - Tag empty, set to default")
+		logger.Debugf("[SMS] GenerateSMSCode failed - Tag is empty")
+		return fmt.Errorf("业务标签(tag)不能为空")
+	}
+
+	allowedTags := []string{"register", "login", "change_phone", "reset_password"}
+	isValidTag := false
+	for _, t := range allowedTags {
+		if req.Tag == t {
+			isValidTag = true
+			break
+		}
+	}
+	if !isValidTag {
+		logger.Debugf("[SMS] GenerateSMSCode failed - Invalid tag: %s", req.Tag)
+		return fmt.Errorf("无效的业务标签(tag)，允许的值：register、login、change_phone、reset_password")
 	}
 
 	cooldownResult := repository.CheckSMSCooldown(req.PhoneNum)
@@ -182,9 +195,20 @@ func verifyCaptcha(captchaID, code string) error {
 //   1. 使用Lua脚本原子验证并删除验证码
 //   2. 无论验证是否成功，验证码都会被删除（防止暴力攻击）
 func VerifySMSCode(phoneNum, code, tag string) error {
-	// 【功能10】默认业务标签为default
 	if tag == "" {
-		tag = "default"
+		return fmt.Errorf("业务标签(tag)不能为空")
+	}
+
+	allowedTags := []string{"register", "login", "change_phone", "reset_password"}
+	isValidTag := false
+	for _, t := range allowedTags {
+		if tag == t {
+			isValidTag = true
+			break
+		}
+	}
+	if !isValidTag {
+		return fmt.Errorf("无效的业务标签(tag)，允许的值：register、login、change_phone、reset_password")
 	}
 
 	// 【功能5】使用Lua脚本实现验证码的原子验证和删除，保证一次性使用

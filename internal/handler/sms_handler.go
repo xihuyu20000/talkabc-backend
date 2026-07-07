@@ -46,7 +46,7 @@ import (
 // @Param phonenum query string true "手机号"
 // @Param captcha_id query string false "图形验证码ID（非每日首次发送时必填）"
 // @Param captcha_code query string false "图形验证码（非每日首次发送时必填）"
-// @Param tag query string false "业务标签（如register、login，默认default）"
+// @Param tag query string true "业务标签，允许的值：register(注册)、login(登录)、change_phone(更换手机号)、reset_password(重置密码)"
 // @Success 200 {object} map[string]interface{} "发送成功"
 // @Failure 400 {object} map[string]interface{} "请求参数错误或验证失败"
 // @Failure 500 {object} map[string]interface{} "发送失败"
@@ -84,7 +84,7 @@ func SendSMSCode(c *gin.Context) {
 // @Tags 认证
 // @Accept application/json
 // @Produce application/json
-// @Param body body map[string]string true "包含phonenum、code、tag"
+// @Param body body map[string]string true "包含phonenum(手机号)、code(验证码)、tag(业务标签，允许的值：register、login、change_phone、reset_password)"
 // @Success 200 {object} map[string]interface{} "验证成功"
 // @Failure 400 {object} map[string]interface{} "参数错误或验证码不正确"
 // @Router /auth/code-sms/verify [post]

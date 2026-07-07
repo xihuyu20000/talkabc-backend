@@ -240,9 +240,10 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "业务标签（如register、login，默认default）",
+                        "description": "业务标签，允许的值：register(注册)、login(登录)、change_phone(更换手机号)、reset_password(重置密码)",
                         "name": "tag",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -285,7 +286,7 @@ const docTemplate = `{
                 "summary": "验证短信验证码",
                 "parameters": [
                     {
-                        "description": "包含phonenum、code、tag",
+                        "description": "包含phonenum(手机号)、code(验证码)、tag(业务标签，允许的值：register、login、change_phone、reset_password)",
                         "name": "body",
                         "in": "body",
                         "required": true,
